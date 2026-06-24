@@ -281,6 +281,7 @@ export default function DataTable<T extends object>({
                   <TableCell
                     key={column.key}
                     isHeader
+                    style={{ width: column.width }}
                     className={`px-5 py-3 text-theme-xs font-semibold text-white ${
                       alignClasses[column.align ?? "left"]
                     } ${column.headerClassName ?? ""}`}
@@ -355,6 +356,7 @@ export default function DataTable<T extends object>({
                       return (
                         <TableCell
                           key={column.key}
+                          style={{ width: column.width }}
                           className={`px-5 py-4 text-theme-sm text-gray-700 dark:text-gray-300 ${
                             alignClasses[column.align ?? "left"]
                           } ${column.className ?? ""}`}

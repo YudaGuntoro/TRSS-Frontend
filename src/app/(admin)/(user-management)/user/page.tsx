@@ -3,14 +3,14 @@ import UserTable from "@/components/user/UserTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Users | PT TRSS",
-  description: "User management",
+  title: "Users & Roles | PT TRSS",
+  description: "User and role management",
 };
 
 export default function UserPage() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Users" />
+      <PageBreadcrumb pageTitle="Users & Roles" />
       <UserTable />
     </div>
   );

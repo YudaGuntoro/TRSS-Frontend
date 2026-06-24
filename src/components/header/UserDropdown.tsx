@@ -3,92 +3,8 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-
-type AuthUser = {
-  username: string;
-  role: string;
-};
-
-const AUTH_COOKIE_NAMES = ["token", "accessToken", "authToken"];
-const USERNAME_CLAIM_KEYS = [
-  "username",
-  "unique_name",
-  "preferred_username",
-  "name",
-  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-  "sub",
-];
-const ROLE_CLAIM_KEYS = [
-  "role",
-  "roles",
-  "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
-];
-
-const getCookie = (name: string) => {
-  if (typeof document === "undefined") {
-    return null;
-  }
-
-  const cookie = document.cookie
-    .split("; ")
-    .find((item) => item.startsWith(`${name}=`));
-
-  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
-};
-
-const getAuthToken = () => {
-  for (const cookieName of AUTH_COOKIE_NAMES) {
-    const token = getCookie(cookieName);
-
-    if (token) {
-      return token;
-    }
-  }
-
-  return null;
-};
-
-const decodeJwtPayload = (token: string) => {
-  try {
-    const payload = token.split(".")[1];
-
-    if (!payload) {
-      return null;
-    }
-
-    const normalizedPayload = payload
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(payload.length / 4) * 4, "=");
-
-    return JSON.parse(atob(normalizedPayload)) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-};
-
-const getStringClaim = (
-  claims: Record<string, unknown> | null,
-  keys: string[]
-) => {
-  if (!claims) {
-    return "";
-  }
-
-  for (const key of keys) {
-    const value = claims[key];
-
-    if (typeof value === "string" && value) {
-      return value;
-    }
-
-    if (Array.isArray(value) && typeof value[0] === "string") {
-      return value[0];
-    }
-  }
-
-  return "";
-};
+import { useAuth } from "@/context/AuthContext";
+import { clearAuthSession } from "@/utils/auth";
 
 const formatRole = (role: string) => {
   if (!role) {
@@ -98,32 +14,9 @@ const formatRole = (role: string) => {
   return role.charAt(0).toUpperCase() + role.slice(1);
 };
 
-const getAuthUser = (): AuthUser => {
-  const claims = decodeJwtPayload(getAuthToken() ?? "");
-  const storedUsername =
-    typeof window === "undefined"
-      ? ""
-      : localStorage.getItem("authUsername") ?? "";
-  const username =
-    getStringClaim(claims, USERNAME_CLAIM_KEYS) || storedUsername || "User";
-  const role = getStringClaim(claims, ROLE_CLAIM_KEYS);
-
-  return {
-    role,
-    username,
-  };
-};
-
-const clearAuthSession = () => {
-  AUTH_COOKIE_NAMES.forEach((cookieName) => {
-    document.cookie = `${cookieName}=; path=/; max-age=0; SameSite=Lax`;
-  });
-  localStorage.removeItem("authUsername");
-};
-
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [authUser] = useState<AuthUser>(() => getAuthUser());
+  const { user } = useAuth();
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     e.stopPropagation();
@@ -176,10 +69,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-300">
-            {authUser.username}
+            {user?.username ?? "User"}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            {formatRole(authUser.role)}
+            {formatRole(user?.role ?? "")}
           </span>
         </div>
 

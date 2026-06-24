@@ -35,6 +35,7 @@ const initialFormData: UserFormData = {
 const roleOptions = [
   { label: "Admin", value: "admin" },
   { label: "User", value: "user" },
+  { label: "Guest", value: "guest" },
 ];
 
 const getErrorMessage = (error: unknown, fallback: string) =>

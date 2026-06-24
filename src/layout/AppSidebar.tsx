@@ -9,14 +9,26 @@ import {
   HorizontaLDots,
 } from "../icons/index";
 import { NavItem, navItems } from "./navItems";
+import { useAuth } from "@/context/AuthContext";
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { can } = useAuth();
   const pathname = usePathname();
   const isActive = (path: string) => path === pathname;
   const canShowSubmenu = isExpanded || isHovered || isMobileOpen;
+  const visibleNavItems = navItems
+    .map((nav) => ({
+      ...nav,
+      subItems: nav.subItems?.filter((subItem) => can(subItem.permission)),
+    }))
+    .filter((nav) =>
+      nav.subItems
+        ? nav.subItems.length > 0
+        : Boolean(nav.permission && can(nav.permission))
+    );
   const activeSubmenuName =
-    navItems.find((nav) =>
+    visibleNavItems.find((nav) =>
       nav.subItems?.some((subItem) => subItem.path === pathname)
     )?.name ?? null;
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(
@@ -180,7 +192,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(navItems)}
+              {renderMenuItems(visibleNavItems)}
             </div>
           </div>
         </nav>

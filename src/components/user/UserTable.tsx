@@ -14,6 +14,7 @@ import UserModal from "./UserModal";
 const roleOptions = [
   { label: "Admin", value: "admin" },
   { label: "User", value: "user" },
+  { label: "Guest", value: "guest" },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {

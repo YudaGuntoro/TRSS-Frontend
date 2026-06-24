@@ -10,6 +10,8 @@ import { PencilIcon, TrashBinIcon } from "@/icons";
 import { ConfirmModal } from "@/components/ui/modal";
 import StockInModal from "./StockInModal";
 import DatePicker from "@/components/form/date-picker";
+import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS } from "@/utils/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -33,7 +35,11 @@ const filterInputClassName =
 
 export default function StockInTable() {
   const toast = useToast();
+  const { can } = useAuth();
   const lastErrorRef = useRef<string | null>(null);
+  const canCreate = can(PERMISSIONS.STOCK_IN_CREATE);
+  const canEdit = can(PERMISSIONS.STOCK_IN_EDIT);
+  const canDelete = can(PERMISSIONS.STOCK_IN_DELETE);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStockIn, setSelectedStockIn] = useState<StockIn | null>(null);
@@ -157,31 +163,41 @@ export default function StockInTable() {
           </div>
         ),
       },
-      {
-        key: "action",
-        header: "Action",
-        align: "center",
-        render: (_, row) => (
-          <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={() => handleUpdate(row)}
-              className="text-warning-500 hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500 transition-colors"
-              title="Edit"
-            >
-              <PencilIcon className="w-5 h-5 fill-current" />
-            </button>
-            <button
-              onClick={() => handleDeleteClick(row)}
-              className="text-error-500 hover:text-error-600 dark:text-error-400 dark:hover:text-error-500 transition-colors"
-              title="Delete"
-            >
-              <TrashBinIcon className="w-5 h-5 fill-current" />
-            </button>
-          </div>
-        ),
-      },
+      ...(canEdit || canDelete
+        ? [
+            {
+              key: "action",
+              header: "Action",
+              align: "center" as const,
+              render: (_: unknown, row: StockIn) => (
+                <div className="flex items-center justify-center gap-3">
+                  {canEdit && (
+                    <button
+                      onClick={() => handleUpdate(row)}
+                      className="text-warning-500 hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500 transition-colors"
+                      title="Edit"
+                      type="button"
+                    >
+                      <PencilIcon className="w-5 h-5 fill-current" />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteClick(row)}
+                      className="text-error-500 hover:text-error-600 dark:text-error-400 dark:hover:text-error-500 transition-colors"
+                      title="Delete"
+                      type="button"
+                    >
+                      <TrashBinIcon className="w-5 h-5 fill-current" />
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]
+        : []),
     ],
-    []
+    [canDelete, canEdit]
   );
 
   return (
@@ -225,7 +241,7 @@ export default function StockInTable() {
               onChange={(e) => setQuery({ partNumber: e.target.value })}
             />
 
-            <CreateButton onClick={handleCreate} />
+            {canCreate && <CreateButton onClick={handleCreate} />}
           </div>
         }
         columns={columns}
@@ -240,23 +256,27 @@ export default function StockInTable() {
         rowKey="id"
       />
 
-      <StockInModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={refetch}
-        stockIn={selectedStockIn}
-      />
+      {(canCreate || canEdit) && (
+        <StockInModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={refetch}
+          stockIn={selectedStockIn}
+        />
+      )}
 
-      <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
-        title="Delete Stock In"
-        message={`Are you sure you want to delete stock in record "${stockInToDelete?.code}"?`}
-        confirmText="Delete"
-        isDestructive={true}
-        isLoading={isDeleting}
-      />
+      {canDelete && (
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Stock In"
+          message={`Are you sure you want to delete stock in record "${stockInToDelete?.code}"?`}
+          confirmText="Delete"
+          isDestructive={true}
+          isLoading={isDeleting}
+        />
+      )}
     </>
   );
 }

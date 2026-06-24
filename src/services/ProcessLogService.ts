@@ -1,13 +1,26 @@
 import api, { ApiRequestOptions } from "@/utils/api";
 import { ApiListResponse } from "./ParameterService";
 
-export type ProcessLogDetail = Record<string, unknown>;
+export type ProcessLogParameter = {
+  parameterId: number;
+  parameterName?: string;
+  dataType?: "boolean" | "number" | "text" | string;
+  values: unknown[];
+};
+
+export type ProcessLogDetail = {
+  processName?: string;
+  parameters: ProcessLogParameter[];
+};
 
 export type ProcessLog = {
   id: number;
   issueNo: string;
+  partNumber?: string;
+  partName?: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
   details: ProcessLogDetail[];
 };
 

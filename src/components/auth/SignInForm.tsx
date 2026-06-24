@@ -9,6 +9,7 @@ import { ApiError } from "@/utils/api";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 const AUTH_TOKEN_KEYS = ["token", "accessToken", "authToken", "jwt"];
 
@@ -71,6 +72,7 @@ const getLoginErrorMessage = (error: unknown) => {
 export default function SignInForm() {
   const router = useRouter();
   const toast = useToast();
+  const { refreshAuth } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -101,6 +103,7 @@ export default function SignInForm() {
         saveAuthToken(token);
       }
       saveAuthUsername(username.trim());
+      refreshAuth();
 
       toast.success({
         message: "Login berhasil.",

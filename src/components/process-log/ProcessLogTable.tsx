@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import Badge from "@/components/ui/badge/Badge";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import { useProcessLogs } from "@/hooks/useProcessLogs";
 import { ProcessLog } from "@/services/ProcessLogService";
 import { useToast } from "@/context/ToastContext";
-import { ArrowUpIcon } from "@/icons";
+import { ArrowUpIcon, EyeIcon } from "@/icons";
+import { useRouter } from "next/navigation";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -31,6 +31,7 @@ const filterInputClassName =
 
 export default function ProcessLogTable() {
   const toast = useToast();
+  const router = useRouter();
   const lastErrorRef = useRef<string | null>(null);
 
   const {
@@ -69,36 +70,34 @@ export default function ProcessLogTable() {
   const columns = useMemo<DataTableColumn<ProcessLog>[]>(
     () => [
       {
-        key: "id",
-        header: "ID",
-        align: "right",
-      },
-      {
         key: "issueNo",
         header: "Issue No",
-      },
-      {
-        key: "isActive",
-        header: "Status",
-        render: (value) => (
-          <Badge color={value ? "success" : "error"} size="sm">
-            {value ? "Active" : "Inactive"}
-          </Badge>
-        ),
+        width: "33.333%",
       },
       {
         key: "createdAt",
         header: "Created At",
+        width: "33.333%",
         render: (value) => (typeof value === "string" ? formatDate(value) : "-"),
       },
       {
-        key: "details",
-        header: "Details",
-        align: "right",
-        render: (_, row) => row.details.length,
+        key: "action",
+        header: "Action",
+        align: "center",
+        width: "33.333%",
+        render: (_, row) => (
+          <button
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-brand-600 focus:outline-none focus:ring-3 focus:ring-brand-500/25"
+            onClick={() => router.push(`/process-log/${row.id}`)}
+            type="button"
+          >
+            <EyeIcon className="size-4 fill-current" />
+            Details
+          </button>
+        ),
       },
     ],
-    []
+    [router]
   );
 
   return (
