@@ -44,6 +44,12 @@ const baseColumns: DataTableColumn<Process>[] = [
     sortable: true,
   },
   {
+    key: "order",
+    header: "Order",
+    align: "right",
+    sortable: true,
+  },
+  {
     key: "description",
     header: "Description",
     className: "min-w-72",
@@ -242,7 +248,7 @@ export default function ProcessTable() {
         emptyMessage="No processes found"
         error={error}
         isLoading={isLoading}
-        minWidth="1120px"
+        minWidth="1180px"
         onLimitChange={setLimit}
         onPageChange={setPage}
         onSearchChange={setSearch}

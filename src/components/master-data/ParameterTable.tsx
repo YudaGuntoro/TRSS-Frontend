@@ -44,6 +44,12 @@ const baseColumns: DataTableColumn<Parameter>[] = [
     sortable: true,
   },
   {
+    key: "order",
+    header: "Order",
+    align: "right",
+    sortable: true,
+  },
+  {
     key: "description",
     header: "Description",
     className: "min-w-72",
@@ -205,7 +211,7 @@ export default function ParameterTable() {
         emptyMessage="No parameters found"
         error={error}
         isLoading={isLoading}
-        minWidth="980px"
+        minWidth="1040px"
         onLimitChange={setLimit}
         onPageChange={setPage}
         onSearchChange={setSearch}

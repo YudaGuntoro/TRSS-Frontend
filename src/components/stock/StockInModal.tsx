@@ -171,6 +171,7 @@ export default function StockInModal({
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: parts, isLoading: isLoadingParts } = useParts({ limit: 1000 });
+  const isEditing = Boolean(stockIn);
 
   const [formData, setFormData] = useState({
     partId: 0,
@@ -206,6 +207,7 @@ export default function StockInModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+    if (isEditing && name === "receiptQty") return;
     
     setFormData((prev) => ({
       ...prev,
@@ -223,7 +225,10 @@ export default function StockInModal({
     setIsSubmitting(true);
     try {
       if (stockIn) {
-        await StockInService.updateStockIn(stockIn.id, formData);
+        await StockInService.updateStockIn(stockIn.id, {
+          ...formData,
+          receiptQty: stockIn.receiptQty,
+        });
         toast.success({
           title: "Success",
           message: "Stock in record updated successfully",
@@ -301,7 +306,9 @@ export default function StockInModal({
               onChange={handleChange}
               required
               min={0}
-              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              disabled={isEditing}
+              aria-readonly={isEditing}
+              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:disabled:border-gray-700 dark:disabled:bg-gray-800 dark:disabled:text-gray-400"
             />
           </div>
         </div>

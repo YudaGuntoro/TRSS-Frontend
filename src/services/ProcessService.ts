@@ -19,6 +19,7 @@ export type ProcessParameter = {
   code: string;
   name: string;
   description: string;
+  order: number;
   dataType: string;
   isActive: boolean;
   createdAt: string;
@@ -30,6 +31,7 @@ export type Process = {
   code: string;
   name: string;
   description: string;
+  order: number;
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -38,7 +40,7 @@ export type Process = {
 
 export type ProcessPayload = Pick<
   Process,
-  "code" | "name" | "description" | "isActive"
+  "code" | "name" | "description" | "order" | "isActive"
 > & {
   parameterIds: number[];
 };

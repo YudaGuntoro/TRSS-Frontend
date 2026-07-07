@@ -22,6 +22,7 @@ const initialFormData: ProcessFormData = {
   code: "",
   name: "",
   description: "",
+  order: 0,
   isActive: true,
   parameterIds: [],
 };
@@ -52,6 +53,7 @@ export default function ProcessModal({
         code: process.code || "",
         name: process.name || "",
         description: process.description || "",
+        order: process.order ?? 0,
         isActive: process.isActive ?? true,
         parameterIds: process.parameters?.map((parameter) => parameter.id) ?? [],
       });
@@ -116,7 +118,12 @@ export default function ProcessModal({
 
     setFormData((current) => ({
       ...current,
-      [name]: type === "checkbox" ? checked : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "number"
+          ? Number(value)
+          : value,
     }));
   };
 
@@ -215,6 +222,22 @@ export default function ProcessModal({
             rows={3}
             className="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
             placeholder="Enter process description"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Order
+          </label>
+          <input
+            type="number"
+            name="order"
+            value={formData.order}
+            onChange={handleChange}
+            min={0}
+            required
+            className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            placeholder="Enter process order"
           />
         </div>
 

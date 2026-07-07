@@ -8,6 +8,9 @@ import { useToast } from "@/context/ToastContext";
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
+const normalizeDataType = (dataType?: string) =>
+  dataType === "string" ? "text" : dataType || "text";
+
 interface ParameterModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,7 +31,8 @@ export default function ParameterModal({
     code: "",
     name: "",
     description: "",
-    dataType: "string",
+    dataType: "text",
+    order: 0,
     isActive: true,
   });
 
@@ -40,7 +44,8 @@ export default function ParameterModal({
           code: parameter.code || "",
           name: parameter.name || "",
           description: parameter.description || "",
-          dataType: parameter.dataType || "string",
+          dataType: normalizeDataType(parameter.dataType),
+          order: parameter.order ?? 0,
           isActive: parameter.isActive ?? true,
         });
       } else {
@@ -48,7 +53,8 @@ export default function ParameterModal({
           code: "",
           name: "",
           description: "",
-          dataType: "string",
+          dataType: "text",
+          order: 0,
           isActive: true,
         });
       }
@@ -63,7 +69,12 @@ export default function ParameterModal({
 
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "number"
+          ? Number(value)
+          : value,
     }));
   };
 
@@ -163,11 +174,26 @@ export default function ParameterModal({
             onChange={handleChange}
             className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
           >
-            <option value="string">String</option>
+            <option value="text">Text</option>
             <option value="number">Number</option>
             <option value="boolean">Boolean</option>
-            <option value="date">Date</option>
           </select>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Order
+          </label>
+          <input
+            type="number"
+            name="order"
+            value={formData.order}
+            onChange={handleChange}
+            min={0}
+            required
+            className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            placeholder="Enter parameter order"
+          />
         </div>
 
         <div className="flex items-center gap-2">

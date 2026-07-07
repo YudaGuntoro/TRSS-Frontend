@@ -40,13 +40,15 @@ const normalizeQuery = (query: ProcessLogQuery) => ({
   isActive: query.isActive ?? undefined,
 });
 
+const PROCESS_LOG_ENDPOINT = "/api/process-logs";
+
 const ProcessLogService = {
   getProcessLogs: async (
     query: ProcessLogQuery = {},
     options?: ApiRequestOptions
   ) => {
     const response = await api.get<ApiListResponse<ProcessLog>>(
-      "/api/processlogs",
+      PROCESS_LOG_ENDPOINT,
       {
         ...options,
         params: normalizeQuery(query),
@@ -61,7 +63,7 @@ const ProcessLogService = {
       success: boolean;
       message: string;
       data: ProcessLog;
-    }>(`/api/processlogs/${id}`, options);
+    }>(`${PROCESS_LOG_ENDPOINT}/${id}`, options);
 
     return response.data;
   },

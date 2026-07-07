@@ -20,6 +20,7 @@ export type Parameter = {
   name: string;
   description: string;
   dataType: string;
+  order: number;
   isActive: boolean;
   createdAt: string;
 };
