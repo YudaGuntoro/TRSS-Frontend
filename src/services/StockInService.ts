@@ -43,7 +43,7 @@ const StockInService = {
     query: StockInQuery = {},
     options?: ApiRequestOptions
   ) => {
-    const response = await api.get<ApiListResponse<StockIn>>("/api/stockins", {
+    const response = await api.get<ApiListResponse<StockIn>>("/api/stock-ins", {
       ...options,
       params: query,
     });
@@ -56,13 +56,13 @@ const StockInService = {
       success: boolean;
       message: string;
       data: StockIn;
-    }>("/api/stockins", data, options);
+    }>("/api/stock-ins", data, options);
     return response.data;
   },
 
   deleteStockIn: async (id: number, options?: ApiRequestOptions) => {
     const response = await api.delete<{ success: boolean; message: string }>(
-      `/api/stockins/${id}`,
+      `/api/stock-ins/${id}`,
       options
     );
     return response.data;
@@ -77,7 +77,7 @@ const StockInService = {
       success: boolean;
       message: string;
       data: StockIn;
-    }>(`/api/stockins/${id}`, data, options);
+    }>(`/api/stock-ins/${id}`, data, options);
     return response.data;
   },
 };

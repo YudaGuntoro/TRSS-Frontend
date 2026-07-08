@@ -53,6 +53,84 @@ type ApiDataResponse<T> = {
   data: T;
 };
 
+type BackendProcessLogParameter = {
+  parameterCode?: string;
+  parameterName?: string;
+  status?: boolean;
+  value?: string | number | boolean | null;
+};
+
+type BackendProcessLogProcess = {
+  parameters?: BackendProcessLogParameter[];
+  processCode?: string;
+  processName?: string;
+  result?: boolean;
+};
+
+type BackendProcessLogIssue = {
+  issueNumber?: string;
+  partName?: string;
+  partNumber?: string;
+};
+
+type BackendProcessLog = {
+  createdAt: string;
+  id: number;
+  isActive: boolean;
+  issues?: BackendProcessLogIssue[];
+  processes?: BackendProcessLogProcess[];
+  serialNumberCode?: string;
+  updatedAt?: string;
+};
+
+const normalizeLogValue = (value: BackendProcessLogParameter["value"]) => {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  return value;
+};
+
+const getValueDataType = (value: string | number | boolean) => {
+  if (typeof value === "boolean") {
+    return "boolean";
+  }
+
+  if (typeof value === "number") {
+    return "number";
+  }
+
+  return "text";
+};
+
+const mapRecentLog = (log: BackendProcessLog): DashboardRecentLog => {
+  const firstIssue = log.issues?.[0];
+
+  return {
+    id: log.id,
+    issueNo: firstIssue?.issueNumber ?? log.serialNumberCode ?? "-",
+    partName: firstIssue?.partName,
+    partNumber: firstIssue?.partNumber,
+    isActive: log.isActive,
+    createdAt: log.createdAt,
+    updatedAt: log.updatedAt,
+    details: (log.processes ?? []).map((process) => ({
+      processName: process.processName ?? process.processCode ?? "-",
+      parameters: (process.parameters ?? []).map((parameter, index) => {
+        const value = normalizeLogValue(parameter.value);
+
+        return {
+          parameterId: index,
+          parameterName:
+            parameter.parameterName ?? parameter.parameterCode ?? "-",
+          dataType: getValueDataType(value),
+          values: [value],
+        };
+      }),
+    })),
+  };
+};
+
 const DashboardService = {
   getSummary: async (options?: ApiRequestOptions) => {
     const response = await api.get<ApiDataResponse<DashboardSummary>>(
@@ -73,7 +151,7 @@ const DashboardService = {
   },
 
   getRecentLogs: async (count = 10, options?: ApiRequestOptions) => {
-    const response = await api.get<ApiDataResponse<DashboardRecentLog[]>>(
+    const response = await api.get<ApiDataResponse<BackendProcessLog[]>>(
       "/api/dashboard/recent-logs",
       {
         ...options,
@@ -84,7 +162,10 @@ const DashboardService = {
       }
     );
 
-    return response.data;
+    return {
+      ...response.data,
+      data: response.data.data.map(mapRecentLog),
+    };
   },
 };
 

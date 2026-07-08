@@ -38,14 +38,14 @@ const dateFormatter = new Intl.DateTimeFormat("en-GB", {
 const dashboardPanel =
   "rounded-lg border bg-white shadow-theme-sm dark:bg-[#22243a] dark:shadow-[0_18px_50px_rgba(5,8,24,0.22)]";
 const dashboardSubPanel =
-  "rounded-md border border-gray-200 bg-gray-50 dark:border-[#35384f] dark:bg-[#1b1d31]";
+  "rounded-lg bg-gray-50 dark:bg-[#1b1d31]";
 const mutedText = "text-gray-500 dark:text-[#8f93ad]";
 
 const overviewBorder = {
-  amber: "border-[#ffb31a]/40 dark:border-[#ffb31a]/45",
-  blue: "border-[#1488ff]/35 dark:border-[#1488ff]/45",
-  pink: "border-[#ff2fb3]/35 dark:border-[#ff2fb3]/45",
-  teal: "border-[#4ceac6]/40 dark:border-[#4ceac6]/45",
+  amber: "border-gray-200 dark:border-[#35384f]",
+  blue: "border-gray-200 dark:border-[#35384f]",
+  pink: "border-gray-200 dark:border-[#35384f]",
+  teal: "border-gray-200 dark:border-[#35384f]",
 };
 
 const getChartTheme = (isDark: boolean) => ({
@@ -179,27 +179,21 @@ function SummaryCard({
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <div
-            className={`${dashboardSubPanel} border-[#4ceac6]/35 px-3.5 py-3 dark:border-[#4ceac6]/40`}
-          >
-            <p className={`text-base font-medium ${mutedText}`}>OK</p>
-            <p className="mt-2 text-lg font-bold text-[#4ceac6]">
+          <div className={`${dashboardSubPanel} px-4 py-3.5`}>
+            <p className={`text-sm font-medium ${mutedText}`}>OK</p>
+            <p className="mt-3 text-xl font-semibold text-[#4ceac6]">
               {formatNumber(summary?.okCount)}
             </p>
           </div>
-          <div
-            className={`${dashboardSubPanel} border-[#ff5b8a]/35 px-3.5 py-3 dark:border-[#ff5b8a]/40`}
-          >
-            <p className={`text-base font-medium ${mutedText}`}>NG</p>
-            <p className="mt-2 text-lg font-bold text-[#ff5b8a]">
+          <div className={`${dashboardSubPanel} px-4 py-3.5`}>
+            <p className={`text-sm font-medium ${mutedText}`}>NG</p>
+            <p className="mt-3 text-xl font-semibold text-[#ff5b8a]">
               {formatNumber(summary?.ngCount)}
             </p>
           </div>
-          <div
-            className={`${dashboardSubPanel} border-[#1488ff]/35 px-3.5 py-3 dark:border-[#1488ff]/40`}
-          >
-            <p className={`text-base font-medium ${mutedText}`}>Yield</p>
-            <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
+          <div className={`${dashboardSubPanel} px-4 py-3.5`}>
+            <p className={`text-sm font-medium ${mutedText}`}>Yield</p>
+            <p className="mt-3 text-xl font-semibold text-gray-900 dark:text-white">
               {formatPercent(summary?.yieldRate)}
             </p>
           </div>
@@ -569,26 +563,27 @@ function TotalQualityPanel({
 }
 
 function getLogParameterCount(log: DashboardRecentLog) {
-  return log.details.reduce(
-    (total, detail) => total + detail.parameters.length,
+  return (log.details ?? []).reduce(
+    (total, detail) => total + (detail.parameters ?? []).length,
     0
   );
 }
 
 function getLogProcessNames(log: DashboardRecentLog) {
-  if (log.details.length === 0) {
+  const details = log.details ?? [];
+  if (details.length === 0) {
     return "-";
   }
 
-  return log.details.map((detail) => detail.processName).join(", ");
+  return details.map((detail) => detail.processName).join(", ");
 }
 
 function getFirstLogValues(log: DashboardRecentLog) {
-  const values = log.details
-    .flatMap((detail) => detail.parameters)
+  const values = (log.details ?? [])
+    .flatMap((detail) => detail.parameters ?? [])
     .slice(0, 3)
     .map((parameter) => {
-      const parameterValues = parameter.values.map(formatLogValue).join(", ");
+      const parameterValues = (parameter.values ?? []).map(formatLogValue).join(", ");
       return `${parameter.parameterName}: ${parameterValues || "-"}`;
     });
 

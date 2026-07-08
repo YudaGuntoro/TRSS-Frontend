@@ -1,11 +1,76 @@
 "use client";
 import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
-import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
+import { useMqttStatus } from "@/hooks/useMqttStatus";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState ,useEffect,useRef} from "react";
+import React, { useState } from "react";
+
+const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+const formatTime = (date?: Date) => (date ? timeFormatter.format(date) : "--:--:--");
+
+function HeaderMqttStatus() {
+  const mqttStatus = useMqttStatus();
+  const isApiOnline = mqttStatus.connectionState === "connected";
+  const isPending =
+    mqttStatus.connectionState === "connecting" ||
+    mqttStatus.connectionState === "reconnecting";
+  const isOnline = isApiOnline && mqttStatus.isConnected;
+  const label = isPending
+    ? mqttStatus.connectionState === "reconnecting"
+      ? "Reconnecting"
+      : "Connecting"
+    : isApiOnline
+      ? isOnline
+        ? "Online"
+        : "Offline"
+      : "API Offline";
+  const statusClasses = isOnline
+    ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-300"
+    : isPending
+      ? "bg-amber-500/10 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300"
+      : "bg-red-500/10 text-red-600 dark:bg-red-400/10 dark:text-red-300";
+  const dotClasses = isOnline
+    ? "bg-emerald-500 dark:bg-emerald-400"
+    : isPending
+      ? "bg-amber-500 dark:bg-amber-400"
+      : "bg-red-500 dark:bg-red-400";
+  const brokerLabel =
+    mqttStatus.broker && mqttStatus.port
+      ? `${mqttStatus.broker}:${mqttStatus.port}`
+      : "MQTT broker";
+
+  return (
+    <div
+      className="flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
+      title={`MQTT: ${mqttStatus.status} (${brokerLabel})`}
+    >
+      <span
+        className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs font-semibold ${statusClasses}`}
+      >
+        <span className={`h-2 w-2 rounded-full ${dotClasses}`} />
+        {label}
+      </span>
+      <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
+      <span className="whitespace-nowrap">
+        <span className="hidden text-gray-400 dark:text-gray-500 sm:inline">
+          Last Update:{" "}
+        </span>
+        API {formatTime(mqttStatus.apiUpdatedAt)}
+      </span>
+      <span className="text-gray-300 dark:text-gray-700">|</span>
+      <span className="whitespace-nowrap">
+        MQTT {formatTime(mqttStatus.mqttUpdatedAt)}
+      </span>
+    </div>
+  );
+}
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -112,15 +177,19 @@ const AppHeader: React.FC = () => {
             isApplicationMenuOpen ? "flex" : "hidden"
           } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          <div className="flex items-center gap-2 2xsm:gap-3">
+          <div className="flex min-w-0 flex-1 items-center lg:justify-end">
+            <HeaderMqttStatus />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
 
             {/* <!-- Notification Menu Area --> */}
+            {/* <!-- User Area --> */}
+            <UserDropdown />
           </div>
-          {/* <!-- User Area --> */}
-          <UserDropdown /> 
     
         </div>
       </div>

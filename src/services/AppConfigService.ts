@@ -39,7 +39,7 @@ const AppConfigService = {
     options?: ApiRequestOptions
   ) => {
     const response = await api.get<ApiListResponse<AppConfig>>(
-      "/api/appconfigs",
+      "/api/app-configs",
       {
         ...options,
         params: normalizeQuery(query),
@@ -54,7 +54,7 @@ const AppConfigService = {
       success: boolean;
       message: string;
       data: AppConfig;
-    }>(`/api/appconfigs/${id}`, options);
+    }>(`/api/app-configs/${id}`, options);
 
     return response.data;
   },
@@ -64,7 +64,7 @@ const AppConfigService = {
       success: boolean;
       message: string;
       data: AppConfig;
-    }>(`/api/appconfigs/key/${encodeURIComponent(key)}`, options);
+    }>(`/api/app-configs/key/${encodeURIComponent(key)}`, options);
 
     return response.data;
   },
@@ -77,7 +77,7 @@ const AppConfigService = {
       success: boolean;
       message: string;
       data: AppConfig;
-    }>("/api/appconfigs", data, options);
+    }>("/api/app-configs", data, options);
 
     return response.data;
   },
@@ -91,7 +91,7 @@ const AppConfigService = {
       success: boolean;
       message: string;
       data: AppConfig;
-    }>(`/api/appconfigs/${id}`, data, options);
+    }>(`/api/app-configs/${id}`, data, options);
 
     return response.data;
   },
@@ -100,7 +100,7 @@ const AppConfigService = {
     const response = await api.delete<{
       success: boolean;
       message: string;
-    }>(`/api/appconfigs/${id}`, options);
+    }>(`/api/app-configs/${id}`, options);
 
     return response.data;
   },

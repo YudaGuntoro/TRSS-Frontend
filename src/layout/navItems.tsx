@@ -65,6 +65,12 @@ export const navItems: NavItem[] = [
     permission: PERMISSIONS.STOCK_IN_VIEW,
   },
   {
+    icon: <TableIcon />,
+    name: "Stock In Rework",
+    path: "/stock-in-rework",
+    permission: PERMISSIONS.STOCK_IN_VIEW,
+  },
+  {
     icon: <UserIcon />,
     name: "User",
     path: "/user",
