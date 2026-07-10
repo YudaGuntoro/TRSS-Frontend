@@ -66,6 +66,14 @@ export const useDashboard = (recentLogCount = 10) => {
     };
   }, [recentLogCount, reloadKey]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setReloadKey((current) => current + 1);
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   return {
     data,
     error,

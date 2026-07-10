@@ -53,6 +53,20 @@ const formatValue = (value: unknown, dataType?: string) => {
   return String(value);
 };
 
+const formatResult = (value?: boolean) => {
+  if (typeof value !== "boolean") {
+    return "-";
+  }
+
+  return value ? "OK" : "NG";
+};
+
+const getIssueNumbers = (processLog: ProcessLog) =>
+  processLog.issues
+    .map((issue) => issue.issueNumber)
+    .filter(Boolean)
+    .join(", ") || processLog.issueNo;
+
 export default function ProcessLogDetailView({
   id,
 }: ProcessLogDetailViewProps) {
@@ -149,24 +163,68 @@ export default function ProcessLogDetailView({
               Process Detail
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Traceability data for {processLog.issueNo}
+              Traceability data for {processLog.serialNumberCode ?? processLog.issueNo}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard label="Issue Number" value={processLog.issueNo} />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <SummaryCard
-          label="Part Number"
-          value={processLog.partNumber ?? "-"}
+          label="Serial Number"
+          value={processLog.serialNumberCode ?? "-"}
         />
-        <SummaryCard label="Part Name" value={processLog.partName ?? "-"} />
+        <SummaryCard label="Issue Number" value={getIssueNumbers(processLog)} />
+        <SummaryCard label="Type" value={processLog.type ?? "-"} />
+        <SummaryCard label="Result" value={formatResult(processLog.status)} />
         <SummaryCard
           label="Created At"
           value={formatDate(processLog.createdAt)}
         />
       </div>
+
+      {processLog.issues.length > 0 && (
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-white/[0.08] dark:bg-white/[0.03]">
+          <div className="border-b border-gray-100 px-5 py-4 dark:border-white/[0.06]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              Issues
+            </p>
+            <h2 className="mt-1 font-semibold text-gray-800 dark:text-white/90">
+              Related Issue Numbers
+            </h2>
+          </div>
+          <div className="max-w-full overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="bg-gray-50 text-xs font-semibold uppercase text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
+                <tr>
+                  <th className="px-5 py-3">Issue Number</th>
+                  <th className="px-5 py-3">Issue Type</th>
+                  <th className="px-5 py-3">Part Number</th>
+                  <th className="px-5 py-3">Part Name</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06]">
+                {processLog.issues.map((issue, index) => (
+                  <tr key={`${issue.issueNumber ?? "issue"}-${index}`}>
+                    <td className="px-5 py-3 font-semibold text-gray-800 dark:text-white/90">
+                      {issue.issueNumber ?? "-"}
+                    </td>
+                    <td className="px-5 py-3 text-gray-600 dark:text-gray-300">
+                      {issue.issueType ?? "-"}
+                    </td>
+                    <td className="px-5 py-3 text-gray-600 dark:text-gray-300">
+                      {issue.partNumber ?? "-"}
+                    </td>
+                    <td className="px-5 py-3 text-gray-600 dark:text-gray-300">
+                      {issue.partName ?? "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid min-h-[520px] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-white/[0.08] dark:bg-white/[0.03] lg:grid-cols-[280px_340px_minmax(0,1fr)]">
         <section className="border-b border-gray-200 p-5 dark:border-white/[0.08] lg:border-b-0 lg:border-r">
@@ -202,6 +260,9 @@ export default function ProcessLogDetailView({
                 <span className="mt-1 block text-xs opacity-70">
                   {process.parameters.length} parameter
                   {process.parameters.length === 1 ? "" : "s"}
+                  {typeof process.result === "boolean"
+                    ? ` / ${formatResult(process.result)}`
+                    : ""}
                 </span>
               </button>
             ))}
@@ -238,7 +299,7 @@ export default function ProcessLogDetailView({
                   {parameter.parameterName ?? "Unknown Parameter"}
                 </span>
                 <span className="mt-1 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                  <span>{formatDataType(parameter.dataType)}</span>
+                  <span>{parameter.parameterCode ?? formatDataType(parameter.dataType)}</span>
                   <span>
                     {parameter.values.length} value
                     {parameter.values.length === 1 ? "" : "s"}
@@ -278,7 +339,10 @@ export default function ProcessLogDetailView({
                   selectedParameter.dataType
                 );
                 const isBoolean = selectedParameter.dataType === "boolean";
-                const isOk = formattedValue === "OK";
+                const isOk =
+                  typeof selectedParameter.status === "boolean"
+                    ? selectedParameter.status
+                    : formattedValue === "OK";
 
                 return (
                   <div
@@ -288,9 +352,20 @@ export default function ProcessLogDetailView({
                     <span className="text-xs font-medium text-gray-400">
                       Value {index + 1}
                     </span>
+                    {typeof selectedParameter.status === "boolean" && (
+                      <span
+                        className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          selectedParameter.status
+                            ? "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400"
+                            : "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400"
+                        }`}
+                      >
+                        {formatResult(selectedParameter.status)}
+                      </span>
+                    )}
                     <div
                       className={`mt-2 text-base font-semibold ${
-                        isBoolean
+                        isBoolean || typeof selectedParameter.status === "boolean"
                           ? isOk
                             ? "text-success-600 dark:text-success-400"
                             : "text-error-600 dark:text-error-400"

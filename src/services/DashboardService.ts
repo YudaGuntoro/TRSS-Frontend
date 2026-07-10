@@ -1,4 +1,11 @@
 import api, { ApiRequestOptions } from "@/utils/api";
+import {
+  BackendProcessLog,
+  mapProcessLogResponse,
+  ProcessLog,
+  ProcessLogDetail,
+  ProcessLogParameter,
+} from "./ProcessLogService";
 
 export type DashboardPeriodSummary = {
   totalProduction: number;
@@ -24,111 +31,16 @@ export type DashboardStats = {
   productionTrend: DashboardChartItem[];
 };
 
-export type DashboardLogParameter = {
-  parameterId: number;
-  parameterName: string;
-  dataType: string;
-  values: Array<string | number | boolean>;
-};
+export type DashboardLogParameter = ProcessLogParameter;
 
-export type DashboardLogDetail = {
-  processName: string;
-  parameters: DashboardLogParameter[];
-};
+export type DashboardLogDetail = ProcessLogDetail;
 
-export type DashboardRecentLog = {
-  id: number;
-  issueNo: string;
-  partNumber?: string;
-  partName?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-  details: DashboardLogDetail[];
-};
+export type DashboardRecentLog = ProcessLog;
 
 type ApiDataResponse<T> = {
   success: boolean;
   message: string;
   data: T;
-};
-
-type BackendProcessLogParameter = {
-  parameterCode?: string;
-  parameterName?: string;
-  status?: boolean;
-  value?: string | number | boolean | null;
-};
-
-type BackendProcessLogProcess = {
-  parameters?: BackendProcessLogParameter[];
-  processCode?: string;
-  processName?: string;
-  result?: boolean;
-};
-
-type BackendProcessLogIssue = {
-  issueNumber?: string;
-  partName?: string;
-  partNumber?: string;
-};
-
-type BackendProcessLog = {
-  createdAt: string;
-  id: number;
-  isActive: boolean;
-  issues?: BackendProcessLogIssue[];
-  processes?: BackendProcessLogProcess[];
-  serialNumberCode?: string;
-  updatedAt?: string;
-};
-
-const normalizeLogValue = (value: BackendProcessLogParameter["value"]) => {
-  if (value === null || value === undefined || value === "") {
-    return "-";
-  }
-
-  return value;
-};
-
-const getValueDataType = (value: string | number | boolean) => {
-  if (typeof value === "boolean") {
-    return "boolean";
-  }
-
-  if (typeof value === "number") {
-    return "number";
-  }
-
-  return "text";
-};
-
-const mapRecentLog = (log: BackendProcessLog): DashboardRecentLog => {
-  const firstIssue = log.issues?.[0];
-
-  return {
-    id: log.id,
-    issueNo: firstIssue?.issueNumber ?? log.serialNumberCode ?? "-",
-    partName: firstIssue?.partName,
-    partNumber: firstIssue?.partNumber,
-    isActive: log.isActive,
-    createdAt: log.createdAt,
-    updatedAt: log.updatedAt,
-    details: (log.processes ?? []).map((process) => ({
-      processName: process.processName ?? process.processCode ?? "-",
-      parameters: (process.parameters ?? []).map((parameter, index) => {
-        const value = normalizeLogValue(parameter.value);
-
-        return {
-          parameterId: index,
-          parameterName:
-            parameter.parameterName ?? parameter.parameterCode ?? "-",
-          dataType: getValueDataType(value),
-          values: [value],
-        };
-      }),
-    })),
-  };
 };
 
 const DashboardService = {
@@ -164,7 +76,7 @@ const DashboardService = {
 
     return {
       ...response.data,
-      data: response.data.data.map(mapRecentLog),
+      data: response.data.data.map(mapProcessLogResponse),
     };
   },
 };

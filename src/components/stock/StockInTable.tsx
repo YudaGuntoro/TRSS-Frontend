@@ -30,6 +30,9 @@ const formatDate = (value: string) => {
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
+const getIssueNumbers = (stockIn?: StockIn | null) =>
+  stockIn?.issues.map((issue) => issue.number).join(", ") || "-";
+
 const filterInputClassName =
   "h-10 w-[224px] max-w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 
@@ -112,9 +115,21 @@ export default function StockInTable() {
   const columns = useMemo<DataTableColumn<StockIn>[]>(
     () => [
       {
-        key: "code",
-        header: "Code",
-        sortable: true,
+        key: "issues",
+        header: "Issue Number",
+        render: (_, row) => (
+          <div className="flex flex-wrap gap-1">
+            {row.issues.map((issue) => (
+              <span
+                key={issue.id}
+                className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+              >
+                {issue.number}
+              </span>
+            ))}
+            {row.issues.length === 0 && "-"}
+          </div>
+        ),
       },
       {
         key: "part.number",
@@ -145,23 +160,6 @@ export default function StockInTable() {
         key: "receiptDate",
         header: "Receipt Date",
         render: (value) => (typeof value === "string" ? formatDate(value) : "-"),
-      },
-      {
-        key: "issues",
-        header: "Issues",
-        render: (_, row) => (
-          <div className="flex flex-wrap gap-1">
-            {row.issues.map((issue) => (
-              <span
-                key={issue.id}
-                className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-              >
-                {issue.number}
-              </span>
-            ))}
-            {row.issues.length === 0 && "-"}
-          </div>
-        ),
       },
       ...(canEdit || canDelete
         ? [
@@ -249,7 +247,7 @@ export default function StockInTable() {
         emptyMessage="No stock in records found"
         error={error}
         isLoading={isLoading}
-        minWidth="1100px"
+        minWidth="1000px"
         onLimitChange={setLimit}
         onPageChange={setPage}
         pagination={pagination}
@@ -271,7 +269,7 @@ export default function StockInTable() {
           onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
           onConfirm={confirmDelete}
           title="Delete Stock In"
-          message={`Are you sure you want to delete stock in record "${stockInToDelete?.code}"?`}
+          message={`Are you sure you want to delete stock in record "${getIssueNumbers(stockInToDelete)}"?`}
           confirmText="Delete"
           isDestructive={true}
           isLoading={isDeleting}

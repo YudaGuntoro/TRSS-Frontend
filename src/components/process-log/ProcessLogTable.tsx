@@ -26,6 +26,20 @@ const formatDate = (value: string) => {
   return dateFormatter.format(date);
 };
 
+const getIssueNumbers = (row: ProcessLog) =>
+  row.issues
+    .map((issue) => issue.issueNumber)
+    .filter(Boolean)
+    .join(", ") || row.issueNo;
+
+const getStatusLabel = (row: ProcessLog) => {
+  if (typeof row.status === "boolean") {
+    return row.status ? "OK" : "NG";
+  }
+
+  return row.isActive ? "Active" : "Inactive";
+};
+
 const filterInputClassName =
   "h-10 w-[224px] max-w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 
@@ -70,21 +84,55 @@ export default function ProcessLogTable() {
   const columns = useMemo<DataTableColumn<ProcessLog>[]>(
     () => [
       {
+        key: "serialNumberCode",
+        header: "Serial Number",
+        width: "20%",
+        render: (_, row) => row.serialNumberCode ?? "-",
+      },
+      {
         key: "issueNo",
-        header: "Issue No",
-        width: "33.333%",
+        header: "Issue Number",
+        width: "28%",
+        render: (_, row) => (
+          <span className="block max-w-[280px] truncate" title={getIssueNumbers(row)}>
+            {getIssueNumbers(row)}
+          </span>
+        ),
+      },
+      {
+        key: "type",
+        header: "Type",
+        width: "14%",
+        render: (_, row) => row.type ?? "-",
+      },
+      {
+        key: "status",
+        header: "Result",
+        align: "center",
+        width: "12%",
+        render: (_, row) => (
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+              getStatusLabel(row) === "OK" || getStatusLabel(row) === "Active"
+                ? "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400"
+                : "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400"
+            }`}
+          >
+            {getStatusLabel(row)}
+          </span>
+        ),
       },
       {
         key: "createdAt",
         header: "Created At",
-        width: "33.333%",
+        width: "16%",
         render: (value) => (typeof value === "string" ? formatDate(value) : "-"),
       },
       {
         key: "action",
         header: "Action",
         align: "center",
-        width: "33.333%",
+        width: "10%",
         render: (_, row) => (
           <button
             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-brand-600 focus:outline-none focus:ring-3 focus:ring-brand-500/25"
@@ -106,36 +154,13 @@ export default function ProcessLogTable() {
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="text"
-            placeholder="Issue No"
+            placeholder="Serial Number"
             className={filterInputClassName}
-            value={query.issueNo}
-            onChange={(event) => setQuery({ issueNo: event.target.value })}
-          />
-
-          <input
-            type="text"
-            placeholder="Part Number"
-            className={filterInputClassName}
-            value={query.partNumber}
-            onChange={(event) => setQuery({ partNumber: event.target.value })}
-          />
-
-          <select
-            className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm font-medium text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            value={
-              query.isActive === undefined || query.isActive === null
-                ? "all"
-                : String(query.isActive)
+            value={query.serialNumberCode}
+            onChange={(event) =>
+              setQuery({ serialNumberCode: event.target.value })
             }
-            onChange={(event) => {
-              const value = event.target.value;
-              setQuery({ isActive: value === "all" ? null : value === "true" });
-            }}
-          >
-            <option value="all">All Status</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
+          />
 
           <button
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#6D8AF3] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#5f7eea] focus:outline-none focus:ring-3 focus:ring-[#6D8AF3]/25 disabled:cursor-not-allowed disabled:opacity-60"

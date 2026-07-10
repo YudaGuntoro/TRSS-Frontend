@@ -14,8 +14,7 @@ type UseProcessLogsOptions = ProcessLogQuery & {
 export type ProcessLogQueryState = {
   page: number;
   limit: number;
-  issueNo: string;
-  partNumber: string;
+  serialNumberCode: string;
   isActive?: boolean | null;
 };
 
@@ -24,8 +23,7 @@ const getInitialQuery = (
 ): ProcessLogQueryState => ({
   page: options.page ?? 1,
   limit: options.limit ?? 10,
-  issueNo: options.issueNo ?? "",
-  partNumber: options.partNumber ?? "",
+  serialNumberCode: options.serialNumberCode ?? options.issueNo ?? "",
   isActive: options.isActive,
 });
 
@@ -44,17 +42,10 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
     () => ({
       page: query.page,
       limit: query.limit,
-      issueNo: query.issueNo,
-      partNumber: query.partNumber,
+      serialNumberCode: query.serialNumberCode,
       isActive: query.isActive,
     }),
-    [
-      query.isActive,
-      query.issueNo,
-      query.limit,
-      query.page,
-      query.partNumber,
-    ]
+    [query.isActive, query.limit, query.page, query.serialNumberCode]
   );
 
   const startRequest = useCallback(() => {

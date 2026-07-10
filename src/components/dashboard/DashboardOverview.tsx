@@ -572,10 +572,18 @@ function getLogParameterCount(log: DashboardRecentLog) {
 function getLogProcessNames(log: DashboardRecentLog) {
   const details = log.details ?? [];
   if (details.length === 0) {
-    return "-";
+    return log.type ?? "-";
   }
 
   return details.map((detail) => detail.processName).join(", ");
+}
+
+function getLogStatus(log: DashboardRecentLog) {
+  if (typeof log.status === "boolean") {
+    return log.status ? "OK" : "NG";
+  }
+
+  return log.isActive ? "Active" : "Inactive";
 }
 
 function getFirstLogValues(log: DashboardRecentLog) {
@@ -639,7 +647,7 @@ function RecentLogsTable({
                 isHeader
                 className="min-w-80 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
               >
-                Values
+                Values[]
               </TableCell>
               <TableCell
                 isHeader
@@ -690,7 +698,14 @@ function RecentLogsTable({
                   key={log.id}
                 >
                   <TableCell className="px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
-                    {log.issueNo}
+                    <div>
+                      <p className="max-w-[260px] truncate" title={log.issueNo}>
+                        {log.issueNo}
+                      </p>
+                      <span className="text-theme-xs font-normal text-gray-500 dark:text-[#8f93ad]">
+                        {log.serialNumberCode ?? "-"}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="px-4 py-4 text-theme-sm text-gray-700 dark:text-[#c7cceb]">
                     <div>
@@ -704,7 +719,7 @@ function RecentLogsTable({
                     <div>
                       <p>{getLogProcessNames(log)}</p>
                       <span className="text-theme-xs text-gray-500 dark:text-[#8f93ad]">
-                        {getLogParameterCount(log)} parameters
+                        {log.type ?? "-"} / {getLogParameterCount(log)} parameters
                       </span>
                     </div>
                   </TableCell>
@@ -716,12 +731,12 @@ function RecentLogsTable({
                   <TableCell className="px-4 py-4">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        log.isActive
+                        getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
                           ? "bg-[#4ceac6]/12 text-[#087866] dark:text-[#4ceac6]"
-                          : "bg-gray-100 text-gray-500 dark:bg-[#8f93ad]/10 dark:text-[#aeb5d7]"
+                          : "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400"
                       }`}
                     >
-                      {log.isActive ? "Active" : "Inactive"}
+                      {getLogStatus(log)}
                     </span>
                   </TableCell>
                   <TableCell className="px-4 py-4 text-theme-sm text-gray-700 dark:text-[#c7cceb]">
