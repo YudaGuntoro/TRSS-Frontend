@@ -23,13 +23,13 @@ Frontend untuk aplikasi TRSS Traceability System.
    npm install
    ```
 
-3. Buat file `.env.local` di root project:
+3. Buat file `.env.local` dari template:
 
-   ```env
-   NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:5039
+   ```bash
+   cp .env.example .env.local
    ```
 
-   Sesuaikan URL tersebut jika backend berjalan pada host atau port lain.
+   Isi `NEXT_PUBLIC_API_BASE_URL` sesuai host dan port backend yang digunakan.
 
 4. Jalankan development server:
 
@@ -55,3 +55,9 @@ npm run start
 ```bash
 npm run lint
 ```
+
+## Standar Environment File
+
+File `.env` dan `.env.local` tidak boleh di-commit ke Git karena bisa berisi konfigurasi lokal atau secret.
+
+Gunakan `.env.example` sebagai template variable environment yang aman untuk disimpan di repository. Jika ada variable baru, tambahkan nama variable ke `.env.example` tanpa nilai rahasia.
