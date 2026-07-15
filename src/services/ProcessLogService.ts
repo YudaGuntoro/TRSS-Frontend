@@ -11,10 +11,13 @@ export type ProcessLogParameter = {
 };
 
 export type ProcessLogDetail = {
+  serialNumberCode?: string;
+  type?: string;
   processCode?: string;
   processName?: string;
   result?: boolean;
   parameters: ProcessLogParameter[];
+  children: ProcessLogDetail[];
 };
 
 export type ProcessLogIssue = {
@@ -32,12 +35,38 @@ export type ProcessLog = {
   partName?: string;
   isActive: boolean;
   status?: boolean;
+  isFinished?: boolean;
   isParent?: boolean;
   serialNumberCode?: string;
   type?: string;
   createdAt: string;
   updatedAt?: string;
   details: ProcessLogDetail[];
+};
+
+export type ProcessLogFullValueDetail = {
+  processCode?: string;
+  processName?: string;
+  parameterCode?: string;
+  parameterName?: string;
+  value?: string | number | boolean | null;
+};
+
+export type ProcessLogFullValueSection = {
+  serialNumberCode?: string;
+  details: ProcessLogFullValueDetail[];
+};
+
+export type ProcessLogFullValues = {
+  id: number;
+  serialNumberCode?: string;
+  clinching: ProcessLogFullValueSection;
+  mFan: ProcessLogFullValueSection;
+  overall: ProcessLogFullValueDetail[];
+  status?: boolean;
+  isFinished?: boolean;
+  createdAt: string;
+  updatedAt?: string;
 };
 
 export type ProcessLogQuery = {
@@ -69,10 +98,13 @@ export type BackendProcessLogParameter = {
 };
 
 export type BackendProcessLogProcess = {
+  serialNumberCode?: string;
+  type?: string;
   parameters?: BackendProcessLogParameter[];
   processCode?: string;
   processName?: string;
   result?: boolean;
+  children?: BackendProcessLogProcess[];
 };
 
 export type BackendProcessLog = {
@@ -88,7 +120,25 @@ export type BackendProcessLog = {
   processes?: BackendProcessLogProcess[];
   serialNumberCode?: string;
   status?: boolean;
+  isFinished?: boolean;
   type?: string;
+  updatedAt?: string;
+};
+
+export type BackendProcessLogFullValueSection = {
+  serialNumberCode?: string;
+  details?: ProcessLogFullValueDetail[];
+};
+
+export type BackendProcessLogFullValues = {
+  id: number;
+  serialNumberCode?: string;
+  clinching?: BackendProcessLogFullValueSection;
+  mFan?: BackendProcessLogFullValueSection;
+  overall?: ProcessLogFullValueDetail[];
+  status?: boolean;
+  isFinished?: boolean;
+  createdAt: string;
   updatedAt?: string;
 };
 
@@ -125,6 +175,36 @@ const joinUnique = (values: Array<string | undefined>) => {
   return uniqueValues.join(", ");
 };
 
+const mapProcessLogProcess = (
+  process: BackendProcessLogProcess,
+  processIndex: number
+): ProcessLogDetail => ({
+  serialNumberCode: process.serialNumberCode,
+  type: process.type,
+  processCode: process.processCode,
+  processName: process.processName ?? process.processCode ?? "-",
+  result: process.result,
+  parameters: (process.parameters ?? []).map((parameter, index) => {
+    const values =
+      parameter.values && parameter.values.length > 0
+        ? parameter.values.map(normalizeLogValue)
+        : [normalizeLogValue(parameter.value)];
+    const firstValue = values[0] ?? "-";
+
+    return {
+      parameterId: parameter.parameterId ?? processIndex * 1000 + index,
+      parameterCode: parameter.parameterCode,
+      parameterName: parameter.parameterName ?? parameter.parameterCode ?? "-",
+      dataType: parameter.dataType ?? getValueDataType(firstValue),
+      status: parameter.status,
+      values,
+    };
+  }),
+  children: (process.children ?? []).map((child, index) =>
+    mapProcessLogProcess(child, index)
+  ),
+});
+
 export const mapProcessLogResponse = (log: BackendProcessLog): ProcessLog => {
   const issues = log.issues ?? [];
   const issueNo =
@@ -146,35 +226,36 @@ export const mapProcessLogResponse = (log: BackendProcessLog): ProcessLog => {
         ? log.isActive
         : Boolean(log.status),
     status: log.status,
+    isFinished: log.isFinished,
     isParent: log.isParent,
     serialNumberCode: log.serialNumberCode,
     type: log.type,
     createdAt: log.createdAt,
     updatedAt: log.updatedAt,
-    details: sourceProcesses.map((process) => ({
-      processCode: process.processCode,
-      processName: process.processName ?? process.processCode ?? "-",
-      result: process.result,
-      parameters: (process.parameters ?? []).map((parameter, index) => {
-        const values =
-          parameter.values && parameter.values.length > 0
-            ? parameter.values.map(normalizeLogValue)
-            : [normalizeLogValue(parameter.value)];
-        const firstValue = values[0] ?? "-";
-
-        return {
-          parameterId: parameter.parameterId ?? index,
-          parameterCode: parameter.parameterCode,
-          parameterName:
-            parameter.parameterName ?? parameter.parameterCode ?? "-",
-          dataType: parameter.dataType ?? getValueDataType(firstValue),
-          status: parameter.status,
-          values,
-        };
-      }),
-    })),
+    details: sourceProcesses.map(mapProcessLogProcess),
   };
 };
+
+const mapFullValueSection = (
+  section?: BackendProcessLogFullValueSection
+): ProcessLogFullValueSection => ({
+  serialNumberCode: section?.serialNumberCode,
+  details: section?.details ?? [],
+});
+
+export const mapProcessLogFullValuesResponse = (
+  log: BackendProcessLogFullValues
+): ProcessLogFullValues => ({
+  id: log.id,
+  serialNumberCode: log.serialNumberCode,
+  clinching: mapFullValueSection(log.clinching),
+  mFan: mapFullValueSection(log.mFan),
+  overall: log.overall ?? [],
+  status: log.status,
+  isFinished: log.isFinished,
+  createdAt: log.createdAt,
+  updatedAt: log.updatedAt,
+});
 
 const ProcessLogService = {
   getProcessLogs: async (
@@ -205,6 +286,25 @@ const ProcessLogService = {
     return {
       ...response.data,
       data: mapProcessLogResponse(response.data.data),
+    };
+  },
+
+  getProcessLogFullValues: async (
+    serialNumberCode: string,
+    options?: ApiRequestOptions
+  ) => {
+    const response = await api.get<{
+      success: boolean;
+      message: string;
+      data: BackendProcessLogFullValues;
+    }>(
+      `${PROCESS_LOG_ENDPOINT}/full-values/${encodeURIComponent(serialNumberCode)}`,
+      options
+    );
+
+    return {
+      ...response.data,
+      data: mapProcessLogFullValuesResponse(response.data.data),
     };
   },
 };

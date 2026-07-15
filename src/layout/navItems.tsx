@@ -47,11 +47,6 @@ export const navItems: NavItem[] = [
         permission: PERMISSIONS.PARTS_MANAGE,
       },
       {
-        name: "Printer",
-        path: "/master-printer",
-        permission: PERMISSIONS.MASTER_DATA_MANAGE,
-      },
-      {
         name: "Process",
         path: "/master-process",
         permission: PERMISSIONS.MASTER_DATA_MANAGE,
@@ -68,6 +63,12 @@ export const navItems: NavItem[] = [
     icon: <TableIcon />,
     name: "Stock In Rework",
     path: "/stock-in-rework",
+    permission: PERMISSIONS.STOCK_IN_VIEW,
+  },
+  {
+    icon: <TableIcon />,
+    name: "Stock In Rework History",
+    path: "/stock-in-rework-history",
     permission: PERMISSIONS.STOCK_IN_VIEW,
   },
   {

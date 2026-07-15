@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import SerialNumberService, {
   SerialNumber,
+  SerialNumberIssue,
 } from "@/services/SerialNumberService";
 import StockInReworkService from "@/services/StockInReworkService";
 
@@ -15,8 +16,10 @@ type StockInReworkModalProps = {
 };
 
 type IssueFormRow = {
-  id: number;
+  id: string;
   issueNumber: string;
+  partName?: string;
+  partNumber?: string;
   note: string;
   status: boolean;
 };
@@ -27,12 +30,15 @@ const inputClassName =
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
-const createEmptyIssueRow = (): IssueFormRow => ({
-  id: Date.now() + Math.floor(Math.random() * 1000),
-  issueNumber: "",
-  note: "",
-  status: true,
-});
+const mapIssueRows = (issues: SerialNumberIssue[]): IssueFormRow[] =>
+  issues.map((issue, index) => ({
+    id: `${issue.id}-${issue.number || index}`,
+    issueNumber: issue.number,
+    partName: issue.partName,
+    partNumber: issue.partNumber,
+    note: "",
+    status: true,
+  }));
 
 type SerialNumberSelectProps = {
   disabled?: boolean;
@@ -210,22 +216,69 @@ export default function StockInReworkModal({
 }: StockInReworkModalProps) {
   const toast = useToast();
   const [serialNumberCode, setSerialNumberCode] = useState("");
-  const [issueRows, setIssueRows] = useState<IssueFormRow[]>([
-    createEmptyIssueRow(),
-  ]);
+  const [selectedSerialNumber, setSelectedSerialNumber] =
+    useState<SerialNumber | null>(null);
+  const [issueRows, setIssueRows] = useState<IssueFormRow[]>([]);
+  const [isLoadingIssues, setIsLoadingIssues] = useState(false);
+  const [issueLoadError, setIssueLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
 
     setSerialNumberCode("");
-    setIssueRows([createEmptyIssueRow()]);
+    setSelectedSerialNumber(null);
+    setIssueRows([]);
+    setIsLoadingIssues(false);
+    setIssueLoadError(null);
     setIsSubmitting(false);
   }, [isOpen]);
 
+  useEffect(() => {
+    const normalizedSerialNumberCode = serialNumberCode.trim();
+
+    if (!isOpen || !normalizedSerialNumberCode) {
+      setSelectedSerialNumber(null);
+      setIssueRows([]);
+      setIsLoadingIssues(false);
+      setIssueLoadError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSelectedSerialNumber(null);
+    setIssueRows([]);
+    setIsLoadingIssues(true);
+    setIssueLoadError(null);
+
+    SerialNumberService.getSerialNumberByCode(normalizedSerialNumberCode, {
+      signal: controller.signal,
+    })
+      .then((result) => {
+        setSelectedSerialNumber(result.data);
+        setIssueRows(mapIssueRows(result.data.issues ?? []));
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setIssueLoadError(
+          getErrorMessage(error, "Failed to load serial number detail")
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingIssues(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [isOpen, serialNumberCode]);
+
   const handleIssueChange = (
-    id: number,
-    field: keyof Omit<IssueFormRow, "id">,
+    id: string,
+    field: "note" | "status",
     value: string | boolean
   ) => {
     setIssueRows((current) =>
@@ -237,16 +290,6 @@ export default function StockInReworkModal({
             }
           : row
       )
-    );
-  };
-
-  const handleAddIssue = () => {
-    setIssueRows((current) => [...current, createEmptyIssueRow()]);
-  };
-
-  const handleRemoveIssue = (id: number) => {
-    setIssueRows((current) =>
-      current.length === 1 ? current : current.filter((row) => row.id !== id)
     );
   };
 
@@ -264,6 +307,30 @@ export default function StockInReworkModal({
       toast.error({
         title: "Error",
         message: "Serial number is required",
+      });
+      return;
+    }
+
+    if (isLoadingIssues) {
+      toast.error({
+        title: "Error",
+        message: "Please wait until issue numbers are loaded",
+      });
+      return;
+    }
+
+    if (issueLoadError) {
+      toast.error({
+        title: "Error",
+        message: issueLoadError,
+      });
+      return;
+    }
+
+    if (!selectedSerialNumber || normalizedIssueRows.length === 0) {
+      toast.error({
+        title: "Error",
+        message: "Issue numbers are not available for the selected serial number",
       });
       return;
     }
@@ -317,6 +384,7 @@ export default function StockInReworkModal({
           <SerialNumberSearchSelect
             disabled={isSubmitting}
             isOpen={isOpen}
+            key={isOpen ? "serial-select-open" : "serial-select-closed"}
             onSelect={setSerialNumberCode}
             value={serialNumberCode}
           />
@@ -327,87 +395,109 @@ export default function StockInReworkModal({
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Issue Numbers
             </label>
-            <button
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-              onClick={handleAddIssue}
-              type="button"
-            >
-              Add Issue
-            </button>
+            {selectedSerialNumber && (
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {issueRows.length} issue{issueRows.length === 1 ? "" : "s"}
+              </span>
+            )}
           </div>
 
-          <div className="space-y-3">
-            {issueRows.map((row, index) => (
-              <div
-                className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 md:grid-cols-[1.2fr_120px_1fr_auto]"
-                key={row.id}
-              >
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Issue Number
-                  </label>
-                  <input
-                    className={inputClassName}
-                    onChange={(event) =>
-                      handleIssueChange(row.id, "issueNumber", event.target.value)
-                    }
-                    placeholder="ISS-00001"
-                    required
-                    type="text"
-                    value={row.issueNumber}
-                  />
-                </div>
+          {!serialNumberCode && (
+            <div className="rounded-lg border border-dashed border-gray-300 px-4 py-5 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+              Select a serial number to load its issue numbers.
+            </div>
+          )}
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Status
-                  </label>
-                  <select
-                    className={inputClassName}
-                    onChange={(event) =>
-                      handleIssueChange(
-                        row.id,
-                        "status",
-                        event.target.value === "true"
-                      )
-                    }
-                    value={String(row.status)}
-                  >
-                    <option value="true">OK</option>
-                    <option value="false">NG</option>
-                  </select>
-                </div>
+          {serialNumberCode && isLoadingIssues && (
+            <div className="rounded-lg border border-gray-200 px-4 py-5 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+              Loading issue numbers...
+            </div>
+          )}
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Note
-                  </label>
-                  <input
-                    className={inputClassName}
-                    onChange={(event) =>
-                      handleIssueChange(row.id, "note", event.target.value)
-                    }
-                    placeholder="Optional note"
-                    type="text"
-                    value={row.note}
-                  />
-                </div>
+          {serialNumberCode && !isLoadingIssues && issueLoadError && (
+            <div className="rounded-lg border border-error-200 bg-error-50 px-4 py-5 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
+              {issueLoadError}
+            </div>
+          )}
 
-                <div className="flex items-end">
-                  <button
-                    className="h-10 rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-                    disabled={issueRows.length === 1}
-                    onClick={() => handleRemoveIssue(row.id)}
-                    type="button"
-                  >
-                    Remove
-                  </button>
-                </div>
-
-                <span className="sr-only">Issue row {index + 1}</span>
+          {serialNumberCode &&
+            !isLoadingIssues &&
+            !issueLoadError &&
+            issueRows.length === 0 && (
+              <div className="rounded-lg border border-dashed border-gray-300 px-4 py-5 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                No issue numbers found for this serial number.
               </div>
-            ))}
-          </div>
+            )}
+
+          {issueRows.length > 0 && (
+            <div className="space-y-3">
+              {issueRows.map((row, index) => (
+                <div
+                  className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 md:grid-cols-[1.2fr_1.2fr_120px_1fr]"
+                  key={row.id}
+                >
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Issue Number
+                    </label>
+                    <div className="flex h-10 items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-800 dark:border-gray-800 dark:bg-gray-900/60 dark:text-white/90">
+                      {row.issueNumber}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Part
+                    </label>
+                    <div className="flex h-10 items-center rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300">
+                      <span className="truncate" title={row.partName ?? "-"}>
+                        {row.partName || row.partNumber || "-"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Status
+                    </label>
+                    <select
+                      className={inputClassName}
+                      disabled={isSubmitting}
+                      onChange={(event) =>
+                        handleIssueChange(
+                          row.id,
+                          "status",
+                          event.target.value === "true"
+                        )
+                      }
+                      value={String(row.status)}
+                    >
+                      <option value="true">OK</option>
+                      <option value="false">NG</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Note
+                    </label>
+                    <input
+                      className={inputClassName}
+                      disabled={isSubmitting}
+                      onChange={(event) =>
+                        handleIssueChange(row.id, "note", event.target.value)
+                      }
+                      placeholder="Optional note"
+                      type="text"
+                      value={row.note}
+                    />
+                  </div>
+
+                  <span className="sr-only">Issue row {index + 1}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3">

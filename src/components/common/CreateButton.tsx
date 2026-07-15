@@ -21,10 +21,10 @@ export default function CreateButton({
       type={type}
       {...props}
     >
-      <span className="inline-flex size-4 shrink-0 items-center justify-center">
-        <PlusIcon className="size-4" />
+      <span className="inline-flex size-4 shrink-0 items-center justify-center leading-none">
+        <PlusIcon className="block size-4" />
       </span>
-      <span className="leading-5">{children}</span>
+      <span className="leading-none">{children}</span>
     </button>
   );
 }

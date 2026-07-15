@@ -416,6 +416,15 @@ export default function DataTable<T extends object>({
               >
                 Next
               </button>
+
+              <button
+                className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+                disabled={currentPage >= totalPage || isLoading}
+                onClick={() => onPageChange(totalPage)}
+                type="button"
+              >
+                Last Page
+              </button>
             </div>
           )}
         </div>

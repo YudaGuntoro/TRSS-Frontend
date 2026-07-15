@@ -9,13 +9,13 @@ import StockInReworkService, {
 
 type UseStockInReworksOptions = StockInReworkQuery & {
   enabled?: boolean;
-  serialNumberCode?: string;
 };
 
 export type StockInReworkQueryState = {
   page: number;
   limit: number;
   serialNumberCode: string;
+  includeAllDispositions?: boolean;
 };
 
 const getInitialQuery = (
@@ -24,6 +24,7 @@ const getInitialQuery = (
   page: options.page ?? 1,
   limit: options.limit ?? 10,
   serialNumberCode: options.serialNumberCode ?? "",
+  includeAllDispositions: options.includeAllDispositions,
 });
 
 export const useStockInReworks = (
@@ -38,67 +39,21 @@ export const useStockInReworks = (
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const serialNumberFilter = query.serialNumberCode.trim().toLowerCase();
-  const isFilteringBySerialNumber = serialNumberFilter.length > 0;
 
   const requestQuery = useMemo(
-    () =>
-      isFilteringBySerialNumber
-        ? {
-            page: 1,
-            limit: 10000,
-          }
-        : {
-            page: query.page,
-            limit: query.limit,
-          },
-    [isFilteringBySerialNumber, query.limit, query.page]
-  );
-
-  const filteredData = useMemo(() => {
-    const currentData = response?.data ?? [];
-
-    if (!serialNumberFilter) {
-      return currentData;
-    }
-
-    return currentData.filter((item) =>
-      item.serialNumberCode?.toLowerCase().includes(serialNumberFilter)
-    );
-  }, [response?.data, serialNumberFilter]);
-
-  const pagedData = useMemo(() => {
-    if (!isFilteringBySerialNumber) {
-      return filteredData;
-    }
-
-    const startIndex = (query.page - 1) * query.limit;
-    return filteredData.slice(startIndex, startIndex + query.limit);
-  }, [
-    filteredData,
-    isFilteringBySerialNumber,
-    query.limit,
-    query.page,
-  ]);
-
-  const localPagination = useMemo(() => {
-    if (!isFilteringBySerialNumber) {
-      return response?.pagination;
-    }
-
-    return {
+    () => ({
       page: query.page,
       limit: query.limit,
-      total: filteredData.length,
-      totalPage: Math.max(1, Math.ceil(filteredData.length / query.limit)),
-    };
-  }, [
-    filteredData.length,
-    isFilteringBySerialNumber,
-    query.limit,
-    query.page,
-    response?.pagination,
-  ]);
+      serialNumberCode: query.serialNumberCode,
+      includeAllDispositions: query.includeAllDispositions,
+    }),
+    [
+      query.includeAllDispositions,
+      query.limit,
+      query.page,
+      query.serialNumberCode,
+    ]
+  );
 
   const startRequest = useCallback(() => {
     if (enabled) {
@@ -109,50 +64,37 @@ export const useStockInReworks = (
 
   const setPage = useCallback(
     (page: number) => {
-      if (!isFilteringBySerialNumber) {
-        startRequest();
-      }
-
+      startRequest();
       setQueryState((current) => ({
         ...current,
         page,
       }));
     },
-    [isFilteringBySerialNumber, startRequest]
+    [startRequest]
   );
 
   const setLimit = useCallback(
     (limit: number) => {
-      if (!isFilteringBySerialNumber) {
-        startRequest();
-      }
-
+      startRequest();
       setQueryState((current) => ({
         ...current,
         limit,
         page: 1,
       }));
     },
-    [isFilteringBySerialNumber, startRequest]
+    [startRequest]
   );
 
   const setQuery = useCallback(
     (nextQuery: Partial<StockInReworkQueryState>) => {
-      const currentHasSerialFilter = query.serialNumberCode.trim().length > 0;
-      const nextHasSerialFilter =
-        (nextQuery.serialNumberCode ?? query.serialNumberCode).trim().length > 0;
-
-      if (currentHasSerialFilter !== nextHasSerialFilter) {
-        startRequest();
-      }
-
+      startRequest();
       setQueryState((current) => ({
         ...current,
         ...nextQuery,
         page: 1,
       }));
     },
-    [query.serialNumberCode, startRequest]
+    [startRequest]
   );
 
   const refetch = useCallback(() => {
@@ -199,10 +141,10 @@ export const useStockInReworks = (
   }, [enabled, reloadKey, requestQuery]);
 
   return {
-    data: pagedData,
+    data: response?.data ?? [],
     error,
     isLoading,
-    pagination: localPagination,
+    pagination: response?.pagination,
     query,
     refetch,
     response,

@@ -193,8 +193,7 @@ export const getRequiredPermission = (pathname: string): Permission => {
 
   if (
     pathname.startsWith("/parameter") ||
-    pathname.startsWith("/master-process") ||
-    pathname.startsWith("/master-printer")
+    pathname.startsWith("/master-process")
   ) {
     return PERMISSIONS.MASTER_DATA_MANAGE;
   }

@@ -1,6 +1,12 @@
 import api, { ApiRequestOptions } from "@/utils/api";
 import { ApiListResponse } from "./ParameterService";
 
+export type StockInReworkDisposition = "PENDING" | "STOCK_IN" | "SCRAP";
+export type StockInReworkFinalDisposition = Exclude<
+  StockInReworkDisposition,
+  "PENDING"
+>;
+
 export type StockInRework = {
   id: number;
   serialNumberId: number;
@@ -10,6 +16,7 @@ export type StockInRework = {
   qty: number;
   note?: string | null;
   status: boolean;
+  disposition?: StockInReworkDisposition | string | null;
   createdAt: string;
   updatedAt?: string | null;
 };
@@ -25,10 +32,16 @@ export type CreateStockInReworkRequest = {
   issueNumbers: StockInReworkIssueRequest[];
 };
 
+export type UpdateStockInReworkDispositionRequest = {
+  disposition: StockInReworkFinalDisposition;
+};
+
 export type StockInReworkQuery = {
   page?: number;
   limit?: number;
   serialNumberId?: number;
+  serialNumberCode?: string;
+  includeAllDispositions?: boolean;
 };
 
 const STOCK_IN_REWORK_ENDPOINT = "/api/stock-in-reworks";
@@ -37,6 +50,8 @@ const normalizeQuery = (query: StockInReworkQuery) => ({
   page: query.page,
   limit: query.limit,
   serialNumberId: query.serialNumberId,
+  serialNumberCode: query.serialNumberCode,
+  includeAllDispositions: query.includeAllDispositions,
 });
 
 const StockInReworkService = {
@@ -64,6 +79,20 @@ const StockInReworkService = {
       message: string;
       data: StockInRework[];
     }>(STOCK_IN_REWORK_ENDPOINT, data, options);
+
+    return response.data;
+  },
+
+  updateStockInReworkDisposition: async (
+    id: number,
+    data: UpdateStockInReworkDispositionRequest,
+    options?: ApiRequestOptions
+  ) => {
+    const response = await api.put<{
+      success: boolean;
+      message: string;
+      data: StockInRework;
+    }>(`${STOCK_IN_REWORK_ENDPOINT}/${id}/update-disposition`, data, options);
 
     return response.data;
   },

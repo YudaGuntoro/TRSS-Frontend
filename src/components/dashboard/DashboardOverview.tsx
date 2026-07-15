@@ -75,14 +75,6 @@ const formatNumber = (value?: number) =>
 
 const formatPercent = (value?: number) => `${(value ?? 0).toFixed(2)}%`;
 
-const formatLogValue = (value: string | number | boolean) => {
-  if (typeof value === "boolean") {
-    return value ? "OK" : "NG";
-  }
-
-  return String(value);
-};
-
 const getTotal = (items: DashboardChartItem[]) =>
   items.reduce((total, item) => total + item.value, 0);
 
@@ -562,22 +554,6 @@ function TotalQualityPanel({
   );
 }
 
-function getLogParameterCount(log: DashboardRecentLog) {
-  return (log.details ?? []).reduce(
-    (total, detail) => total + (detail.parameters ?? []).length,
-    0
-  );
-}
-
-function getLogProcessNames(log: DashboardRecentLog) {
-  const details = log.details ?? [];
-  if (details.length === 0) {
-    return log.type ?? "-";
-  }
-
-  return details.map((detail) => detail.processName).join(", ");
-}
-
 function getLogStatus(log: DashboardRecentLog) {
   if (typeof log.status === "boolean") {
     return log.status ? "OK" : "NG";
@@ -586,16 +562,20 @@ function getLogStatus(log: DashboardRecentLog) {
   return log.isActive ? "Active" : "Inactive";
 }
 
-function getFirstLogValues(log: DashboardRecentLog) {
-  const values = (log.details ?? [])
-    .flatMap((detail) => detail.parameters ?? [])
-    .slice(0, 3)
-    .map((parameter) => {
-      const parameterValues = (parameter.values ?? []).map(formatLogValue).join(", ");
-      return `${parameter.parameterName}: ${parameterValues || "-"}`;
-    });
+function getLogIssueNumbers(log: DashboardRecentLog) {
+  const issueNumbers = Array.from(
+    new Set(log.issues.map((issue) => issue.issueNumber).filter(Boolean))
+  ) as string[];
 
-  return values.length > 0 ? values.join("; ") : "-";
+  if (issueNumbers.length > 0) {
+    return issueNumbers;
+  }
+
+  if (log.issueNo && log.issueNo !== log.serialNumberCode) {
+    return [log.issueNo];
+  }
+
+  return [];
 }
 
 function RecentLogsTable({
@@ -627,27 +607,15 @@ function RecentLogsTable({
             <TableRow>
               <TableCell
                 isHeader
-                className="min-w-32 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
+                className="min-w-48 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
               >
-                Issue No
-              </TableCell>
-              <TableCell
-                isHeader
-                className="min-w-44 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
-              >
-                Part
+                SN / Serial Number
               </TableCell>
               <TableCell
                 isHeader
                 className="min-w-64 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
               >
-                Processes
-              </TableCell>
-              <TableCell
-                isHeader
-                className="min-w-80 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
-              >
-                Values[]
+                Issue No
               </TableCell>
               <TableCell
                 isHeader
@@ -659,7 +627,7 @@ function RecentLogsTable({
                 isHeader
                 className="min-w-40 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
               >
-                Created
+                Created At
               </TableCell>
             </TableRow>
           </TableHeader>
@@ -668,7 +636,7 @@ function RecentLogsTable({
             {isLoading &&
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={index}>
-                  {Array.from({ length: 6 }).map((__, cellIndex) => (
+                  {Array.from({ length: 4 }).map((__, cellIndex) => (
                     <TableCell key={cellIndex} className="px-4 py-4">
                       <LoadingBlock className="h-4 w-full" />
                     </TableCell>
@@ -680,7 +648,7 @@ function RecentLogsTable({
               <TableRow>
                 <TableCell
                   className="px-4 py-8 text-center text-sm text-gray-500 dark:text-[#8f93ad]"
-                  colSpan={6}
+                  colSpan={4}
                 >
                   No recent logs found
                 </TableCell>
@@ -698,43 +666,37 @@ function RecentLogsTable({
                   key={log.id}
                 >
                   <TableCell className="px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
-                    <div>
-                      <p className="max-w-[260px] truncate" title={log.issueNo}>
-                        {log.issueNo}
-                      </p>
-                      <span className="text-theme-xs font-normal text-gray-500 dark:text-[#8f93ad]">
-                        {log.serialNumberCode ?? "-"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-theme-sm text-gray-700 dark:text-[#c7cceb]">
-                    <div>
-                      <p>{log.partName ?? "-"}</p>
-                      <span className="text-theme-xs text-gray-500 dark:text-[#8f93ad]">
-                        {log.partNumber ?? "-"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-theme-sm text-gray-700 dark:text-[#c7cceb]">
-                    <div>
-                      <p>{getLogProcessNames(log)}</p>
-                      <span className="text-theme-xs text-gray-500 dark:text-[#8f93ad]">
-                        {log.type ?? "-"} / {getLogParameterCount(log)} parameters
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-theme-sm text-gray-700 dark:text-[#c7cceb]">
-                    <p className="max-w-[420px] truncate" title={getFirstLogValues(log)}>
-                      {getFirstLogValues(log)}
+                    <p
+                      className="max-w-[260px] truncate"
+                      title={log.serialNumberCode ?? "-"}
+                    >
+                      {log.serialNumberCode ?? "-"}
                     </p>
                   </TableCell>
                   <TableCell className="px-4 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      {getLogIssueNumbers(log).length > 0 ? (
+                        getLogIssueNumbers(log).map((issueNumber) => (
+                          <span
+                            className="inline-flex rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-2.5 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]"
+                            key={issueNumber}
+                          >
+                            {issueNumber}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-theme-sm text-gray-500 dark:text-[#8f93ad]">
+                          -
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
                           ? "bg-[#4ceac6]/12 text-[#087866] dark:text-[#4ceac6]"
                           : "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400"
-                      }`}
+                        }`}
                     >
                       {getLogStatus(log)}
                     </span>

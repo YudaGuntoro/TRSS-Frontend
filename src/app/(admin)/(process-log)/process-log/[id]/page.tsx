@@ -13,11 +13,11 @@ export default async function ProcessLogDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const processLogId = Number(id);
+  const processLogIdentifier = decodeURIComponent(id).trim();
 
-  if (!Number.isInteger(processLogId) || processLogId <= 0) {
+  if (!processLogIdentifier) {
     notFound();
   }
 
-  return <ProcessLogDetailView id={processLogId} />;
+  return <ProcessLogDetailView identifier={processLogIdentifier} />;
 }

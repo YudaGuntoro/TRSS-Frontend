@@ -26,18 +26,20 @@ const formatDate = (value: string) => {
   return dateFormatter.format(date);
 };
 
-const getIssueNumbers = (row: ProcessLog) =>
-  row.issues
-    .map((issue) => issue.issueNumber)
-    .filter(Boolean)
-    .join(", ") || row.issueNo;
-
 const getStatusLabel = (row: ProcessLog) => {
   if (typeof row.status === "boolean") {
     return row.status ? "OK" : "NG";
   }
 
   return row.isActive ? "Active" : "Inactive";
+};
+
+const getFinishedLabel = (row: ProcessLog) => {
+  if (typeof row.isFinished !== "boolean") {
+    return "-";
+  }
+
+  return row.isFinished ? "Finished" : "In Progress";
 };
 
 const filterInputClassName =
@@ -86,30 +88,14 @@ export default function ProcessLogTable() {
       {
         key: "serialNumberCode",
         header: "Serial Number",
-        width: "20%",
+        width: "32%",
         render: (_, row) => row.serialNumberCode ?? "-",
-      },
-      {
-        key: "issueNo",
-        header: "Issue Number",
-        width: "28%",
-        render: (_, row) => (
-          <span className="block max-w-[280px] truncate" title={getIssueNumbers(row)}>
-            {getIssueNumbers(row)}
-          </span>
-        ),
-      },
-      {
-        key: "type",
-        header: "Type",
-        width: "14%",
-        render: (_, row) => row.type ?? "-",
       },
       {
         key: "status",
         header: "Result",
         align: "center",
-        width: "12%",
+        width: "16%",
         render: (_, row) => (
           <span
             className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -123,20 +109,43 @@ export default function ProcessLogTable() {
         ),
       },
       {
+        key: "isFinished",
+        header: "Finished",
+        align: "center",
+        width: "16%",
+        render: (_, row) => (
+          <span
+            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+              row.isFinished
+                ? "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400"
+                : "bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400"
+            }`}
+          >
+            {getFinishedLabel(row)}
+          </span>
+        ),
+      },
+      {
         key: "createdAt",
         header: "Created At",
-        width: "16%",
+        width: "24%",
         render: (value) => (typeof value === "string" ? formatDate(value) : "-"),
       },
       {
         key: "action",
         header: "Action",
         align: "center",
-        width: "10%",
+        width: "12%",
         render: (_, row) => (
           <button
             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-brand-600 focus:outline-none focus:ring-3 focus:ring-brand-500/25"
-            onClick={() => router.push(`/process-log/${row.id}`)}
+            onClick={() =>
+              router.push(
+                `/process-log/${encodeURIComponent(
+                  row.serialNumberCode ?? String(row.id)
+                )}`
+              )
+            }
             type="button"
           >
             <EyeIcon className="size-4 fill-current" />
@@ -180,7 +189,7 @@ export default function ProcessLogTable() {
       emptyMessage="No process logs found"
       error={error}
       isLoading={isLoading}
-      minWidth="900px"
+      minWidth="760px"
       onLimitChange={setLimit}
       onPageChange={setPage}
       pagination={pagination}
