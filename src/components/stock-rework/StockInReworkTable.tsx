@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import CreateButton from "@/components/common/CreateButton";
+import { ConfirmModal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -72,6 +73,8 @@ export default function StockInReworkTable() {
   const [selectedDispositions, setSelectedDispositions] = useState<
     Record<number, StockInReworkFinalDisposition | "">
   >({});
+  const [pendingSubmitRow, setPendingSubmitRow] =
+    useState<StockInRework | null>(null);
   const [serialNumberSearch, setSerialNumberSearch] = useState("");
   const debouncedSerialNumberSearch = useDebouncedValue(
     serialNumberSearch.trim(),
@@ -126,6 +129,23 @@ export default function StockInReworkTable() {
     []
   );
 
+  const handleSubmitClick = useCallback(
+    (row: StockInRework) => {
+      const disposition = selectedDispositions[row.id];
+
+      if (!disposition) {
+        toast.error({
+          message: "Please select Stock In or Scrap",
+          title: "Disposition is required",
+        });
+        return;
+      }
+
+      setPendingSubmitRow(row);
+    },
+    [selectedDispositions, toast]
+  );
+
   const handleUpdateDisposition = useCallback(
     async (row: StockInRework) => {
       const disposition = selectedDispositions[row.id];
@@ -153,6 +173,7 @@ export default function StockInReworkTable() {
           message: "Stock in rework disposition updated successfully",
           title: "Success",
         });
+        setPendingSubmitRow(null);
         refetch();
       } catch (updateError: unknown) {
         toast.error({
@@ -168,6 +189,18 @@ export default function StockInReworkTable() {
     },
     [refetch, selectedDispositions, toast]
   );
+
+  const closeSubmitModal = useCallback(() => {
+    if (updatingId === null) {
+      setPendingSubmitRow(null);
+    }
+  }, [updatingId]);
+
+  const confirmSubmitDisposition = useCallback(() => {
+    if (pendingSubmitRow) {
+      void handleUpdateDisposition(pendingSubmitRow);
+    }
+  }, [handleUpdateDisposition, pendingSubmitRow]);
 
   const columns = useMemo<DataTableColumn<StockInRework>[]>(
     () => [
@@ -261,7 +294,7 @@ export default function StockInReworkTable() {
               <button
                 className="h-9 rounded-lg bg-brand-500 px-3 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!selectedDisposition || isUpdating}
-                onClick={() => handleUpdateDisposition(row)}
+                onClick={() => handleSubmitClick(row)}
                 type="button"
               >
                 {isUpdating ? "Saving..." : "Submit"}
@@ -284,7 +317,7 @@ export default function StockInReworkTable() {
     [
       canUpdate,
       handleDispositionChange,
-      handleUpdateDisposition,
+      handleSubmitClick,
       isHistoryMode,
       selectedDispositions,
       updatingId,
@@ -350,6 +383,16 @@ export default function StockInReworkTable() {
           onSuccess={refetch}
         />
       )}
+
+      <ConfirmModal
+        confirmText="Submit"
+        isLoading={updatingId !== null}
+        isOpen={Boolean(pendingSubmitRow)}
+        message="Apakah anda yakin akan submit? Data yang sudah di submit tidak dapat dirubah kembali."
+        onClose={closeSubmitModal}
+        onConfirm={confirmSubmitDisposition}
+        title="Konfirmasi Submit"
+      />
     </>
   );
 }
