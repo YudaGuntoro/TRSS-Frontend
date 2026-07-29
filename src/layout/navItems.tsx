@@ -66,12 +66,6 @@ export const navItems: NavItem[] = [
     permission: PERMISSIONS.STOCK_IN_VIEW,
   },
   {
-    icon: <TableIcon />,
-    name: "Stock In Rework History",
-    path: "/stock-in-rework-history",
-    permission: PERMISSIONS.STOCK_IN_VIEW,
-  },
-  {
     icon: <UserIcon />,
     name: "User",
     path: "/user",
@@ -88,5 +82,11 @@ export const navItems: NavItem[] = [
     name: "Process Log",
     path: "/process-log",
     permission: PERMISSIONS.PROCESS_LOGS_VIEW,
+  },
+  {
+    icon: <PageIcon />,
+    name: "Print History",
+    path: "/print-history",
+    permission: PERMISSIONS.PRINT_HISTORY_VIEW,
   },
 ];

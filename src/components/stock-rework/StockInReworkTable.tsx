@@ -5,6 +5,7 @@ import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import CreateButton from "@/components/common/CreateButton";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useStockInReworks } from "@/hooks/useStockInReworks";
 import StockInReworkService, {
   StockInRework,
@@ -67,6 +68,11 @@ export default function StockInReworkTable() {
   const [selectedDispositions, setSelectedDispositions] = useState<
     Record<number, StockInReworkFinalDisposition | "">
   >({});
+  const [serialNumberSearch, setSerialNumberSearch] = useState("");
+  const debouncedSerialNumberSearch = useDebouncedValue(
+    serialNumberSearch.trim(),
+    500
+  );
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   const {
@@ -83,6 +89,14 @@ export default function StockInReworkTable() {
     limit: 10,
     page: 1,
   });
+
+  useEffect(() => {
+    if (debouncedSerialNumberSearch === query.serialNumberCode) {
+      return;
+    }
+
+    setQuery({ serialNumberCode: debouncedSerialNumberSearch });
+  }, [debouncedSerialNumberSearch, query.serialNumberCode, setQuery]);
 
   useEffect(() => {
     if (!error || lastErrorRef.current === error) {
@@ -267,12 +281,10 @@ export default function StockInReworkTable() {
           <div className="flex flex-wrap items-center gap-3">
             <input
               className={filterInputClassName}
-              onChange={(event) =>
-                setQuery({ serialNumberCode: event.target.value })
-              }
+              onChange={(event) => setSerialNumberSearch(event.target.value)}
               placeholder="Filter by Serial Number"
               type="text"
-              value={query.serialNumberCode}
+              value={serialNumberSearch}
             />
 
             {canCreate && (

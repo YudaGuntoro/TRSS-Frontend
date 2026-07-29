@@ -4,11 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
 import CreateButton from "@/components/common/CreateButton";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
-import { ConfirmModal } from "@/components/ui/modal";
+import { ConfirmModal, Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { useProcesses } from "@/hooks/useProcesses";
-import ProcessService, { Process } from "@/services/ProcessService";
+import ProcessService, {
+  Process,
+  ProcessParameter,
+} from "@/services/ProcessService";
 import ProcessModal from "./ProcessModal";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -32,6 +35,47 @@ const formatDate = (value: string) => {
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
+type ParameterChipListProps = {
+  parameters: ProcessParameter[];
+  onShowMore: () => void;
+};
+
+const ParameterChipList = ({
+  parameters,
+  onShowMore,
+}: ParameterChipListProps) => {
+  const visibleParameters = parameters.slice(0, 3);
+  const hiddenCount = parameters.length - visibleParameters.length;
+
+  if (parameters.length === 0) {
+    return "-";
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {visibleParameters.map((parameter) => (
+        <span
+          key={parameter.id}
+          className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-white/[0.06] dark:text-gray-300"
+          title={parameter.name}
+        >
+          {parameter.code}
+        </span>
+      ))}
+      {hiddenCount > 0 && (
+        <button
+          className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/20"
+          onClick={onShowMore}
+          title="Show all parameters"
+          type="button"
+        >
+          +{hiddenCount}
+        </button>
+      )}
+    </div>
+  );
+};
+
 const baseColumns: DataTableColumn<Process>[] = [
   {
     key: "code",
@@ -54,53 +98,6 @@ const baseColumns: DataTableColumn<Process>[] = [
     header: "Description",
     className: "min-w-72",
   },
-  {
-    key: "parameters",
-    header: "Parameters",
-    className: "min-w-80",
-    render: (_, row) => {
-      const parameters = row.parameters ?? [];
-      const visibleParameters = parameters.slice(0, 3);
-      const hiddenCount = parameters.length - visibleParameters.length;
-
-      if (parameters.length === 0) {
-        return "-";
-      }
-
-      return (
-        <div className="flex flex-wrap gap-2">
-          {visibleParameters.map((parameter) => (
-            <span
-              key={parameter.id}
-              className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-white/[0.06] dark:text-gray-300"
-              title={parameter.name}
-            >
-              {parameter.code}
-            </span>
-          ))}
-          {hiddenCount > 0 && (
-            <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
-              +{hiddenCount}
-            </span>
-          )}
-        </div>
-      );
-    },
-  },
-  {
-    key: "isActive",
-    header: "Status",
-    render: (value) => (
-      <Badge color={value ? "success" : "error"} size="sm">
-        {value ? "Active" : "Inactive"}
-      </Badge>
-    ),
-  },
-  {
-    key: "createdAt",
-    header: "Created At",
-    render: (value) => (typeof value === "string" ? formatDate(value) : "-"),
-  },
 ];
 
 export default function ProcessTable() {
@@ -111,6 +108,9 @@ export default function ProcessTable() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [processToDelete, setProcessToDelete] = useState<Process | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [parameterProcess, setParameterProcess] = useState<Process | null>(
+    null
+  );
 
   const {
     data,
@@ -155,6 +155,10 @@ export default function ProcessTable() {
     setIsDeleteModalOpen(true);
   }, []);
 
+  const handleShowParameters = useCallback((process: Process) => {
+    setParameterProcess(process);
+  }, []);
+
   const closeDeleteModal = () => {
     if (!isDeleting) {
       setIsDeleteModalOpen(false);
@@ -190,6 +194,32 @@ export default function ProcessTable() {
     () => [
       ...baseColumns,
       {
+        key: "parameters",
+        header: "Parameters",
+        className: "min-w-80",
+        render: (_, row) => (
+          <ParameterChipList
+            parameters={row.parameters ?? []}
+            onShowMore={() => handleShowParameters(row)}
+          />
+        ),
+      },
+      {
+        key: "isActive",
+        header: "Status",
+        render: (value) => (
+          <Badge color={value ? "success" : "error"} size="sm">
+            {value ? "Active" : "Inactive"}
+          </Badge>
+        ),
+      },
+      {
+        key: "createdAt",
+        header: "Created At",
+        render: (value) =>
+          typeof value === "string" ? formatDate(value) : "-",
+      },
+      {
         key: "action",
         header: "Action",
         align: "center",
@@ -215,8 +245,10 @@ export default function ProcessTable() {
         ),
       },
     ],
-    [handleDeleteClick, handleUpdate]
+    [handleDeleteClick, handleShowParameters, handleUpdate]
   );
+
+  const selectedParameters = parameterProcess?.parameters ?? [];
 
   return (
     <>
@@ -275,6 +307,53 @@ export default function ProcessTable() {
         isDestructive={true}
         isLoading={isDeleting}
       />
+
+      <Modal
+        isOpen={Boolean(parameterProcess)}
+        onClose={() => setParameterProcess(null)}
+        className="max-w-[640px] p-6"
+      >
+        <div className="pr-12">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-white/90">
+            Process Parameters
+          </h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {parameterProcess
+              ? `${parameterProcess.code} - ${parameterProcess.name}`
+              : ""}
+          </p>
+        </div>
+
+        <div className="mt-6 max-h-[60vh] overflow-y-auto pr-1">
+          <div className="grid gap-3">
+            {selectedParameters.map((parameter) => (
+              <div
+                key={parameter.id}
+                className="rounded-lg border border-gray-100 p-4 dark:border-white/[0.08]"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      {parameter.code}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                      {parameter.name}
+                    </p>
+                  </div>
+                  <span className="inline-flex w-fit rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-white/[0.06] dark:text-gray-300">
+                    {parameter.dataType}
+                  </span>
+                </div>
+                {parameter.description && (
+                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    {parameter.description}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

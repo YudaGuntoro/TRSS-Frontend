@@ -19,13 +19,14 @@ export type Part = {
   number: string;
   name: string;
   description: string;
+  specialCharacter?: string | null;
   isActive: boolean;
   createdAt: string;
 };
 
 export type PartPayload = Pick<
   Part,
-  "number" | "name" | "description" | "isActive"
+  "number" | "name" | "description" | "specialCharacter" | "isActive"
 >;
 
 export type PartQuery = {

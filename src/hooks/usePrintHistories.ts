@@ -2,42 +2,38 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiListResponse } from "@/services/ParameterService";
-import StockInReworkService, {
-  StockInRework,
-  StockInReworkQuery,
-} from "@/services/StockInReworkService";
+import PrintHistoryService, {
+  PrintHistory,
+  PrintHistoryQuery,
+} from "@/services/PrintHistoryService";
 
-type UseStockInReworksOptions = StockInReworkQuery & {
+type UsePrintHistoriesOptions = PrintHistoryQuery & {
   enabled?: boolean;
 };
 
-export type StockInReworkQueryState = {
+export type PrintHistoryQueryState = {
   page: number;
   limit: number;
-  serialNumberCode: string;
-  disposition: StockInReworkQuery["disposition"];
-  includeAllDispositions?: boolean;
+  search: string;
 };
 
 const getInitialQuery = (
-  options: UseStockInReworksOptions
-): StockInReworkQueryState => ({
+  options: UsePrintHistoriesOptions
+): PrintHistoryQueryState => ({
   page: options.page ?? 1,
   limit: options.limit ?? 10,
-  serialNumberCode: options.serialNumberCode ?? "",
-  disposition: options.disposition ?? "",
-  includeAllDispositions: options.includeAllDispositions,
+  search: options.search ?? "",
 });
 
-export const useStockInReworks = (
-  options: UseStockInReworksOptions = {}
+export const usePrintHistories = (
+  options: UsePrintHistoriesOptions = {}
 ) => {
   const { enabled = true } = options;
-  const [query, setQueryState] = useState<StockInReworkQueryState>(() =>
+  const [query, setQueryState] = useState<PrintHistoryQueryState>(() =>
     getInitialQuery(options)
   );
   const [response, setResponse] =
-    useState<ApiListResponse<StockInRework> | null>(null);
+    useState<ApiListResponse<PrintHistory> | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -46,17 +42,9 @@ export const useStockInReworks = (
     () => ({
       page: query.page,
       limit: query.limit,
-      serialNumberCode: query.serialNumberCode,
-      disposition: query.disposition,
-      includeAllDispositions: query.includeAllDispositions,
+      search: query.search,
     }),
-    [
-      query.disposition,
-      query.includeAllDispositions,
-      query.limit,
-      query.page,
-      query.serialNumberCode,
-    ]
+    [query.limit, query.page, query.search]
   );
 
   const startRequest = useCallback(() => {
@@ -90,7 +78,7 @@ export const useStockInReworks = (
   );
 
   const setQuery = useCallback(
-    (nextQuery: Partial<StockInReworkQueryState>) => {
+    (nextQuery: Partial<PrintHistoryQueryState>) => {
       startRequest();
       setQueryState((current) => ({
         ...current,
@@ -113,7 +101,7 @@ export const useStockInReworks = (
 
     const controller = new AbortController();
 
-    StockInReworkService.getStockInReworks(requestQuery, {
+    PrintHistoryService.getPrintHistories(requestQuery, {
       signal: controller.signal,
     })
       .then((result) => {
@@ -130,7 +118,7 @@ export const useStockInReworks = (
         setError(
           fetchError instanceof Error
             ? fetchError.message
-            : "Failed to fetch stock in reworks"
+            : "Failed to fetch print histories"
         );
       })
       .finally(() => {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import { useToast } from "@/context/ToastContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useStockInReworks } from "@/hooks/useStockInReworks";
 import {
   StockInRework,
@@ -29,6 +30,9 @@ const formatDate = (value?: string | null) => {
 const filterInputClassName =
   "h-10 w-[280px] max-w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 
+const filterSelectClassName =
+  "h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
+
 const formatDisposition = (value?: string) =>
   value ? value.replaceAll("_", " ") : "-";
 
@@ -52,14 +56,18 @@ const isFinalDisposition = (
 export default function StockInReworkHistoryTable() {
   const toast = useToast();
   const lastErrorRef = useRef<string | null>(null);
-  const lastAppliedSearchRef = useRef("");
   const [serialNumberSearch, setSerialNumberSearch] = useState("");
+  const debouncedSerialNumberSearch = useDebouncedValue(
+    serialNumberSearch.trim(),
+    500
+  );
 
   const {
     data,
     error,
     isLoading,
     pagination,
+    query,
     setLimit,
     setPage,
     setQuery,
@@ -70,19 +78,12 @@ export default function StockInReworkHistoryTable() {
   });
 
   useEffect(() => {
-    const nextSearch = serialNumberSearch.trim();
-
-    if (nextSearch === lastAppliedSearchRef.current) {
+    if (debouncedSerialNumberSearch === query.serialNumberCode) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      lastAppliedSearchRef.current = nextSearch;
-      setQuery({ serialNumberCode: nextSearch });
-    }, 500);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [serialNumberSearch, setQuery]);
+    setQuery({ serialNumberCode: debouncedSerialNumberSearch });
+  }, [debouncedSerialNumberSearch, query.serialNumberCode, setQuery]);
 
   useEffect(() => {
     if (!error || lastErrorRef.current === error) {
@@ -191,13 +192,30 @@ export default function StockInReworkHistoryTable() {
   return (
     <DataTable
       actions={
-        <input
-          className={filterInputClassName}
-          onChange={(event) => setSerialNumberSearch(event.target.value)}
-          placeholder="Search Serial Number"
-          type="text"
-          value={serialNumberSearch}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            className={filterInputClassName}
+            onChange={(event) => setSerialNumberSearch(event.target.value)}
+            placeholder="Search Serial Number"
+            type="text"
+            value={serialNumberSearch}
+          />
+
+          <select
+            className={filterSelectClassName}
+            onChange={(event) =>
+              setQuery({
+                disposition: event.target
+                  .value as StockInReworkFinalDisposition | "",
+              })
+            }
+            value={query.disposition}
+          >
+            <option value="">All Dispositions</option>
+            <option value="STOCK_IN">Stock In</option>
+            <option value="SCRAP">Scrap</option>
+          </select>
+        </div>
       }
       columns={columns}
       data={historyData}

@@ -44,6 +44,11 @@ const baseColumns: DataTableColumn<Part>[] = [
     sortable: true,
   },
   {
+    key: "specialCharacter",
+    header: "SpecialChar",
+    render: (value) => (typeof value === "string" && value ? value : "-"),
+  },
+  {
     key: "description",
     header: "Description",
     className: "min-w-72",
@@ -209,7 +214,7 @@ export default function PartTable() {
         emptyMessage="No parts found"
         error={error}
         isLoading={isLoading}
-        minWidth="920px"
+        minWidth="1040px"
         onLimitChange={setLimit}
         onPageChange={setPage}
         onSearchChange={setSearch}

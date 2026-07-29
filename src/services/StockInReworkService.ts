@@ -41,6 +41,7 @@ export type StockInReworkQuery = {
   limit?: number;
   serialNumberId?: number;
   serialNumberCode?: string;
+  disposition?: StockInReworkFinalDisposition | "";
   includeAllDispositions?: boolean;
 };
 
@@ -51,6 +52,7 @@ const normalizeQuery = (query: StockInReworkQuery) => ({
   limit: query.limit,
   serialNumberId: query.serialNumberId,
   serialNumberCode: query.serialNumberCode,
+  disposition: query.disposition || undefined,
   includeAllDispositions: query.includeAllDispositions,
 });
 

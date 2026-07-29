@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import SerialNumberService, {
   SerialNumber,
   SerialNumberIssue,
@@ -60,20 +61,27 @@ function SerialNumberSearchSelect({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debouncedSearch = useDebouncedValue(search.trim(), 500);
 
   useEffect(() => {
     if (!isOpen || disabled) return;
 
     const controller = new AbortController();
-    const timer = globalThis.setTimeout(() => {
+    const requestId = globalThis.setTimeout(() => {
+      if (controller.signal.aborted) {
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
       SerialNumberService.getSerialNumbers(
         {
+          isFinished: true,
           limit: 50,
           page: 1,
-          search,
+          search: debouncedSearch,
+          status: false,
         },
         {
           signal: controller.signal,
@@ -101,13 +109,13 @@ function SerialNumberSearchSelect({
             setIsLoading(false);
           }
         });
-    }, 250);
+    }, 0);
 
     return () => {
-      globalThis.clearTimeout(timer);
+      globalThis.clearTimeout(requestId);
       controller.abort();
     };
-  }, [disabled, isOpen, search]);
+  }, [debouncedSearch, disabled, isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export type DataTableSortDirection = "asc" | "desc";
 
@@ -166,22 +167,18 @@ export default function DataTable<T extends object>({
   const normalizedSearchValue = searchValue ?? "";
   const [localSearchValue, setLocalSearchValue] = useState(normalizedSearchValue);
   const [lastSearchValue, setLastSearchValue] = useState(normalizedSearchValue);
+  const debouncedSearchValue = useDebouncedValue(localSearchValue, 500);
 
   if (lastSearchValue !== normalizedSearchValue) {
     setLastSearchValue(normalizedSearchValue);
     setLocalSearchValue(normalizedSearchValue);
   }
 
-  // Debounce search change
   useEffect(() => {
-    if (localSearchValue === normalizedSearchValue) return;
+    if (debouncedSearchValue === normalizedSearchValue) return;
 
-    const timer = setTimeout(() => {
-      onSearchChange?.(localSearchValue);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [localSearchValue, onSearchChange, normalizedSearchValue]);
+    onSearchChange?.(debouncedSearchValue);
+  }, [debouncedSearchValue, onSearchChange, normalizedSearchValue]);
 
   const currentPage = pagination?.page ?? 1;
   const currentLimit = pagination?.limit ?? limitOptions[0];

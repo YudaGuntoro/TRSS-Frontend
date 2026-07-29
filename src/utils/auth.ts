@@ -15,6 +15,8 @@ export const PERMISSIONS = {
   STOCK_IN_CREATE: "stock-in.create",
   STOCK_IN_EDIT: "stock-in.edit",
   STOCK_IN_DELETE: "stock-in.delete",
+  PRINT_HISTORY_VIEW: "print-history.view",
+  PRINT_HISTORY_REPRINT: "print-history.reprint",
   USERS_MANAGE: "users.manage",
   APP_CONFIGURATION_MANAGE: "app-configuration.manage",
   PROCESS_LOGS_VIEW: "process-logs.view",
@@ -50,11 +52,14 @@ const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     PERMISSIONS.STOCK_IN_VIEW,
     PERMISSIONS.STOCK_IN_CREATE,
     PERMISSIONS.STOCK_IN_EDIT,
+    PERMISSIONS.PRINT_HISTORY_VIEW,
+    PERMISSIONS.PRINT_HISTORY_REPRINT,
     PERMISSIONS.PROCESS_LOGS_VIEW,
   ]),
   [ROLES.GUEST]: new Set([
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.STOCK_IN_VIEW,
+    PERMISSIONS.PRINT_HISTORY_VIEW,
     PERMISSIONS.PROCESS_LOGS_VIEW,
   ]),
 };
@@ -216,6 +221,10 @@ export const getRequiredPermission = (pathname: string): Permission => {
 
   if (pathname.startsWith("/process-log")) {
     return PERMISSIONS.PROCESS_LOGS_VIEW;
+  }
+
+  if (pathname.startsWith("/print-history")) {
+    return PERMISSIONS.PRINT_HISTORY_VIEW;
   }
 
   return PERMISSIONS.ADMIN_ACCESS;

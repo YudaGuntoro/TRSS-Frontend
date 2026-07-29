@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import { useProcessLogs } from "@/hooks/useProcessLogs";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { ProcessLog } from "@/services/ProcessLogService";
 import { useToast } from "@/context/ToastContext";
 import { ArrowUpIcon, EyeIcon } from "@/icons";
@@ -49,6 +50,11 @@ export default function ProcessLogTable() {
   const toast = useToast();
   const router = useRouter();
   const lastErrorRef = useRef<string | null>(null);
+  const [serialNumberSearch, setSerialNumberSearch] = useState("");
+  const debouncedSerialNumberSearch = useDebouncedValue(
+    serialNumberSearch.trim(),
+    500
+  );
 
   const {
     data,
@@ -63,6 +69,14 @@ export default function ProcessLogTable() {
     limit: 10,
     page: 1,
   });
+
+  useEffect(() => {
+    if (debouncedSerialNumberSearch === query.serialNumberCode) {
+      return;
+    }
+
+    setQuery({ serialNumberCode: debouncedSerialNumberSearch });
+  }, [debouncedSerialNumberSearch, query.serialNumberCode, setQuery]);
 
   useEffect(() => {
     if (!error || lastErrorRef.current === error) {
@@ -165,10 +179,8 @@ export default function ProcessLogTable() {
             type="text"
             placeholder="Serial Number"
             className={filterInputClassName}
-            value={query.serialNumberCode}
-            onChange={(event) =>
-              setQuery({ serialNumberCode: event.target.value })
-            }
+            value={serialNumberSearch}
+            onChange={(event) => setSerialNumberSearch(event.target.value)}
           />
 
           <button

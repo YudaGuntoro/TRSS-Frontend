@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Modal } from "@/components/ui/modal";
 import StockInService, { StockIn } from "@/services/StockInService";
 import { useToast } from "@/context/ToastContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useParts } from "@/hooks/useParts";
 import { Part } from "@/services/PartService";
 import DatePicker from "../form/date-picker";
@@ -52,7 +53,7 @@ function PartSearchSelect({
   const selectedLabel = selectedPart
     ? `${selectedPart.number} - ${selectedPart.name}`
     : "";
-  const normalizedSearch = search.trim().toLowerCase();
+  const normalizedSearch = useDebouncedValue(search.trim().toLowerCase(), 500);
   const filteredParts = useMemo(() => {
     const matchedParts = normalizedSearch
       ? parts.filter((part) =>

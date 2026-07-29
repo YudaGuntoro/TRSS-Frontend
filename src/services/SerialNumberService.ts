@@ -26,6 +26,8 @@ export type SerialNumberQuery = {
   page?: number;
   limit?: number;
   search?: string;
+  status?: boolean;
+  isFinished?: boolean;
 };
 
 type ApiDataResponse<T> = {
