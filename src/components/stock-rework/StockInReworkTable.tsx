@@ -35,6 +35,9 @@ const formatDate = (value: string) => {
 const filterInputClassName =
   "h-10 w-[260px] max-w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 
+const filterSelectClassName =
+  "h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
+
 const dispositionSelectClassName =
   "h-9 rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 
@@ -89,6 +92,7 @@ export default function StockInReworkTable() {
     limit: 10,
     page: 1,
   });
+  const isHistoryMode = isFinalDisposition(query.disposition);
 
   useEffect(() => {
     if (debouncedSerialNumberSearch === query.serialNumberCode) {
@@ -215,12 +219,12 @@ export default function StockInReworkTable() {
       },
       {
         key: "disposition",
-        header: "Final Disposition",
+        header: isHistoryMode ? "Disposition" : "Final Disposition",
         align: "center",
         render: (value, row) => {
           const disposition = typeof value === "string" ? value : undefined;
 
-          if (isFinalDisposition(disposition) || !canUpdate) {
+          if (isHistoryMode || isFinalDisposition(disposition) || !canUpdate) {
             return (
               <span
                 className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getDispositionClassName(
@@ -264,11 +268,22 @@ export default function StockInReworkTable() {
           );
         },
       },
+      ...(isHistoryMode
+        ? [
+            {
+              key: "updatedAt",
+              header: "Updated At",
+              render: (value) =>
+                typeof value === "string" ? formatDate(value) : "-",
+            } satisfies DataTableColumn<StockInRework>,
+          ]
+        : []),
     ],
     [
       canUpdate,
       handleDispositionChange,
       handleUpdateDisposition,
+      isHistoryMode,
       selectedDispositions,
       updatingId,
     ]
@@ -287,17 +302,36 @@ export default function StockInReworkTable() {
               value={serialNumberSearch}
             />
 
-            {canCreate && (
+            <select
+              className={filterSelectClassName}
+              onChange={(event) =>
+                setQuery({
+                  disposition: event.target
+                    .value as StockInReworkFinalDisposition | "",
+                })
+              }
+              value={query.disposition}
+            >
+              <option value="">Pending</option>
+              <option value="STOCK_IN">Stock In</option>
+              <option value="SCRAP">Scrap</option>
+            </select>
+
+            {canCreate && !isHistoryMode && (
               <CreateButton onClick={() => setIsModalOpen(true)} />
             )}
           </div>
         }
         columns={columns}
         data={data}
-        emptyMessage="No stock in rework records found"
+        emptyMessage={
+          isHistoryMode
+            ? "No stock in rework history found"
+            : "No stock in rework records found"
+        }
         error={error}
         isLoading={isLoading}
-        minWidth="1240px"
+        minWidth={isHistoryMode ? "1320px" : "1240px"}
         onLimitChange={setLimit}
         onPageChange={setPage}
         pagination={pagination}
