@@ -1,5 +1,6 @@
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import StockInReworkHistoryTable from "@/components/stock-rework/StockInReworkHistoryTable";
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Stock In Rework History | PT TRSS",
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function StockInReworkHistoryPage() {
-  redirect("/stock-in-rework?tab=history");
+  return (
+    <div>
+      <PageBreadcrumb pageTitle="Stock In Rework History" />
+      <StockInReworkHistoryTable />
+    </div>
+  );
 }
