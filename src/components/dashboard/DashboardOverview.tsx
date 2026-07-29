@@ -613,7 +613,7 @@ function RecentLogsTable({
               </TableCell>
               <TableCell
                 isHeader
-                className="min-w-64 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
+                className="min-w-64 px-4 py-3 text-center text-theme-xs font-semibold uppercase text-white"
               >
                 Issue No
               </TableCell>
@@ -673,8 +673,8 @@ function RecentLogsTable({
                       {log.serialNumberCode ?? "-"}
                     </p>
                   </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <div className="flex flex-wrap gap-2">
+                  <TableCell className="px-4 py-4 text-center">
+                    <div className="flex flex-wrap justify-center gap-2">
                       {getLogIssueNumbers(log).length > 0 ? (
                         getLogIssueNumbers(log).map((issueNumber) => (
                           <span
