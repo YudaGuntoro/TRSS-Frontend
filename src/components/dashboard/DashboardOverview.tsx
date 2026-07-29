@@ -673,8 +673,8 @@ function RecentLogsTable({
                       {log.serialNumberCode ?? "-"}
                     </p>
                   </TableCell>
-                  <TableCell className="px-4 py-4 text-center">
-                    <div className="flex flex-wrap justify-center gap-2">
+                  <TableCell className="px-4 py-4">
+                    <div className="flex flex-wrap gap-2">
                       {getLogIssueNumbers(log).length > 0 ? (
                         getLogIssueNumbers(log).map((issueNumber) => (
                           <span
