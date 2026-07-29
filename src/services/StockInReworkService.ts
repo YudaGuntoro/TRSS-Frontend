@@ -6,6 +6,10 @@ export type StockInReworkFinalDisposition = Exclude<
   StockInReworkDisposition,
   "PENDING"
 >;
+export type StockInReworkDispositionFilter =
+  | StockInReworkFinalDisposition
+  | "ALL"
+  | "";
 
 export type StockInRework = {
   id: number;
@@ -41,7 +45,7 @@ export type StockInReworkQuery = {
   limit?: number;
   serialNumberId?: number;
   serialNumberCode?: string;
-  disposition?: StockInReworkFinalDisposition | "";
+  disposition?: StockInReworkDispositionFilter;
   includeAllDispositions?: boolean;
 };
 
@@ -52,7 +56,10 @@ const normalizeQuery = (query: StockInReworkQuery) => ({
   limit: query.limit,
   serialNumberId: query.serialNumberId,
   serialNumberCode: query.serialNumberCode,
-  disposition: query.disposition || undefined,
+  disposition:
+    query.disposition && query.disposition !== "ALL"
+      ? query.disposition
+      : undefined,
   includeAllDispositions: query.includeAllDispositions,
 });
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiListResponse } from "@/services/ParameterService";
 import StockInReworkService, {
   StockInRework,
+  StockInReworkFinalDisposition,
   StockInReworkQuery,
 } from "@/services/StockInReworkService";
 
@@ -28,6 +29,80 @@ const getInitialQuery = (
   disposition: options.disposition ?? "",
   includeAllDispositions: options.includeAllDispositions,
 });
+
+const finalDispositions: StockInReworkFinalDisposition[] = [
+  "STOCK_IN",
+  "SCRAP",
+];
+
+const getTimestamp = (item: StockInRework) => {
+  const value = item.createdAt || item.updatedAt;
+  const timestamp = value ? new Date(value).getTime() : 0;
+
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const mergeResponses = (
+  responses: ApiListResponse<StockInRework>[],
+  page: number,
+  limit: number
+): ApiListResponse<StockInRework> => {
+  const uniqueRows = new Map<number, StockInRework>();
+
+  responses.forEach((response) => {
+    response.data.forEach((item) => {
+      uniqueRows.set(item.id, item);
+    });
+  });
+
+  const sortedRows = Array.from(uniqueRows.values()).sort(
+    (first, second) => getTimestamp(second) - getTimestamp(first)
+  );
+  const total = responses.reduce(
+    (currentTotal, response) => currentTotal + response.pagination.total,
+    0
+  );
+  const startIndex = (page - 1) * limit;
+
+  return {
+    data: sortedRows.slice(startIndex, startIndex + limit),
+    message: responses[0]?.message ?? "Stock in reworks retrieved successfully",
+    pagination: {
+      limit,
+      page,
+      total,
+      totalPage: Math.max(1, Math.ceil(total / limit)),
+    },
+    success: responses.every((response) => response.success),
+  };
+};
+
+const getCombinedStockInReworks = async (
+  query: StockInReworkQuery,
+  options: { signal: AbortSignal }
+) => {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 10;
+  const aggregateLimit = Math.max(page * limit, limit);
+  const dispositions: StockInReworkQuery["disposition"][] =
+    query.disposition === "ALL" ? ["", ...finalDispositions] : finalDispositions;
+  const responses = await Promise.all(
+    dispositions.map((disposition) =>
+      StockInReworkService.getStockInReworks(
+        {
+          ...query,
+          disposition,
+          includeAllDispositions: undefined,
+          limit: aggregateLimit,
+          page: 1,
+        },
+        options
+      )
+    )
+  );
+
+  return mergeResponses(responses, page, limit);
+};
 
 export const useStockInReworks = (
   options: UseStockInReworksOptions = {}
@@ -112,10 +187,19 @@ export const useStockInReworks = (
     }
 
     const controller = new AbortController();
+    const shouldCombineResponses =
+      requestQuery.disposition === "ALL" ||
+      (requestQuery.includeAllDispositions && !requestQuery.disposition);
 
-    StockInReworkService.getStockInReworks(requestQuery, {
-      signal: controller.signal,
-    })
+    const request = shouldCombineResponses
+      ? getCombinedStockInReworks(requestQuery, {
+          signal: controller.signal,
+        })
+      : StockInReworkService.getStockInReworks(requestQuery, {
+          signal: controller.signal,
+        });
+
+    request
       .then((result) => {
         setResponse(result);
       })

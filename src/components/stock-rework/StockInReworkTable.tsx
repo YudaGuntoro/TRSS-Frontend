@@ -9,6 +9,7 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useStockInReworks } from "@/hooks/useStockInReworks";
 import StockInReworkService, {
   StockInRework,
+  StockInReworkDispositionFilter,
   StockInReworkFinalDisposition,
 } from "@/services/StockInReworkService";
 import { PERMISSIONS } from "@/utils/auth";
@@ -92,7 +93,8 @@ export default function StockInReworkTable() {
     limit: 10,
     page: 1,
   });
-  const isHistoryMode = isFinalDisposition(query.disposition);
+  const isAllMode = query.disposition === "ALL";
+  const isHistoryMode = isAllMode || isFinalDisposition(query.disposition);
 
   useEffect(() => {
     if (debouncedSerialNumberSearch === query.serialNumberCode) {
@@ -307,11 +309,12 @@ export default function StockInReworkTable() {
               onChange={(event) =>
                 setQuery({
                   disposition: event.target
-                    .value as StockInReworkFinalDisposition | "",
+                    .value as StockInReworkDispositionFilter,
                 })
               }
               value={query.disposition}
             >
+              <option value="ALL">All</option>
               <option value="">Pending</option>
               <option value="STOCK_IN">Stock In</option>
               <option value="SCRAP">Scrap</option>
@@ -325,9 +328,11 @@ export default function StockInReworkTable() {
         columns={columns}
         data={data}
         emptyMessage={
-          isHistoryMode
-            ? "No stock in rework history found"
-            : "No stock in rework records found"
+          isAllMode
+            ? "No stock in rework records found"
+            : isHistoryMode
+              ? "No stock in rework history found"
+              : "No stock in rework records found"
         }
         error={error}
         isLoading={isLoading}
