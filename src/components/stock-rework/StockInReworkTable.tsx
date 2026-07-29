@@ -388,7 +388,7 @@ export default function StockInReworkTable() {
         confirmText="Submit"
         isLoading={updatingId !== null}
         isOpen={Boolean(pendingSubmitRow)}
-        message="Apakah anda yakin akan submit? Data yang sudah di submit tidak dapat dirubah kembali."
+        message="Apakah anda yakin akan submit? Data yang sudah di submit tidak dapat dirubah kembali kecuali atas izin Lord Agoeng Kasuari."
         onClose={closeSubmitModal}
         onConfirm={confirmSubmitDisposition}
         title="Konfirmasi Submit"
