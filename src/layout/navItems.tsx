@@ -84,6 +84,12 @@ export const navItems: NavItem[] = [
     permission: PERMISSIONS.PROCESS_LOGS_VIEW,
   },
   {
+    icon: <TableIcon />,
+    name: "Data Summary",
+    path: "/data-summary",
+    permission: PERMISSIONS.PROCESS_LOGS_VIEW,
+  },
+  {
     icon: <PageIcon />,
     name: "Print History",
     path: "/print-history",

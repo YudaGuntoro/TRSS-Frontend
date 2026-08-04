@@ -33,6 +33,33 @@ type ParameterColumn = {
   parameterName?: string;
 };
 
+const lotParameterHeaderKeys = new Set([
+  "CORE ASM",
+  "CORE ASM RESULT",
+  "UPPER TANK ASM",
+  "UPPER TANK ASM RESULT",
+  "LOWER TANK ASM",
+  "LOWER TANK ASM RESULT",
+  "FAN ASM",
+  "FAN ASM RESULT",
+  "MOTOR ASM",
+  "MOTOR ASM RESULT",
+  "FUN GUIDE ASM",
+  "FUN GUIDE ASM RESULT",
+  "LOT CORE ASM",
+  "LOT CORE ASM RESULT",
+  "LOT UPPER TANK ASM",
+  "LOT UPPER TANK ASM RESULT",
+  "LOT LOWER TANK ASM",
+  "LOT LOWER TANK ASM RESULT",
+  "LOT FAN ASM",
+  "LOT FAN ASM RESULT",
+  "LOT MOTOR ASM",
+  "LOT MOTOR ASM RESULT",
+  "LOT FUN GUIDE ASM",
+  "LOT FUN GUIDE ASM RESULT",
+]);
+
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   hour: "2-digit",
@@ -156,25 +183,26 @@ const getDetailCountLabel = (details: ProcessLogFullValueDetail[]) => {
 const groupDetailsByProcess = (
   details: ProcessLogFullValueDetail[]
 ): ProcessDetailGroup[] => {
-  return details.reduce<ProcessDetailGroup[]>((groups, detail) => {
-    const latestGroup = groups[groups.length - 1];
-    const isSameProcess =
-      latestGroup &&
-      latestGroup.processCode === detail.processCode &&
-      latestGroup.processName === detail.processName;
+  const groups = new Map<string, ProcessDetailGroup>();
 
-    if (isSameProcess) {
-      latestGroup.details.push(detail);
-      return groups;
+  details.forEach((detail) => {
+    const key =
+      detail.processCode ?? detail.processName ?? `process-${groups.size}`;
+    const existingGroup = groups.get(key);
+
+    if (existingGroup) {
+      existingGroup.details.push(detail);
+      return;
     }
 
-    groups.push({
+    groups.set(key, {
       processCode: detail.processCode,
       processName: detail.processName,
       details: [detail],
     });
-    return groups;
-  }, []);
+  });
+
+  return Array.from(groups.values());
 };
 
 const getParameterColumnKey = (detail: ProcessLogFullValueDetail) =>
@@ -228,6 +256,31 @@ const formatColumnHeader = (value?: string) => {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+};
+
+const normalizeHeaderKey = (value?: string) =>
+  value?.trim().replace(/[_\s]+/g, " ").toUpperCase();
+
+const isLotParameterColumn = (column: ParameterColumn) =>
+  [column.parameterName, column.parameterCode].some((value) => {
+    const key = normalizeHeaderKey(value);
+    return Boolean(key && lotParameterHeaderKeys.has(key));
+  });
+
+const formatParameterColumnHeader = (column: ParameterColumn) => {
+  const formattedHeader = formatColumnHeader(
+    column.parameterName ?? column.parameterCode
+  );
+
+  if (formattedHeader === "-" || !isLotParameterColumn(column)) {
+    return formattedHeader;
+  }
+
+  const lotHeader = formattedHeader.toLowerCase().startsWith("lot ")
+    ? formattedHeader
+    : `Lot ${formattedHeader}`;
+
+  return lotHeader.replace(/\s+Result$/i, "");
 };
 
 const shouldDisplayCode = (value?: string) => Boolean(value && !value.includes("_"));
@@ -438,8 +491,6 @@ function ProcessValueTable({
   title: string;
 }) {
   const processGroups = groupDetailsByProcess(details);
-  const parameterColumns = getParameterColumns(details);
-  const tableMinWidth = Math.max(920, 240 + parameterColumns.length * 180);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-white/[0.08] dark:bg-white/[0.03]">
@@ -457,25 +508,61 @@ function ProcessValueTable({
         </span>
       </div>
 
-      <div className="max-w-full overflow-x-auto">
+      <div className="space-y-5 p-4 sm:p-5">
+        {processGroups.map((group, groupIndex) => (
+          <ProcessGroupTable
+            group={group}
+            key={`${group.processCode ?? "process"}-${groupIndex}`}
+          />
+        ))}
+
+        {details.length === 0 && (
+          <div className="rounded-lg border border-dashed border-gray-200 px-5 py-8 text-center text-sm text-gray-500 dark:border-white/[0.12] dark:text-gray-400">
+            No values recorded.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ProcessGroupTable({ group }: { group: ProcessDetailGroup }) {
+  const parameterColumns = getParameterColumns(group.details);
+  const tableMinWidth = Math.max(520, parameterColumns.length * 180);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-800 dark:text-white/90">
+            {formatColumnHeader(group.processName ?? group.processCode)}
+          </h3>
+          {shouldDisplayCode(group.processCode) && (
+            <p className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+              {formatColumnHeader(group.processCode)}
+            </p>
+          )}
+        </div>
+        <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-white/[0.06] dark:text-gray-300">
+          {group.details.length} parameter
+          {group.details.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="max-w-full overflow-x-auto rounded-lg border border-gray-200 dark:border-white/[0.12]">
         <table
           className="w-full text-left text-sm"
           style={{ minWidth: `${tableMinWidth}px` }}
         >
           <thead className="bg-[#6D8AF3] text-xs font-semibold uppercase text-white dark:bg-[#6D8AF3]/90">
             <tr>
-              <th className="sticky left-0 z-10 w-[240px] bg-[#6D8AF3] px-5 py-3 text-center align-middle dark:bg-[#6D8AF3]">
-                Process
-              </th>
               {parameterColumns.map((column) => (
                 <th
                   className="min-w-[180px] px-4 py-3 text-center align-middle"
                   key={column.key}
                 >
                   <span className="block whitespace-normal break-words leading-5">
-                    {formatColumnHeader(
-                      column.parameterName ?? column.parameterCode
-                    )}
+                    {formatParameterColumnHeader(column)}
                   </span>
                   {shouldDisplayCode(column.parameterCode) && (
                     <span className="mt-1 block whitespace-normal break-words text-[10px] font-medium text-white/75">
@@ -486,63 +573,33 @@ function ProcessValueTable({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-white/[0.12]">
-            {processGroups.map((group, groupIndex) => (
-              <tr
-                className="hover:bg-gray-50/70 dark:hover:bg-white/[0.03]"
-                key={`${group.processCode ?? "process"}-${groupIndex}`}
-              >
-                <td className="sticky left-0 z-10 border-b border-gray-200 bg-white px-5 py-4 text-center align-middle dark:border-white/[0.12] dark:bg-[#111827]">
-                  <p className="font-semibold text-gray-800 dark:text-white/90">
-                    {formatColumnHeader(group.processName ?? group.processCode)}
-                  </p>
-                  {shouldDisplayCode(group.processCode) && (
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {formatColumnHeader(group.processCode)}
-                    </p>
-                  )}
-                </td>
+          <tbody>
+            <tr className="hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
+              {parameterColumns.map((column) => {
+                const columnDetails = getProcessParameterDetails(group, column);
+                const firstDetail = columnDetails[0];
 
-                {parameterColumns.map((column) => {
-                  const columnDetails = getProcessParameterDetails(
-                    group,
-                    column
-                  );
-                  const firstDetail = columnDetails[0];
-
-                  return (
-                    <td
-                      className="border-b border-gray-200 px-4 py-4 text-center align-middle dark:border-white/[0.12]"
-                      key={column.key}
+                return (
+                  <td
+                    className="px-4 py-4 text-center align-middle"
+                    key={column.key}
+                  >
+                    <span
+                      className={`font-semibold ${
+                        firstDetail
+                          ? getValueClassName(firstDetail.value)
+                          : "text-gray-400 dark:text-gray-500"
+                      }`}
                     >
-                      <span
-                        className={`font-semibold ${
-                          firstDetail
-                            ? getValueClassName(firstDetail.value)
-                            : "text-gray-400 dark:text-gray-500"
-                        }`}
-                      >
-                        {formatCellValue(columnDetails)}
-                      </span>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-
-            {details.length === 0 && (
-              <tr>
-                <td
-                  className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
-                  colSpan={Math.max(parameterColumns.length + 1, 1)}
-                >
-                  No values recorded.
-                </td>
-              </tr>
-            )}
+                      {formatCellValue(columnDetails)}
+                    </span>
+                  </td>
+                );
+              })}
+            </tr>
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }
