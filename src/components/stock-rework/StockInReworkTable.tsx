@@ -214,10 +214,6 @@ export default function StockInReworkTable() {
         header: "Issue Before",
       },
       {
-        key: "issueNumberAfter",
-        header: "Issue After",
-      },
-      {
         key: "qty",
         header: "Qty",
         align: "right",
@@ -369,7 +365,7 @@ export default function StockInReworkTable() {
         }
         error={error}
         isLoading={isLoading}
-        minWidth={isHistoryMode ? "1320px" : "1240px"}
+        minWidth={isHistoryMode ? "1160px" : "1080px"}
         onLimitChange={setLimit}
         onPageChange={setPage}
         pagination={pagination}

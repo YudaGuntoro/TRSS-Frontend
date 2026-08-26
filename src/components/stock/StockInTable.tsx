@@ -3,6 +3,7 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import CreateButton from "@/components/common/CreateButton";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useStockIns } from "@/hooks/useStockIns";
 import StockInService, { StockIn } from "@/services/StockInService";
 import { useToast } from "@/context/ToastContext";
@@ -50,6 +51,10 @@ export default function StockInTable() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [stockInToDelete, setStockInToDelete] = useState<StockIn | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [issueNumberSearch, setIssueNumberSearch] = useState("");
+  const [partNumberSearch, setPartNumberSearch] = useState("");
+  const debouncedIssueNumberSearch = useDebouncedValue(issueNumberSearch, 500);
+  const debouncedPartNumberSearch = useDebouncedValue(partNumberSearch, 500);
 
   const {
     data,
@@ -74,6 +79,26 @@ export default function StockInTable() {
       title: "Failed to load stock ins",
     });
   }, [error, toast]);
+
+  useEffect(() => {
+    if (
+      (query.issueNumber ?? "") === debouncedIssueNumberSearch &&
+      (query.partNumber ?? "") === debouncedPartNumberSearch
+    ) {
+      return;
+    }
+
+    setQuery({
+      issueNumber: debouncedIssueNumberSearch || undefined,
+      partNumber: debouncedPartNumberSearch || undefined,
+    });
+  }, [
+    debouncedIssueNumberSearch,
+    debouncedPartNumberSearch,
+    query.issueNumber,
+    query.partNumber,
+    setQuery,
+  ]);
 
   const handleCreate = () => {
     setSelectedStockIn(null);
@@ -227,16 +252,16 @@ export default function StockInTable() {
               type="text"
               placeholder="Issue Number"
               className={filterInputClassName}
-              value={query.issueNumber || ""}
-              onChange={(e) => setQuery({ issueNumber: e.target.value })}
+              value={issueNumberSearch}
+              onChange={(e) => setIssueNumberSearch(e.target.value)}
             />
 
             <input
               type="text"
               placeholder="Part Number"
               className={filterInputClassName}
-              value={query.partNumber || ""}
-              onChange={(e) => setQuery({ partNumber: e.target.value })}
+              value={partNumberSearch}
+              onChange={(e) => setPartNumberSearch(e.target.value)}
             />
 
             {canCreate && <CreateButton onClick={handleCreate} />}

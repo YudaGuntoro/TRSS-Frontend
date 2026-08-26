@@ -8,7 +8,7 @@ import AuthService from "@/services/AuthService";
 import { ApiError } from "@/utils/api";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const AUTH_TOKEN_KEYS = ["token", "accessToken", "authToken", "jwt"];
@@ -77,6 +77,19 @@ export default function SignInForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const authExpiredMessage = sessionStorage.getItem("authExpiredMessage");
+
+    if (!authExpiredMessage) {
+      return;
+    }
+
+    sessionStorage.removeItem("authExpiredMessage");
+    toast.error({
+      message: authExpiredMessage,
+    });
+  }, [toast]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -10,6 +10,7 @@ interface ConfirmModalProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  errorMessage?: string | null;
   isDestructive?: boolean;
   isLoading?: boolean;
 }
@@ -22,6 +23,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   message,
   confirmText = "Confirm",
   cancelText = "Cancel",
+  errorMessage,
   isDestructive = false,
   isLoading = false,
 }) => {
@@ -44,6 +46,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {message}
           </p>
+          {errorMessage ? (
+            <p className="mt-3 rounded-lg bg-error-50 px-3 py-2 text-sm font-medium text-error-600 dark:bg-error-500/15 dark:text-error-400">
+              {errorMessage}
+            </p>
+          ) : null}
         </div>
         <div className="mt-4 flex w-full justify-center gap-3">
           <button

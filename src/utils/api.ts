@@ -1,3 +1,9 @@
+import {
+  clearAuthSession,
+  getAuthToken,
+  isAuthTokenExpired,
+} from "@/utils/auth";
+
 export type QueryParamValue =
   | string
   | number
@@ -36,29 +42,24 @@ export class ApiError<T = unknown> extends Error {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 const DEFAULT_TIMEOUT = 30000;
-const AUTH_COOKIE_NAMES = ["token", "accessToken", "authToken"];
+const AUTH_EXPIRED_MESSAGE = "Sesi telah berakhir. Silakan login kembali.";
+let isRedirectingToLogin = false;
 
-const getCookie = (name: string) => {
-  if (typeof document === "undefined") {
-    return null;
+const isAuthEndpoint = (endpoint: string) =>
+  endpoint.includes("/api/auth/login");
+
+const redirectToLogin = () => {
+  if (typeof window === "undefined" || isRedirectingToLogin) {
+    return;
   }
 
-  const cookie = document.cookie
-    .split("; ")
-    .find((item) => item.startsWith(`${name}=`));
+  isRedirectingToLogin = true;
+  sessionStorage.setItem("authExpiredMessage", AUTH_EXPIRED_MESSAGE);
+  clearAuthSession();
 
-  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
-};
-
-const getAuthToken = () => {
-  for (const cookieName of AUTH_COOKIE_NAMES) {
-    const token = getCookie(cookieName);
-    if (token) {
-      return token;
-    }
+  if (window.location.pathname !== "/login") {
+    window.location.replace("/login");
   }
-
-  return null;
 };
 
 const buildQueryString = (params?: QueryParams) => {
@@ -141,10 +142,17 @@ const request = async <T>(
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeout);
   const abortRequest = () => controller.abort();
+  const shouldHandleAuth = !isAuthEndpoint(endpoint);
+  const token = getAuthToken();
 
   signal?.addEventListener("abort", abortRequest);
 
   try {
+    if (shouldHandleAuth && isAuthTokenExpired(token)) {
+      redirectToLogin();
+      throw new ApiError(AUTH_EXPIRED_MESSAGE, 401);
+    }
+
     const response = await fetch(buildUrl(endpoint, params), {
       ...fetchOptions,
       body:
@@ -165,6 +173,10 @@ const request = async <T>(
         typeof data.message === "string"
           ? data.message
           : response.statusText;
+
+      if (shouldHandleAuth && response.status === 401) {
+        redirectToLogin();
+      }
 
       throw new ApiError(message, response.status, data);
     }

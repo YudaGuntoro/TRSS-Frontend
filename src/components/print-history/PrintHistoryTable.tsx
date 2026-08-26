@@ -85,6 +85,9 @@ const isReprintableModule = (module: PrintModule) =>
   module === "2" ||
   module === "Clinching";
 
+const getErrorMessage = (error: unknown, fallbackMessage: string) =>
+  error instanceof Error && error.message ? error.message : fallbackMessage;
+
 export default function PrintHistoryTable() {
   const toast = useToast();
   const { can } = useAuth();
@@ -93,6 +96,7 @@ export default function PrintHistoryTable() {
   const [selectedHistory, setSelectedHistory] = useState<PrintHistory | null>(
     null
   );
+  const [reprintError, setReprintError] = useState<string | null>(null);
   const [reprintingId, setReprintingId] = useState<number | null>(null);
 
   const {
@@ -125,6 +129,7 @@ export default function PrintHistoryTable() {
   const closeReprintModal = useCallback(() => {
     if (reprintingId === null) {
       setSelectedHistory(null);
+      setReprintError(null);
     }
   }, [reprintingId]);
 
@@ -134,21 +139,28 @@ export default function PrintHistoryTable() {
     }
 
     setReprintingId(selectedHistory.id);
+    setReprintError(null);
     try {
-      await PrintHistoryService.reprint(selectedHistory.id);
+      const response = await PrintHistoryService.reprint(selectedHistory.id);
+
+      if (response.success === false) {
+        throw new Error(response.message || "Failed to reprint label");
+      }
 
       toast.success({
-        message: "Reprint request completed successfully",
+        message:
+          response.message || "Reprint request completed successfully",
         title: "Success",
       });
       setSelectedHistory(null);
-      refetch();
+      setReprintError(null);
+      void refetch();
     } catch (reprintError: unknown) {
+      const message = getErrorMessage(reprintError, "Failed to reprint label");
+
+      setReprintError(message);
       toast.error({
-        message:
-          reprintError instanceof Error
-            ? reprintError.message
-            : "Failed to reprint label",
+        message,
         title: "Failed to reprint",
       });
     } finally {
@@ -310,6 +322,7 @@ export default function PrintHistoryTable() {
         confirmText="Reprint"
         isLoading={reprintingId !== null}
         isOpen={Boolean(selectedHistory)}
+        errorMessage={reprintError}
         message={`Reprint label for ${selectedHistory ? getReferenceLabel(selectedHistory) : "this record"}?`}
         onClose={closeReprintModal}
         onConfirm={handleConfirmReprint}

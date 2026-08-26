@@ -30,6 +30,7 @@ export type AuthUser = {
 };
 
 const AUTH_COOKIE_NAMES = ["token", "accessToken", "authToken"];
+const AUTH_STORAGE_KEYS = ["token", "accessToken", "authToken", "jwt"];
 const USERNAME_CLAIM_KEYS = [
   "username",
   "unique_name",
@@ -110,6 +111,20 @@ const decodeJwtPayload = (token: string) => {
   }
 };
 
+export const isAuthTokenExpired = (token: string | null) => {
+  if (!token) {
+    return false;
+  }
+
+  const claims = decodeJwtPayload(token);
+
+  if (!claims || typeof claims.exp !== "number") {
+    return false;
+  }
+
+  return claims.exp * 1000 <= Date.now();
+};
+
 const getStringClaim = (
   claims: Record<string, unknown>,
   keys: string[]
@@ -180,6 +195,11 @@ export const clearAuthSession = () => {
 
   AUTH_COOKIE_NAMES.forEach((cookieName) => {
     document.cookie = `${cookieName}=; path=/; max-age=0; SameSite=Lax`;
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  });
+  AUTH_STORAGE_KEYS.forEach((storageKey) => {
+    localStorage.removeItem(storageKey);
+    sessionStorage.removeItem(storageKey);
   });
   localStorage.removeItem("authUsername");
   window.dispatchEvent(new Event("auth-changed"));
