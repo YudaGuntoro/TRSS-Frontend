@@ -50,6 +50,7 @@ export type ProcessLogFullValueDetail = {
   parameterCode?: string;
   parameterName?: string;
   value?: string | number | boolean | null;
+  values?: Array<string | number | boolean>;
 };
 
 export type ProcessLogFullValueSection = {
@@ -140,6 +141,42 @@ export type BackendProcessLogFullValues = {
   isFinished?: boolean;
   createdAt: string;
   updatedAt?: string;
+};
+
+type BackendProcessLogMock = {
+  Id: number;
+  Timestamp: string;
+  SerialNumberClinching: string;
+  SerialNumberMFan?: string | null;
+  CoreAsmValue: string;
+  UpperTankAsmValue: string;
+  LowerTankAsmValue: string;
+  ORingSetResult: boolean;
+  NgBoxSensorShortSideValue: string;
+  ClinchingHeightAverage: number;
+  EndPlateWidthResults: boolean[];
+  EndPlateWidthStatus: boolean;
+  NgBoxSensorLongSideValue: string;
+  LotFanAsmResult?: string | null;
+  LotMotorAsmResult?: string | null;
+  LotGuideAsmResult?: string | null;
+  BoltTightenValue?: string | null;
+  BoltTightenQtyValue?: string | null;
+  NutTightenValue?: boolean | null;
+  MFanInspectionRotationSpeedMaxValue?: number | null;
+  MFanInspectionRotationSpeedMinValue?: number | null;
+  MFanInspectionAmpereMaxValue?: number | null;
+  MFanInspectionAmpereMinValue?: number | null;
+  MFanInspectionWindDirectionValue?: string | null;
+  MFanTestResult?: boolean | null;
+  RadCoreAsmNameLabelResult?: boolean | null;
+  MotorFanAssyLabelResult?: boolean | null;
+  EcmAssyBoltTightenValue?: number | null;
+  EcmAssyBoltTightenQtyValue?: number | null;
+  FinalInspectionRadCoreAsmNameLabelResult?: boolean | null;
+  CheckPoints?: boolean[] | null;
+  CheckPointStatus?: boolean | null;
+  OverallStatus: "PASSED" | "REJECTED";
 };
 
 const normalizeLogValue = (value: unknown): string | number | boolean => {
@@ -236,6 +273,118 @@ export const mapProcessLogResponse = (log: BackendProcessLog): ProcessLog => {
   };
 };
 
+const mockParameter = (
+  parameterName: string,
+  value: string | number | boolean | null | undefined,
+  status?: boolean
+): ProcessLogParameter => ({
+  parameterId: parameterName.length,
+  parameterName,
+  dataType: typeof value === "boolean" ? "boolean" : typeof value === "number" ? "number" : "text",
+  status,
+  values: value === null || value === undefined ? [] : [value],
+});
+
+const mockGroup = (
+  processName: string,
+  parameters: ProcessLogParameter[]
+): ProcessLogDetail => ({
+  processName,
+  parameters,
+  children: [],
+});
+
+const mapMockProcessLog = (log: BackendProcessLogMock): ProcessLog => {
+  const isPassed = log.OverallStatus === "PASSED";
+  const endPlatePassed = log.EndPlateWidthStatus;
+  const checkPointPassed = log.CheckPointStatus ?? false;
+  const endPlateSummary = `${log.EndPlateWidthResults.filter(Boolean).length}/${log.EndPlateWidthResults.length} OK`;
+  const checkPointSummary = log.CheckPoints ? `${log.CheckPoints.filter(Boolean).length}/${log.CheckPoints.length} OK` : null;
+
+  return {
+    id: log.Id,
+    issueNo: log.SerialNumberClinching,
+    issues: [],
+    isActive: isPassed,
+    status: isPassed,
+    isFinished: Boolean(log.SerialNumberMFan),
+    serialNumberCode: log.SerialNumberClinching,
+    createdAt: log.Timestamp,
+    details: [
+      mockGroup("Clinching & End Plate", [
+        mockParameter("Core Asm", log.CoreAsmValue),
+        mockParameter("Upper Tank Asm", log.UpperTankAsmValue),
+        mockParameter("Lower Tank Asm", log.LowerTankAsmValue),
+        mockParameter("O-Ring Set", log.ORingSetResult, log.ORingSetResult),
+        mockParameter("Clinching Height Avg", `${log.ClinchingHeightAverage.toFixed(2)} mm`, true),
+        mockParameter("End Plate Width", endPlateSummary, endPlatePassed),
+        mockParameter("NG Box Short Side", log.NgBoxSensorShortSideValue, log.NgBoxSensorShortSideValue === "ON"),
+        mockParameter("NG Box Long Side", log.NgBoxSensorLongSideValue, log.NgBoxSensorLongSideValue === "ON"),
+      ]),
+      mockGroup("M-Fan Assembly & Inspection", [
+        mockParameter("Serial M-Fan", log.SerialNumberMFan),
+        mockParameter("Lot Fan Asm", log.LotFanAsmResult),
+        mockParameter("Lot Motor Asm", log.LotMotorAsmResult),
+        mockParameter("Lot Guide Asm", log.LotGuideAsmResult),
+        mockParameter("Bolt Tighten", log.BoltTightenValue, log.BoltTightenValue === "ON"),
+        mockParameter("Bolt Qty", log.BoltTightenQtyValue),
+        mockParameter("Nut Tighten", log.NutTightenValue, log.NutTightenValue ?? undefined),
+        mockParameter("Rotation Max / Min", log.MFanInspectionRotationSpeedMaxValue != null ? `${log.MFanInspectionRotationSpeedMaxValue} / ${log.MFanInspectionRotationSpeedMinValue} RPM` : null),
+        mockParameter("Ampere Max / Min", log.MFanInspectionAmpereMaxValue != null ? `${log.MFanInspectionAmpereMaxValue} / ${log.MFanInspectionAmpereMinValue} A` : null),
+        mockParameter("Wind Direction", log.MFanInspectionWindDirectionValue),
+        mockParameter("M-Fan Test", log.MFanTestResult, log.MFanTestResult ?? undefined),
+      ]),
+      mockGroup("ECM & Final Inspection", [
+        mockParameter("Rad Core Label", log.RadCoreAsmNameLabelResult, log.RadCoreAsmNameLabelResult ?? undefined),
+        mockParameter("Motor Fan Label", log.MotorFanAssyLabelResult, log.MotorFanAssyLabelResult ?? undefined),
+        mockParameter("ECM Bolt Tighten", log.EcmAssyBoltTightenValue != null ? `${log.EcmAssyBoltTightenValue} Nm` : null),
+        mockParameter("ECM Bolt Qty", log.EcmAssyBoltTightenQtyValue),
+        mockParameter("Final Rad Core Label", log.FinalInspectionRadCoreAsmNameLabelResult, log.FinalInspectionRadCoreAsmNameLabelResult ?? undefined),
+        {
+          ...mockParameter("Check Points", checkPointSummary, checkPointPassed),
+          parameterCode: "CHECK_POINTS",
+          values: log.CheckPoints ?? [],
+        },
+      ]),
+    ],
+  };
+};
+
+const isMockProcessLog = (log: BackendProcessLog | BackendProcessLogMock): log is BackendProcessLogMock =>
+  "SerialNumberClinching" in log;
+
+const mockDetailsToFullValues = (details: ProcessLogDetail[]) =>
+  details.flatMap((group) =>
+    group.parameters.map((parameter) => ({
+      processName: group.processName,
+      parameterName: parameter.parameterName,
+      value: parameter.values[0] ?? null,
+      values: parameter.values,
+    }))
+  );
+
+const mapMockFullValues = (log: BackendProcessLogMock): ProcessLogFullValues => {
+  const normalized = mapMockProcessLog(log);
+  const [clinching, mFan, overall] = normalized.details;
+
+  return {
+    id: normalized.id,
+    serialNumberCode: normalized.serialNumberCode,
+    clinching: {
+      serialNumberCode: normalized.serialNumberCode,
+      details: mockDetailsToFullValues(clinching ? [clinching] : []),
+    },
+    mFan: {
+      serialNumberCode: log.SerialNumberMFan ?? undefined,
+      details: mockDetailsToFullValues(mFan ? [mFan] : []),
+    },
+    overall: mockDetailsToFullValues(overall ? [overall] : []),
+    status: normalized.status,
+    isFinished: normalized.isFinished,
+    createdAt: normalized.createdAt,
+  };
+};
+
 const mapFullValueSection = (
   section?: BackendProcessLogFullValueSection
 ): ProcessLogFullValueSection => ({
@@ -262,7 +411,7 @@ const ProcessLogService = {
     query: ProcessLogQuery = {},
     options?: ApiRequestOptions
   ) => {
-    const response = await api.get<ApiListResponse<BackendProcessLog>>(
+    const response = await api.get<ApiListResponse<BackendProcessLog | BackendProcessLogMock>>(
       PROCESS_LOG_ENDPOINT,
       {
         ...options,
@@ -272,7 +421,9 @@ const ProcessLogService = {
 
     return {
       ...response.data,
-      data: response.data.data.map(mapProcessLogResponse),
+      data: response.data.data.map((log) =>
+        isMockProcessLog(log) ? mapMockProcessLog(log) : mapProcessLogResponse(log)
+      ),
     };
   },
 
@@ -280,12 +431,14 @@ const ProcessLogService = {
     const response = await api.get<{
       success: boolean;
       message: string;
-      data: BackendProcessLog;
+      data: BackendProcessLog | BackendProcessLogMock;
     }>(`${PROCESS_LOG_ENDPOINT}/${id}`, options);
 
     return {
       ...response.data,
-      data: mapProcessLogResponse(response.data.data),
+      data: isMockProcessLog(response.data.data)
+        ? mapMockProcessLog(response.data.data)
+        : mapProcessLogResponse(response.data.data),
     };
   },
 
@@ -296,7 +449,7 @@ const ProcessLogService = {
     const response = await api.get<{
       success: boolean;
       message: string;
-      data: BackendProcessLogFullValues;
+      data: BackendProcessLogFullValues | BackendProcessLogMock;
     }>(
       `${PROCESS_LOG_ENDPOINT}/full-values/${encodeURIComponent(serialNumberCode)}`,
       options
@@ -304,7 +457,9 @@ const ProcessLogService = {
 
     return {
       ...response.data,
-      data: mapProcessLogFullValuesResponse(response.data.data),
+      data: isMockProcessLog(response.data.data)
+        ? mapMockFullValues(response.data.data)
+        : mapProcessLogFullValuesResponse(response.data.data),
     };
   },
 };

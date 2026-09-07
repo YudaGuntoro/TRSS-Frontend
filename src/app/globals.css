@@ -339,7 +339,10 @@
   @apply w-full;
 }
 .flatpickr-calendar {
-  @apply mt-2 !bg-[#1a2231] !rounded-xl !p-5 !border !border-white/5 !text-gray-400 !shadow-2xl 2xsm:!w-auto !z-99999;
+  @apply mt-2 !rounded-xl !border !border-gray-200 !bg-white !p-5 !text-gray-700 !shadow-theme-lg 2xsm:!w-auto !z-99999;
+}
+.dark .flatpickr-calendar {
+  @apply !border-gray-800 !bg-gray-900 !text-gray-300 !shadow-2xl;
 }
 
 .flatpickr-months .flatpickr-prev-month:hover svg,
@@ -356,7 +359,7 @@
 }
 .flatpickr-current-month .cur-month,
 .flatpickr-current-month input.cur-year {
-  @apply !h-auto !pt-0 !m-0 !text-lg !font-semibold !text-white/90;
+  @apply !m-0 !h-auto !pt-0 !text-lg !font-semibold !text-gray-800 dark:!text-white/90;
 }
 
 .flatpickr-prev-month,
@@ -368,10 +371,6 @@
   @apply h-auto mt-4 mb-2 !bg-transparent;
 }
 
-.flatpickr-calendar {
-  @apply mt-2 !bg-[#1a2231] !rounded-xl !p-5 !shadow-none !border !border-white/5 !text-gray-400 dark:!bg-[#1a2231] dark:!text-gray-400 dark:!shadow-2xl 2xsm:!w-auto !z-99999;
-}
-
 @media (max-width: 525px) {
   .flatpickr-calendar.static {
     left: auto !important;
@@ -381,11 +380,11 @@
 }
 
 .flatpickr-weekday {
-  @apply !text-theme-sm !font-medium !text-gray-500 dark:!text-gray-400 !bg-transparent;
+  @apply !bg-transparent !text-theme-sm !font-medium !text-gray-500 dark:!text-gray-400;
 }
 
 .flatpickr-day {
-  @apply !flex !items-center !justify-center !text-sm !font-medium !text-white/90 hover:!bg-white/10 !rounded-full !transition-colors;
+  @apply !flex !items-center !justify-center !rounded-full !text-sm !font-medium !text-gray-700 !transition-colors hover:!border-gray-100 hover:!bg-gray-100 dark:!text-gray-200 dark:hover:!border-white/5 dark:hover:!bg-white/5;
   max-width: 36px;
   height: 36px;
   line-height: 36px;
@@ -393,14 +392,15 @@
 }
 .flatpickr-day.nextMonthDay,
 .flatpickr-day.prevMonthDay {
-  @apply !text-gray-400;
+  @apply !text-gray-400 dark:!text-gray-600;
 }
 
 .flatpickr-months > .flatpickr-month {
   background: none !important;
 }
 .flatpickr-month .flatpickr-current-month .flatpickr-monthDropdown-months {
-  background: none !important;
+  @apply !text-gray-800 dark:!text-white/90;
+  background: transparent !important;
   appearance: none;
   background-image: none !important;
   font-weight: 500;
@@ -413,7 +413,7 @@
 }
 .flatpickr-months .flatpickr-prev-month,
 .flatpickr-months .flatpickr-next-month {
-  @apply !top-7 !fill-white !text-white !bg-transparent hover:!opacity-70 !flex !items-center !justify-center;
+  @apply !top-7 !flex !items-center !justify-center !bg-transparent !fill-gray-700 !text-gray-700 hover:!opacity-70 dark:!fill-gray-300 dark:!text-gray-300;
 }
 .flatpickr-months .flatpickr-prev-month {
   @apply !left-5;
@@ -424,10 +424,6 @@
 .flatpickr-days {
   @apply !border-0;
 }
-span.flatpickr-weekday,
-.flatpickr-months .flatpickr-month {
-  @apply dark:!fill-white dark:!text-white !bg-none;
-}
 .flatpickr-innerContainer {
   @apply !border-b-0;
 }
@@ -435,22 +431,16 @@ span.flatpickr-weekday,
   @apply !bg-none;
 }
 .flatpickr-day.inRange {
-  box-shadow: -5px 0 0 #f9fafb, 5px 0 0 #f9fafb !important;
-  @apply dark:!shadow-datepicker;
+  box-shadow: -5px 0 0 #eef2ff, 5px 0 0 #eef2ff !important;
+  @apply !border-brand-50 !bg-brand-50 !text-brand-700 dark:!border-brand-500/15 dark:!bg-brand-500/15 dark:!text-brand-200;
 }
-.flatpickr-day.inRange,
-.flatpickr-day.prevMonthDay.inRange,
-.flatpickr-day.nextMonthDay.inRange,
-.flatpickr-day.today.inRange,
-.flatpickr-day.prevMonthDay.today.inRange,
-.flatpickr-day.nextMonthDay.today.inRange,
 .flatpickr-day:hover,
 .flatpickr-day.prevMonthDay:hover,
 .flatpickr-day.nextMonthDay:hover,
 .flatpickr-day:focus,
 .flatpickr-day.prevMonthDay:focus,
 .flatpickr-day.nextMonthDay:focus {
-  @apply !border-gray-50 !bg-gray-50 dark:!border-0 dark:!border-white/5 dark:!bg-white/5;
+  @apply !border-gray-100 !bg-gray-100 dark:!border-white/5 dark:!bg-white/5;
 }
 .flatpickr-day.selected,
 .flatpickr-day.startRange,
@@ -484,6 +474,10 @@ span.flatpickr-weekday,
   box-shadow: -10px 0 0 #465fff;
 }
 
+.dark .flatpickr-day.inRange {
+  box-shadow: -5px 0 0 rgb(70 95 255 / 0.15), 5px 0 0 rgb(70 95 255 / 0.15) !important;
+}
+
 .flatpickr-months .flatpickr-prev-month svg,
 .flatpickr-months .flatpickr-next-month svg,
 .flatpickr-months .flatpickr-prev-month,
@@ -497,6 +491,143 @@ span.flatpickr-weekday,
 
 .flatpickr-calendar.static {
   @apply right-0;
+}
+
+/* Process-log sheets use a compact inspection-record treatment. */
+.process-log-sheet {
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.process-log-sheet > section:first-child {
+  padding-top: 0.25rem;
+}
+
+.process-log-refresh-button {
+  flex: 0 0 40px;
+  overflow: visible;
+}
+
+.process-log-refresh-button svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  overflow: visible;
+}
+
+.process-log-details-button {
+  overflow: visible;
+}
+
+.process-log-details-button svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  overflow: visible;
+}
+
+.process-log-export-button {
+  overflow: visible;
+}
+
+.process-log-export-button svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  overflow: visible;
+}
+
+.process-log-record {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.process-log-record > header {
+  min-height: 58px;
+  background-color: #f8fafc;
+  flex-wrap: wrap;
+}
+
+.process-log-record > header > div:first-child {
+  flex: 1 1 180px;
+}
+
+.process-log-record > header > div:last-child {
+  flex: 0 0 auto;
+  padding-right: 4px;
+}
+
+.process-log-record > header > div:last-child > button:last-child {
+  flex: 0 0 36px;
+  overflow: visible;
+}
+
+.process-log-record > header > div:last-child > button:last-child svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  overflow: visible;
+}
+
+@media (max-width: 860px) {
+  .process-log-record > header > div:last-child {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.process-log-record > header > div:first-child > span {
+  border-radius: 6px;
+  background-color: #e5e7eb;
+}
+
+.process-log-record > header > div:last-child > span,
+.process-log-record > header > div:last-child > button:not(:last-child) {
+  border-radius: 5px;
+  letter-spacing: 0.01em;
+}
+
+.process-log-record > div > div {
+  background-color: #ffffff;
+}
+
+.process-log-record > div > div > * {
+  min-height: 60px;
+}
+
+.process-log-record > div > div > * > p:first-child {
+  letter-spacing: 0.02em;
+}
+
+.process-log-record > div > div:last-child > :only-child {
+  grid-column: 1 / -1;
+}
+
+.process-log-checkpoint-modal {
+  border-radius: 10px !important;
+  box-shadow: 0 18px 42px rgb(15 23 42 / 0.22);
+}
+
+.process-log-checkpoint-modal > div:nth-child(2) > div > div:first-child > div,
+.process-log-checkpoint-modal > div:nth-child(2) > div > div:nth-child(3) > div {
+  border-radius: 6px;
+}
+
+.dark .process-log-record > header {
+  background-color: rgb(17 24 39 / 0.72);
+}
+
+.dark .process-log-record > header > div:first-child > span {
+  background-color: #1f2937;
+}
+
+.dark .process-log-record > div > div {
+  background-color: rgb(17 24 39 / 0.35);
 }
 
 .fc .fc-view-harness {

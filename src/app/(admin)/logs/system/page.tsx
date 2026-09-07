@@ -1,5 +1,5 @@
-import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import SystemLogTable from "@/components/tables/SystemLogTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,11 +11,7 @@ export default function SystemLogsPage() {
   return (
     <div>
       <PageBreadcrumb pageTitle="System Logs" />
-      <ComponentCard title="System Logs">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          System logs will be available here soon.
-        </p>
-      </ComponentCard>
+      <SystemLogTable />
     </div>
   );
 }

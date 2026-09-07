@@ -110,8 +110,7 @@ export default function MqttLogTable() {
   }>();
   const validationError = query.startDate && query.endDate && query.startDate > query.endDate
     ? "Start Date must be on or before End Date."
-    : query.date && ((query.startDate && query.date < query.startDate) || (query.endDate && query.date > query.endDate))
-      ? "Date must be within the selected date range." : "";
+    : "";
 
   useEffect(() => {
     if (validationError) return;
@@ -172,26 +171,27 @@ export default function MqttLogTable() {
               <option value="">All</option><option value="true">True</option><option value="false">False</option>
             </select>
           </label>
-          {([
-            ["date", "Date", "Select date"],
-            ["startDate", "Start Date", "Select start date"],
-            ["endDate", "End Date", "Select end date"],
-          ] as const).map(([key, label, placeholder]) => (
-            <div key={key} className={`${filterFieldClass} w-[170px]`}>
-              <span>{label}</span>
-              <DatePicker
-                id={`mqtt-${key}-filter`}
-                className={datePickerClass}
-                defaultDate={query[key]}
-                onChange={([date]) => {
-                  updateFilters({
-                    [key]: date ? date.toISOString().split("T")[0] : "",
-                  });
-                }}
-                placeholder={placeholder}
-              />
-            </div>
-          ))}
+          <div className={`${filterFieldClass} w-[250px]`}>
+            <span>Date</span>
+            <DatePicker
+              id="mqtt-date-filter"
+              className={datePickerClass}
+              defaultDate={query.startDate && query.endDate ? [query.startDate, query.endDate] : query.date}
+              mode="range"
+              onChange={(dates) => {
+                const formattedDates = dates.map((date) => date.toISOString().split("T")[0]);
+                if (formattedDates.length > 1) {
+                  updateFilters({ date: "", startDate: formattedDates[0], endDate: formattedDates[1] });
+                }
+              }}
+              onClose={(dates) => {
+                if (dates.length === 1) {
+                  updateFilters({ date: dates[0].toISOString().split("T")[0], startDate: "", endDate: "" });
+                }
+              }}
+              placeholder="Select date or range"
+            />
+          </div>
           <button
             aria-label="Reset filters"
             className={`${iconButtonClass} bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300`}
