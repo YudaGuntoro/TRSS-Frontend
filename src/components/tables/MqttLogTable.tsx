@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
+import DatePicker from "@/components/form/date-picker";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
@@ -14,6 +15,7 @@ const initialQuery: MqttLogQuery = {
   page: 1, limit: 10, status: "", isOk: "", date: "", startDate: "", endDate: "",
 };
 const inputClass = "mt-1 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
+const datePickerClass = "mt-1 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 pr-10 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 const filterFieldClass =
   "shrink-0 text-sm text-gray-700 dark:text-gray-300";
 const iconButtonClass =
@@ -170,10 +172,25 @@ export default function MqttLogTable() {
               <option value="">All</option><option value="true">True</option><option value="false">False</option>
             </select>
           </label>
-          {([ ["date", "Date"], ["startDate", "Start Date"], ["endDate", "End Date"] ] as const).map(([key, label]) => (
-            <label key={key} className={`${filterFieldClass} w-[170px]`}>{label}
-              <input type="date" className={inputClass} value={query[key]} onChange={(event) => updateFilters({ [key]: event.target.value })} />
-            </label>
+          {([
+            ["date", "Date", "Select date"],
+            ["startDate", "Start Date", "Select start date"],
+            ["endDate", "End Date", "Select end date"],
+          ] as const).map(([key, label, placeholder]) => (
+            <div key={key} className={`${filterFieldClass} w-[170px]`}>
+              <span>{label}</span>
+              <DatePicker
+                id={`mqtt-${key}-filter`}
+                className={datePickerClass}
+                defaultDate={query[key]}
+                onChange={([date]) => {
+                  updateFilters({
+                    [key]: date ? date.toISOString().split("T")[0] : "",
+                  });
+                }}
+                placeholder={placeholder}
+              />
+            </div>
           ))}
           <button
             aria-label="Reset filters"
