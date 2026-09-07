@@ -91,6 +91,13 @@ export const navItems: NavItem[] = [
   {
     icon: <TimeIcon />,
     iconClassName: "text-cyan-500 dark:text-cyan-400",
+    name: "Traceability Log",
+    path: "/traceability-log",
+    permission: PERMISSIONS.PROCESS_LOGS_VIEW,
+  },
+  {
+    icon: <ListIcon />,
+    iconClassName: "text-sky-500 dark:text-sky-400",
     name: "Process Log",
     path: "/process-log",
     permission: PERMISSIONS.PROCESS_LOGS_VIEW,

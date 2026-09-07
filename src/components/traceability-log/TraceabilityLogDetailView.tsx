@@ -4,14 +4,14 @@ import PageLoader from "@/components/common/PageLoader";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { ChevronLeftIcon } from "@/icons";
-import ProcessLogService, {
+import TraceabilityLogService, {
   ProcessLogFullValueDetail,
   ProcessLogFullValues,
-} from "@/services/ProcessLogService";
+} from "@/services/TraceabilityLogService";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-type ProcessLogDetailViewProps = {
+type TraceabilityLogDetailViewProps = {
   identifier: string;
 };
 
@@ -32,6 +32,19 @@ type ParameterColumn = {
   key: string;
   parameterCode?: string;
   parameterName?: string;
+};
+
+type MeasurementDetail = ProcessLogFullValueDetail & {
+  expectedCount?: number;
+  title?: string;
+  unit?: string;
+};
+
+type MeasurementKind = "clinchingHeight" | "endPlate";
+
+type MeasurementPoint = {
+  index: number;
+  value: ProcessLogFullValueDetail["value"];
 };
 
 const lotParameterHeaderKeys = new Set([
@@ -148,6 +161,9 @@ const formatValue = (value: ProcessLogFullValueDetail["value"]) => {
 
   return trimNumericText(String(value));
 };
+
+const stripMeasurementUnit = (value: ProcessLogFullValueDetail["value"]) =>
+  formatValue(value).replace(/\s*mm\b/gi, "").trim();
 
 const getValueClassName = (value: ProcessLogFullValueDetail["value"]) => {
   const booleanValue = getBooleanValue(value);
@@ -286,21 +302,21 @@ const resolveSerialNumberCode = async (
     return identifier;
   }
 
-  const response = await ProcessLogService.getProcessLog(Number(identifier), {
+  const response = await TraceabilityLogService.getTraceabilityLog(Number(identifier), {
     signal,
   });
   const serialNumberCode = response.data.serialNumberCode;
 
   if (!serialNumberCode) {
-    throw new Error("Serial number was not found for this process log.");
+    throw new Error("Serial number was not found for this traceability log.");
   }
 
   return serialNumberCode;
 };
 
-export default function ProcessLogDetailView({
+export default function TraceabilityLogDetailView({
   identifier,
-}: ProcessLogDetailViewProps) {
+}: TraceabilityLogDetailViewProps) {
   const router = useRouter();
   const toast = useToast();
   const [processLog, setProcessLog] = useState<ProcessLogFullValues | null>(
@@ -308,8 +324,9 @@ export default function ProcessLogDetailView({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isCheckPointModalOpen, setIsCheckPointModalOpen] = useState(false);
+  const [selectedMeasurement, setSelectedMeasurement] =
+    useState<MeasurementDetail | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -323,7 +340,7 @@ export default function ProcessLogDetailView({
           identifier,
           controller.signal
         );
-        const response = await ProcessLogService.getProcessLogFullValues(
+        const response = await TraceabilityLogService.getTraceabilityLogFullValues(
           serialNumberCode,
           {
             signal: controller.signal,
@@ -342,7 +359,7 @@ export default function ProcessLogDetailView({
         const message =
           fetchError instanceof Error
             ? fetchError.message
-            : "Failed to load process log detail";
+            : "Failed to load traceability log detail";
         setError(message);
         toast.error({
           title: "Failed to load details",
@@ -394,14 +411,14 @@ export default function ProcessLogDetailView({
   if (error || !processLog) {
     return (
       <div className="rounded-2xl border border-error-200 bg-error-50 p-6 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300">
-        <h2 className="text-lg font-semibold">Process detail unavailable</h2>
-        <p className="mt-2 text-sm">{error ?? "Process log was not found."}</p>
+        <h2 className="text-lg font-semibold">Traceability detail unavailable</h2>
+        <p className="mt-2 text-sm">{error ?? "Traceability log was not found."}</p>
         <button
           className="mt-5 rounded-lg bg-error-500 px-4 py-2 text-sm font-semibold text-white hover:bg-error-600"
-          onClick={() => router.push("/process-log")}
+          onClick={() => router.push("/traceability-log")}
           type="button"
         >
-          Back to Process Log
+          Back to Traceability Log
         </button>
       </div>
     );
@@ -412,37 +429,27 @@ export default function ProcessLogDetailView({
       <div className="flex flex-col gap-4 border-b border-gray-200 pb-5 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <button
-            aria-label="Back to process log"
+            aria-label="Back to traceability log"
             className="inline-flex size-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-            onClick={() => router.push("/process-log")}
+            onClick={() => router.push("/traceability-log")}
             type="button"
           >
             <ChevronLeftIcon className="size-5 fill-current" />
           </button>
           <div>
             <h1 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Process Log Multi-Row Record Sheet
+              Traceability Log Multi-Row Record Sheet
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Traceability detail for {processLog.serialNumberCode ?? identifier}
             </p>
           </div>
         </div>
-        <button
-          className="h-10 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-          onClick={() => setIsPrintModalOpen(true)}
-          type="button"
-        >
-          Print / PDF
-        </button>
       </div>
 
-      <MultiRowRecordSheet detailTables={detailTables} identifier={identifier} onOpenCheckPoints={() => setIsCheckPointModalOpen(true)} processLog={processLog} />
-      <Modal className="mx-4 max-w-sm p-6" isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)}>
-        <div className="pr-10"><h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">Print / PDF</h2><p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Coming soon.</p></div>
-        <div className="mt-6 flex justify-end"><button className="h-9 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600" onClick={() => setIsPrintModalOpen(false)} type="button">Close</button></div>
-      </Modal>
+      <MultiRowRecordSheet detailTables={detailTables} identifier={identifier} onOpenCheckPoints={() => setIsCheckPointModalOpen(true)} onOpenMeasurement={setSelectedMeasurement} processLog={processLog} />
       <CheckPointModal isOpen={isCheckPointModalOpen} onClose={() => setIsCheckPointModalOpen(false)} processLog={processLog} />
+      <MeasurementModal detail={selectedMeasurement} onClose={() => setSelectedMeasurement(null)} />
     </div>
   );
 }
@@ -450,19 +457,168 @@ export default function ProcessLogDetailView({
 const getDetail = (details: ProcessLogFullValueDetail[], parameterName: string) =>
   details.find((detail) => detail.parameterName === parameterName);
 
-function MatrixCell({ detail, label }: { detail?: ProcessLogFullValueDetail; label: string }) {
-  return <div className="min-w-0 px-3 py-4"><p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p><p className={`mt-1 truncate font-mono text-sm font-semibold ${detail ? getValueClassName(detail.value) : "text-gray-400 dark:text-gray-500"}`}>{detail ? formatValue(detail.value) : "-"}</p></div>;
+const getMeasurementPointNumber = (
+  detail: ProcessLogFullValueDetail,
+  kind: MeasurementKind
+) => {
+  const code = detail.parameterCode ?? "";
+  const name = detail.parameterName ?? "";
+  const pattern =
+    kind === "clinchingHeight"
+      ? /CLINCHING_HEIGHT_(\d+)_(?:VALUE|RESULT)$/i
+      : /END_PLATE_WIDTH_(\d+)_(?:VALUE|RESULT)$/i;
+  const namePattern =
+    kind === "clinchingHeight"
+      ? /Clinching Height\s+(\d+)/i
+      : /End Plate Width\s+(\d+)/i;
+  const match = code.match(pattern) ?? name.match(namePattern);
+
+  return match ? Number(match[1]) : null;
+};
+
+const getMeasurementPoints = (
+  details: ProcessLogFullValueDetail[],
+  kind: MeasurementKind
+) =>
+  details
+    .map((detail) => ({
+      index: getMeasurementPointNumber(detail, kind),
+      value: detail.value,
+    }))
+    .filter(
+      (point): point is MeasurementPoint =>
+        typeof point.index === "number" && point.index > 0
+    )
+    .sort((first, second) => first.index - second.index);
+
+const getMeasurementValues = (
+  summaryDetail: ProcessLogFullValueDetail | undefined,
+  points: MeasurementPoint[]
+) => {
+  if (summaryDetail?.values?.length) {
+    return summaryDetail.values;
+  }
+
+  return points.map((point) => point.value).filter((value) => value != null);
+};
+
+const toNumberValue = (value: ProcessLogFullValueDetail["value"]) => {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const parsedValue = Number(value.replace(",", "."));
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+
+const buildMeasurementDetail = (
+  details: ProcessLogFullValueDetail[],
+  kind: MeasurementKind
+): MeasurementDetail | undefined => {
+  const isClinchingHeight = kind === "clinchingHeight";
+  const summaryDetail = getDetail(
+    details,
+    isClinchingHeight ? "Clinching Height Avg" : "End Plate Width"
+  );
+  const points = getMeasurementPoints(details, kind);
+  const values = getMeasurementValues(summaryDetail, points);
+
+  if (!summaryDetail && values.length === 0) {
+    return undefined;
+  }
+
+  if (summaryDetail) {
+    return {
+      ...summaryDetail,
+      expectedCount: isClinchingHeight ? 18 : 60,
+      title: isClinchingHeight
+        ? "Clinching Avg (18 Pts)"
+        : "End Plate (60 Pts)",
+      unit: isClinchingHeight ? "mm" : undefined,
+      values,
+    };
+  }
+
+  const numericValues = values.map(toNumberValue).filter((value) => value != null);
+  const passedCount = values.filter((value) => getBooleanValue(value) === true).length;
+
+  return {
+    parameterName: isClinchingHeight ? "Clinching Height Avg" : "End Plate Width",
+    title: isClinchingHeight ? "Clinching Avg (18 Pts)" : "End Plate (60 Pts)",
+    unit: isClinchingHeight ? "mm" : undefined,
+    value: isClinchingHeight && numericValues.length
+      ? `${(numericValues.reduce((total, value) => total + value, 0) / numericValues.length).toFixed(2)} mm`
+      : `${passedCount}/${values.length} OK`,
+    values,
+    expectedCount: isClinchingHeight ? 18 : 60,
+  };
+};
+
+function MatrixCell({ detail, label, onClick }: { detail?: ProcessLogFullValueDetail; label: string; onClick?: () => void }) {
+  const valueClassName = `mt-1 truncate font-mono text-sm font-semibold ${detail ? getValueClassName(detail.value) : "text-gray-400 dark:text-gray-500"}`;
+  const isEndPlate = label.toLowerCase().includes("end plate");
+
+  return <div className="min-w-0 px-3 py-4"><p className="truncate text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</p>{detail && onClick ? <button aria-label={`View ${label} details`} className={`mt-1 inline-flex max-w-full items-center justify-between gap-2 truncate rounded-lg border bg-white px-3 py-1.5 font-mono text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500/40 dark:bg-gray-900 ${isEndPlate ? "border-success-200 text-success-700 hover:bg-success-50 dark:border-success-500/30 dark:text-success-400 dark:hover:bg-success-500/10" : "border-sky-200 text-gray-800 hover:bg-sky-50 dark:border-sky-500/30 dark:text-white/90 dark:hover:bg-sky-500/10"}`} onClick={onClick} type="button"><span className="truncate">{formatValue(detail.value)}</span><span className={`inline-flex size-4 shrink-0 items-center justify-center ${isEndPlate ? "text-success-600 dark:text-success-400" : "text-sky-500 dark:text-sky-400"}`}><MeasurementEyeIcon /></span></button> : <p className={valueClassName}>{detail ? formatValue(detail.value) : "-"}</p>}</div>;
 }
 
-function MultiRowRecordSheet({ detailTables, identifier, onOpenCheckPoints, processLog }: { detailTables: DetailTableConfig[]; identifier: string; onOpenCheckPoints: () => void; processLog: ProcessLogFullValues }) {
+function MeasurementEyeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-3.5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </svg>
+  );
+}
+
+function MultiRowRecordSheet({ detailTables, identifier, onOpenCheckPoints, onOpenMeasurement, processLog }: { detailTables: DetailTableConfig[]; identifier: string; onOpenCheckPoints: () => void; onOpenMeasurement: (detail: MeasurementDetail) => void; processLog: ProcessLogFullValues }) {
   const clinching = detailTables.find((table) => table.key === "clinching")?.details ?? [];
   const mFan = detailTables.find((table) => table.key === "mFan")?.details ?? [];
   const overall = detailTables.find((table) => table.key === "overall")?.details ?? [];
   const serialClinching = detailTables.find((table) => table.key === "clinching")?.serialNumberCode ?? processLog.serialNumberCode ?? identifier;
   const serialMFan = detailTables.find((table) => table.key === "mFan")?.serialNumberCode ?? "-";
   const checkPoints = getDetail(overall, "Check Points");
+  const clinchingHeight = buildMeasurementDetail(clinching, "clinchingHeight");
+  const endPlate = buildMeasurementDetail(clinching, "endPlate");
 
-  return <article className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"><div className="min-w-[1180px]"><header className="flex items-center justify-between border-b border-brand-500 bg-[#6D8AF3] px-5 py-3 text-white dark:border-brand-400 dark:bg-brand-600"><div className="flex items-center gap-3 text-xs"><span className="inline-flex size-7 items-center justify-center rounded-full bg-white/20 font-mono font-bold text-white">01</span><span className="font-mono text-white/85">{formatDate(processLog.createdAt)}</span><span className="font-mono font-bold text-white">{serialClinching}</span><span className="text-white/60">|</span><span className="font-mono font-bold text-white">{serialMFan}</span></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${processLog.status ? "border-success-200 bg-success-50 text-success-700" : "border-error-200 bg-error-50 text-error-700"}`}>{processLog.status ? "UNIT PASSED" : "UNIT REJECTED"}</span></header><div className="grid grid-cols-9 divide-x divide-gray-200 border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800"><MatrixCell label="Serial Clinching" detail={{ parameterName: "Serial Clinching", value: serialClinching }} /><MatrixCell label="Core Asm" detail={getDetail(clinching, "Core Asm")} /><MatrixCell label="Upper Tank" detail={getDetail(clinching, "Upper Tank Asm")} /><MatrixCell label="Lower Tank" detail={getDetail(clinching, "Lower Tank Asm")} /><MatrixCell label="O-Ring Set" detail={getDetail(clinching, "O-Ring Set")} /><MatrixCell label="NG Box (Short)" detail={getDetail(clinching, "NG Box Short Side")} /><MatrixCell label="Clinching Avg (18 Pts)" detail={getDetail(clinching, "Clinching Height Avg")} /><MatrixCell label="End Plate (60 Pts)" detail={getDetail(clinching, "End Plate Width")} /><MatrixCell label="NG Box (Long)" detail={getDetail(clinching, "NG Box Long Side")} /></div><div className="grid grid-cols-9 divide-x divide-gray-200 border-b border-gray-200 bg-gray-50/50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900/25"><MatrixCell label="Serial M-Fan" detail={{ parameterName: "Serial M-Fan", value: serialMFan }} /><MatrixCell label="Lot Fan Asm" detail={getDetail(mFan, "Lot Fan Asm")} /><MatrixCell label="Lot Motor Asm" detail={getDetail(mFan, "Lot Motor Asm")} /><MatrixCell label="Lot Guide Asm" detail={getDetail(mFan, "Lot Guide Asm")} /><MatrixCell label="MFan Bolt Tighten" detail={getDetail(mFan, "Bolt Tighten")} /><MatrixCell label="Bolt Qty" detail={getDetail(mFan, "Bolt Qty")} /><MatrixCell label="Nut Tighten" detail={getDetail(mFan, "Nut Tighten")} /><MatrixCell label="Rotation Max / Min" detail={getDetail(mFan, "Rotation Max / Min")} /><MatrixCell label="Ampere Max / Min" detail={getDetail(mFan, "Ampere Max / Min")} /></div><div className="grid grid-cols-9 divide-x divide-gray-200 dark:divide-gray-800"><MatrixCell label="Wind Direction" detail={getDetail(mFan, "Wind Direction")} /><MatrixCell label="M-Fan Insp Test" detail={getDetail(mFan, "M-Fan Test")} /><MatrixCell label="Motor Fan Label" detail={getDetail(overall, "Motor Fan Label")} /><MatrixCell label="ECM Bolt Tighten" detail={getDetail(overall, "ECM Bolt Tighten")} /><MatrixCell label="ECM Bolt Qty" detail={getDetail(overall, "ECM Bolt Qty")} /><button className="col-span-4 px-3 py-4 text-left transition-colors hover:bg-violet-50 dark:hover:bg-violet-500/10" onClick={onOpenCheckPoints} type="button"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Final Inspection (Check Point 1 - 20)</p><p className={`mt-1 inline-flex rounded-md px-2.5 py-1 text-sm font-semibold ${processLog.status ? "bg-success-600 text-white" : "bg-error-600 text-white"}`}>{processLog.status ? "PASSED" : "REJECTED"} ({checkPoints ? formatValue(checkPoints.value) : "-"})</p></div><span className="text-xs text-violet-700 dark:text-violet-300">Click to view 20 CP</span></div></button></div></div></article>;
+  return <article className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"><div className="min-w-[1180px]"><header className="flex items-center justify-between border-b border-brand-500 bg-[#6D8AF3] px-5 py-3 text-white dark:border-brand-400 dark:bg-brand-600"><div className="flex items-center gap-3 text-xs"><span className="inline-flex size-7 items-center justify-center rounded-full bg-white/20 font-mono font-bold text-white">01</span><span className="font-mono text-white/85">{formatDate(processLog.createdAt)}</span><span className="font-mono font-bold text-white">{serialClinching}</span><span className="text-white/60">|</span><span className="font-mono font-bold text-white">{serialMFan}</span></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${processLog.status ? "border-success-200 bg-success-50 text-success-700" : "border-error-200 bg-error-50 text-error-700"}`}>{processLog.status ? "UNIT PASSED" : "UNIT REJECTED"}</span></header><div className="grid grid-cols-9 divide-x divide-gray-200 border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800"><MatrixCell label="Serial Clinching" detail={{ parameterName: "Serial Clinching", value: serialClinching }} /><MatrixCell label="Core Asm" detail={getDetail(clinching, "Core Asm")} /><MatrixCell label="Upper Tank" detail={getDetail(clinching, "Upper Tank Asm")} /><MatrixCell label="Lower Tank" detail={getDetail(clinching, "Lower Tank Asm")} /><MatrixCell label="O-Ring Set" detail={getDetail(clinching, "O-Ring Set")} /><MatrixCell label="NG Box (Short)" detail={getDetail(clinching, "NG Box Short Side")} /><MatrixCell label="Clinching Avg (18 Pts)" detail={clinchingHeight} onClick={clinchingHeight ? () => onOpenMeasurement(clinchingHeight) : undefined} /><MatrixCell label="End Plate (60 Pts)" detail={endPlate} onClick={endPlate ? () => onOpenMeasurement(endPlate) : undefined} /><MatrixCell label="NG Box (Long)" detail={getDetail(clinching, "NG Box Long Side")} /></div><div className="grid grid-cols-9 divide-x divide-gray-200 border-b border-gray-200 bg-gray-50/50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900/25"><MatrixCell label="Serial M-Fan" detail={{ parameterName: "Serial M-Fan", value: serialMFan }} /><MatrixCell label="Lot Fan Asm" detail={getDetail(mFan, "Lot Fan Asm")} /><MatrixCell label="Lot Motor Asm" detail={getDetail(mFan, "Lot Motor Asm")} /><MatrixCell label="Lot Guide Asm" detail={getDetail(mFan, "Lot Guide Asm")} /><MatrixCell label="MFan Bolt Tighten" detail={getDetail(mFan, "Bolt Tighten")} /><MatrixCell label="Bolt Qty" detail={getDetail(mFan, "Bolt Qty")} /><MatrixCell label="Nut Tighten" detail={getDetail(mFan, "Nut Tighten")} /><MatrixCell label="Rotation Max / Min" detail={getDetail(mFan, "Rotation Max / Min")} /><MatrixCell label="Ampere Max / Min" detail={getDetail(mFan, "Ampere Max / Min")} /></div><div className="grid grid-cols-9 divide-x divide-gray-200 dark:divide-gray-800"><MatrixCell label="Wind Direction" detail={getDetail(mFan, "Wind Direction")} /><MatrixCell label="M-Fan Insp Test" detail={getDetail(mFan, "M-Fan Test")} /><MatrixCell label="Motor Fan Label" detail={getDetail(overall, "Motor Fan Label")} /><MatrixCell label="ECM Bolt Tighten" detail={getDetail(overall, "ECM Bolt Tighten")} /><MatrixCell label="ECM Bolt Qty" detail={getDetail(overall, "ECM Bolt Qty")} /><button className="col-span-4 px-3 py-4 text-left transition-colors hover:bg-violet-50 dark:hover:bg-violet-500/10" onClick={onOpenCheckPoints} type="button"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Final Inspection (Check Point 1 - 20)</p><p className={`mt-1 inline-flex rounded-md px-2.5 py-1 text-sm font-semibold ${processLog.status ? "bg-success-600 text-white" : "bg-error-600 text-white"}`}>{processLog.status ? "PASSED" : "REJECTED"} ({checkPoints ? formatValue(checkPoints.value) : "-"})</p></div><span className="text-xs text-violet-700 dark:text-violet-300">Click to view 20 CP</span></div></button></div></div></article>;
+}
+
+function MeasurementModal({
+  detail,
+  onClose,
+}: {
+  detail: MeasurementDetail | null;
+  onClose: () => void;
+}) {
+  const values = detail?.values?.length
+    ? detail.values
+    : detail?.value !== undefined && detail.value !== null
+      ? [detail.value]
+      : [];
+  const booleanValues = values
+    .map((value) => getBooleanValue(value))
+    .filter((value): value is boolean => typeof value === "boolean");
+  const passedCount = booleanValues.filter(Boolean).length;
+  const valueCount = values.length;
+  const summary =
+    booleanValues.length > 0
+      ? `${passedCount}/${valueCount} OK`
+      : `${valueCount}/${detail?.expectedCount ?? valueCount} values`;
+
+  return <Modal className="mx-4 max-w-5xl overflow-hidden p-0" isOpen={Boolean(detail)} onClose={onClose}><div className="border-b border-gray-200 bg-white px-6 py-5 dark:border-gray-800 dark:bg-gray-950"><div className="pr-10"><div className="flex items-center gap-2"><span className={`size-2 rounded-full ${booleanValues.length > 0 ? "bg-emerald-500" : "bg-sky-500"}`} /><h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">{detail?.title ?? detail?.parameterName ?? "Measurement Details"}</h2></div><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Summary: {detail ? stripMeasurementUnit(detail.value) : "-"} - {summary}</p></div></div><div className="grid max-h-[60vh] grid-cols-2 gap-3 overflow-y-auto bg-gray-50 p-6 dark:bg-gray-950 sm:grid-cols-4 lg:grid-cols-6">{values.map((value, index) => { const booleanValue = getBooleanValue(value); const isBoolean = typeof booleanValue === "boolean"; const isPassed = booleanValue === true; return <div className={`rounded-lg border bg-white px-4 py-3 ${isBoolean ? isPassed ? "border-success-200 dark:border-success-500/30 dark:bg-gray-900" : "border-error-200 dark:border-error-500/30 dark:bg-gray-900" : "border-sky-200 dark:border-sky-500/30 dark:bg-gray-900"}`} key={`${detail?.parameterCode ?? detail?.parameterName ?? "measurement"}-${index}`}><p className={`text-xs font-semibold ${isBoolean ? isPassed ? "text-success-700 dark:text-success-300" : "text-error-700 dark:text-error-300" : "text-sky-700 dark:text-sky-300"}`}>Point {String(index + 1).padStart(2, "0")}</p><p className={`mt-1 font-mono text-sm font-bold ${isBoolean ? isPassed ? "text-success-700 dark:text-success-300" : "text-error-700 dark:text-error-300" : "text-gray-900 dark:text-white"}`}>{stripMeasurementUnit(value)}</p></div>; })}{values.length === 0 && <div className="col-span-full rounded-lg border border-dashed border-gray-200 px-5 py-8 text-center text-sm text-gray-500 dark:border-white/[0.12] dark:text-gray-400">No measurement values recorded.</div>}</div><div className="flex justify-end border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-950"><button className="h-9 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600" onClick={onClose} type="button">Close</button></div></Modal>;
 }
 
 function CheckPointModal({ isOpen, onClose, processLog }: { isOpen: boolean; onClose: () => void; processLog: ProcessLogFullValues }) {
@@ -472,7 +628,7 @@ function CheckPointModal({ isOpen, onClose, processLog }: { isOpen: boolean; onC
     : Array.from({ length: 20 }, () => processLog.status ?? false);
   const passedCount = checkPoints.filter(Boolean).length;
 
-  return <Modal className="mx-4 max-w-4xl p-0" isOpen={isOpen} onClose={onClose}><div className="border-b border-gray-200 px-6 py-5 dark:border-gray-800"><div className="pr-10"><h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">Final Inspection (Check Point 1 - 20)</h2><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{processLog.serialNumberCode} · {passedCount}/20 check points passed</p></div></div><div className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4 lg:grid-cols-5">{checkPoints.map((isPassed, index) => <div className={`rounded-lg border px-4 py-3 ${isPassed ? "border-success-200 bg-success-50 dark:border-success-500/25 dark:bg-success-500/10" : "border-error-200 bg-error-50 dark:border-error-500/25 dark:bg-error-500/10"}`} key={index}><p className="text-xs font-semibold text-gray-500 dark:text-gray-400">CP-{String(index + 1).padStart(2, "0")}</p><p className={`mt-1 text-sm font-bold ${isPassed ? "text-success-700 dark:text-success-400" : "text-error-700 dark:text-error-400"}`}>{isPassed ? "OK" : "NG"}</p></div>)}</div><div className="flex justify-end border-t border-gray-200 px-6 py-4 dark:border-gray-800"><button className="h-9 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600" onClick={onClose} type="button">Close</button></div></Modal>;
+  return <Modal className="mx-4 max-w-4xl p-0" isOpen={isOpen} onClose={onClose}><div className="border-b border-gray-200 px-6 py-5 dark:border-gray-800"><div className="pr-10"><h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">Final Inspection (Check Point 1 - 20)</h2><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{processLog.serialNumberCode} - {passedCount}/20 check points passed</p></div></div><div className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4 lg:grid-cols-5">{checkPoints.map((isPassed, index) => <div className={`rounded-lg border px-4 py-3 ${isPassed ? "border-success-200 bg-success-50 dark:border-success-500/25 dark:bg-success-500/10" : "border-error-200 bg-error-50 dark:border-error-500/25 dark:bg-error-500/10"}`} key={index}><p className="text-xs font-semibold text-gray-500 dark:text-gray-400">CP-{String(index + 1).padStart(2, "0")}</p><p className={`mt-1 text-sm font-bold ${isPassed ? "text-success-700 dark:text-success-400" : "text-error-700 dark:text-error-400"}`}>{isPassed ? "OK" : "NG"}</p></div>)}</div><div className="flex justify-end border-t border-gray-200 px-6 py-4 dark:border-gray-800"><button className="h-9 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600" onClick={onClose} type="button">Close</button></div></Modal>;
 }
 
 export function SummaryCard({ label, value }: { label: string; value: string }) {
@@ -504,7 +660,7 @@ export function ProcessValueTable({
       <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/[0.06] sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-            {serialNumberCode || "Process Log"}
+            {serialNumberCode || "Traceability Log"}
           </p>
           <h2 className="mt-1 font-semibold text-gray-800 dark:text-white/90">
             {title}

@@ -4,7 +4,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Process Log | PT TRSS",
-  description: "Process log history",
+  description: "Current process log records",
 };
 
 export default function ProcessLogPage() {

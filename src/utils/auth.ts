@@ -251,7 +251,11 @@ export const getRequiredPermission = (pathname: string): Permission => {
     return PERMISSIONS.APP_CONFIGURATION_MANAGE;
   }
 
-  if (pathname.startsWith("/process-log") || pathname.startsWith("/data-summary")) {
+  if (
+    pathname.startsWith("/traceability-log") ||
+    pathname.startsWith("/process-log") ||
+    pathname.startsWith("/data-summary")
+  ) {
     return PERMISSIONS.PROCESS_LOGS_VIEW;
   }
 

@@ -5,7 +5,7 @@ import {
   ProcessLog,
   ProcessLogDetail,
   ProcessLogParameter,
-} from "./ProcessLogService";
+} from "./TraceabilityLogService";
 
 export type DashboardPeriodSummary = {
   totalProduction: number;

@@ -2,38 +2,38 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiListResponse } from "@/services/ParameterService";
-import ProcessLogService, {
-  ProcessLogListItem,
+import TraceabilityLogService, {
+  ProcessLog,
   ProcessLogQuery,
-} from "@/services/ProcessLogService";
+} from "@/services/TraceabilityLogService";
 
-type UseProcessLogsOptions = ProcessLogQuery & {
+type UseTraceabilityLogsOptions = ProcessLogQuery & {
   enabled?: boolean;
 };
 
-export type ProcessLogQueryState = {
+export type TraceabilityLogQueryState = {
   page: number;
   limit: number;
   serialNumberCode: string;
-  status?: boolean | null;
-  isFinished?: boolean | null;
+  isActive?: boolean | null;
 };
 
-const getInitialQuery = (options: UseProcessLogsOptions): ProcessLogQueryState => ({
+const getInitialQuery = (
+  options: UseTraceabilityLogsOptions
+): TraceabilityLogQueryState => ({
   page: options.page ?? 1,
   limit: options.limit ?? 10,
-  serialNumberCode: options.serialNumberCode ?? "",
-  status: options.status,
-  isFinished: options.isFinished,
+  serialNumberCode: options.serialNumberCode ?? options.issueNo ?? "",
+  isActive: options.isActive,
 });
 
-export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
+export const useTraceabilityLogs = (options: UseTraceabilityLogsOptions = {}) => {
   const { enabled = true } = options;
-  const [query, setQueryState] = useState<ProcessLogQueryState>(() =>
+  const [query, setQueryState] = useState<TraceabilityLogQueryState>(() =>
     getInitialQuery(options)
   );
   const [response, setResponse] =
-    useState<ApiListResponse<ProcessLogListItem> | null>(null);
+    useState<ApiListResponse<ProcessLog> | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -43,16 +43,9 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
       page: query.page,
       limit: query.limit,
       serialNumberCode: query.serialNumberCode,
-      status: query.status,
-      isFinished: query.isFinished,
+      isActive: query.isActive,
     }),
-    [
-      query.isFinished,
-      query.limit,
-      query.page,
-      query.serialNumberCode,
-      query.status,
-    ]
+    [query.isActive, query.limit, query.page, query.serialNumberCode]
   );
 
   const startRequest = useCallback(() => {
@@ -65,7 +58,10 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
   const setPage = useCallback(
     (page: number) => {
       startRequest();
-      setQueryState((current) => ({ ...current, page }));
+      setQueryState((current) => ({
+        ...current,
+        page,
+      }));
     },
     [startRequest]
   );
@@ -73,15 +69,23 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
   const setLimit = useCallback(
     (limit: number) => {
       startRequest();
-      setQueryState((current) => ({ ...current, limit, page: 1 }));
+      setQueryState((current) => ({
+        ...current,
+        limit,
+        page: 1,
+      }));
     },
     [startRequest]
   );
 
   const setQuery = useCallback(
-    (nextQuery: Partial<ProcessLogQueryState>) => {
+    (nextQuery: Partial<TraceabilityLogQueryState>) => {
       startRequest();
-      setQueryState((current) => ({ ...current, ...nextQuery, page: 1 }));
+      setQueryState((current) => ({
+        ...current,
+        ...nextQuery,
+        page: 1,
+      }));
     },
     [startRequest]
   );
@@ -98,10 +102,12 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
 
     const controller = new AbortController();
 
-    ProcessLogService.getProcessLogs(requestQuery, {
+    TraceabilityLogService.getTraceabilityLogs(requestQuery, {
       signal: controller.signal,
     })
-      .then(setResponse)
+      .then((result) => {
+        setResponse(result);
+      })
       .catch((fetchError: unknown) => {
         if (
           fetchError instanceof DOMException &&
@@ -113,7 +119,7 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
         setError(
           fetchError instanceof Error
             ? fetchError.message
-            : "Failed to fetch process logs"
+            : "Failed to fetch traceability logs"
         );
       })
       .finally(() => {
@@ -122,7 +128,9 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
         }
       });
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, [enabled, reloadKey, requestQuery]);
 
   return {

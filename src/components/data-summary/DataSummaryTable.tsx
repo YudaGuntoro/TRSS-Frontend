@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { useProcessLogs } from "@/hooks/useProcessLogs";
-import ProcessLogService, {
+import { useTraceabilityLogs } from "@/hooks/useTraceabilityLogs";
+import TraceabilityLogService, {
   ProcessLog,
   ProcessLogFullValueDetail,
   ProcessLogFullValues,
-} from "@/services/ProcessLogService";
+} from "@/services/TraceabilityLogService";
 
 type SummaryColumn = {
   key: string;
@@ -32,6 +32,18 @@ const filterInputClassName =
 
 const selectClassName =
   "h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
+
+const getPageNumbers = (currentPage: number, totalPage: number) => {
+  const pageNumbers: number[] = [];
+  const start = Math.max(1, currentPage - 1);
+  const end = Math.min(totalPage, currentPage + 1);
+
+  for (let page = start; page <= end; page += 1) {
+    pageNumbers.push(page);
+  }
+
+  return pageNumbers;
+};
 
 const getAllDetails = (fullValues?: ProcessLogFullValues) => [
   ...(fullValues?.clinching.details ?? []),
@@ -361,7 +373,7 @@ export default function DataSummaryTable() {
     setLimit,
     setPage,
     setQuery,
-  } = useProcessLogs({
+  } = useTraceabilityLogs({
     limit: 10,
     page: 1,
   });
@@ -396,7 +408,7 @@ export default function DataSummaryTable() {
     lastErrorRef.current = error;
     toast.error({
       message: error,
-      title: "Failed to load process logs",
+      title: "Failed to load traceability logs",
     });
   }, [error, toast]);
 
@@ -416,7 +428,7 @@ export default function DataSummaryTable() {
       try {
         const results = await Promise.allSettled(
           serialNumbers.map((serialNumber) =>
-            ProcessLogService.getProcessLogFullValues(serialNumber, {
+            TraceabilityLogService.getTraceabilityLogFullValues(serialNumber, {
               signal: controller.signal,
             })
           )
@@ -443,7 +455,7 @@ export default function DataSummaryTable() {
         setFullValuesBySerial(nextFullValues);
         setDetailError(
           failedCount > 0
-            ? `${failedCount} process log detail${failedCount === 1 ? "" : "s"} failed to load.`
+            ? `${failedCount} traceability log detail${failedCount === 1 ? "" : "s"} failed to load.`
             : null
         );
       } catch (fetchError: unknown) {
@@ -477,6 +489,7 @@ export default function DataSummaryTable() {
   const total = pagination?.total ?? data.length;
   const firstItem = data.length > 0 ? (currentPage - 1) * currentLimit + 1 : 0;
   const lastItem = data.length > 0 ? firstItem + data.length - 1 : 0;
+  const pageNumbers = getPageNumbers(currentPage, totalPage);
   const isTableLoading = isLoading || isLoadingDetails;
   const tableMinWidth = 210 + flatColumns.length * 160;
 
@@ -742,13 +755,21 @@ export default function DataSummaryTable() {
               Prev
             </button>
 
-            <button
-              className="h-10 min-w-10 rounded-lg border border-brand-500 bg-brand-500 px-3 text-sm font-medium text-white"
-              disabled
-              type="button"
-            >
-              {currentPage}
-            </button>
+            {pageNumbers.map((page) => (
+              <button
+                className={`h-10 min-w-10 rounded-lg border px-3 text-sm font-medium ${
+                  page === currentPage
+                    ? "border-brand-500 bg-brand-500 text-white"
+                    : "border-gray-300 text-gray-700 dark:border-gray-700 dark:text-gray-300"
+                }`}
+                disabled={isTableLoading}
+                key={page}
+                onClick={() => setPage(page)}
+                type="button"
+              >
+                {page}
+              </button>
+            ))}
 
             <button
               className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
