@@ -17,6 +17,7 @@ export type StockInRework = {
   serialNumberCode?: string | null;
   issueNumberBefore: string;
   issueNumberAfter: string;
+  count?: number;
   qty: number;
   note?: string | null;
   status: boolean;

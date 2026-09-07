@@ -59,7 +59,7 @@ const AppSidebar: React.FC = () => {
                   className={`${openSubmenu === nav.name
                     ? "menu-item-icon-active"
                     : "menu-item-icon-inactive"
-                    }`}
+                    } ${nav.iconClassName ?? ""}`}
                 >
                   {nav.icon}
                 </span>
@@ -111,7 +111,7 @@ const AppSidebar: React.FC = () => {
                 className={`${nav.path && isActive(nav.path)
                   ? "menu-item-icon-active"
                   : "menu-item-icon-inactive"
-                  }`}
+                  } ${nav.iconClassName ?? ""}`}
               >
                 {nav.icon}
               </span>

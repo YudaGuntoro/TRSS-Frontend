@@ -116,8 +116,9 @@ export default function StockInReworkHistoryTable() {
         width: "15%",
       },
       {
-        key: "qty",
+        key: "count",
         header: "Count",
+        accessor: (row) => row.count ?? row.qty,
         align: "right",
         width: "8%",
       },

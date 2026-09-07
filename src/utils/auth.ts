@@ -1,4 +1,5 @@
 export const ROLES = {
+  SUPERADMIN: "superadmin",
   ADMIN: "admin",
   USER: "user",
   GUEST: "guest",
@@ -20,6 +21,8 @@ export const PERMISSIONS = {
   USERS_MANAGE: "users.manage",
   APP_CONFIGURATION_MANAGE: "app-configuration.manage",
   PROCESS_LOGS_VIEW: "process-logs.view",
+  MQTT_LOGS_VIEW: "mqtt-logs.view",
+  SYSTEM_LOGS_VIEW: "system-logs.view",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -46,6 +49,7 @@ const ROLE_CLAIM_KEYS = [
 ];
 
 const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
+  [ROLES.SUPERADMIN]: new Set(Object.values(PERMISSIONS)),
   [ROLES.ADMIN]: new Set(Object.values(PERMISSIONS)),
   [ROLES.USER]: new Set([
     PERMISSIONS.DASHBOARD_VIEW,
@@ -212,6 +216,14 @@ export const notifyAuthChanged = () => {
 };
 
 export const getRequiredPermission = (pathname: string): Permission => {
+  if (pathname === "/logs/system" || pathname.startsWith("/logs/system/")) {
+    return PERMISSIONS.SYSTEM_LOGS_VIEW;
+  }
+
+  if (pathname === "/logs/mqtt" || pathname.startsWith("/logs/mqtt/")) {
+    return PERMISSIONS.MQTT_LOGS_VIEW;
+  }
+
   if (pathname === "/") {
     return PERMISSIONS.DASHBOARD_VIEW;
   }
