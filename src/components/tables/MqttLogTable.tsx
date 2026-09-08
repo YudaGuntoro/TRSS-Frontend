@@ -93,7 +93,7 @@ function MqttLogDetail({ id }: { id: number }) {
           }}>Copy payload</Button>
         </div>
         <p role="status" className="mb-2 min-h-4 text-xs text-gray-500 dark:text-gray-400">{copyMessage}</p>
-        <pre tabIndex={0} className="whitespace-pre-wrap break-words rounded-lg bg-gray-100 p-3 text-[11px] leading-4 dark:bg-gray-800">{payload}</pre>
+        <pre tabIndex={0} className="max-h-[42vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-gray-100 p-3 text-[11px] leading-4 dark:bg-gray-800">{payload}</pre>
       </div>
     </div>
   );
@@ -221,11 +221,15 @@ export default function MqttLogTable() {
         onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
         onLimitChange={(limit) => updateFilters({ limit })}
       />
-      <Modal isOpen={selectedId !== null} onClose={() => setSelectedId(null)} className="mx-4 max-w-5xl p-5 sm:p-6">
-        <div role="dialog" aria-modal="true" aria-labelledby="mqtt-detail-title" className="text-gray-800 dark:text-white/90">
+      <Modal isOpen={selectedId !== null} onClose={() => setSelectedId(null)} className="mx-4 max-h-[85vh] max-w-5xl overflow-hidden p-0">
+        <div role="dialog" aria-modal="true" aria-labelledby="mqtt-detail-title" className="flex max-h-[85vh] flex-col text-gray-800 dark:text-white/90">
+          <div className="shrink-0 border-b border-gray-200 px-5 py-5 dark:border-gray-800 sm:px-6">
           <h2 id="mqtt-detail-title" className="pr-12 text-lg font-semibold">MQTT Log Detail</h2>
-          {selectedId !== null && <MqttLogDetail key={selectedId} id={selectedId} />}
-          <div className="mt-4 flex justify-end"><Button size="sm" variant="outline" onClick={() => setSelectedId(null)}>Close</Button></div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:px-6">
+            {selectedId !== null && <MqttLogDetail key={selectedId} id={selectedId} />}
+          </div>
+          <div className="shrink-0 border-t border-gray-200 px-5 py-4 dark:border-gray-800 sm:px-6"><div className="flex justify-end"><Button size="sm" variant="outline" onClick={() => setSelectedId(null)}>Close</Button></div></div>
         </div>
       </Modal>
     </>
