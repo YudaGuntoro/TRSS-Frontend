@@ -74,13 +74,6 @@ export const navItems: NavItem[] = [
     permission: PERMISSIONS.STOCK_IN_VIEW,
   },
   {
-    icon: <PlugInIcon />,
-    iconClassName: "text-purple-500 dark:text-purple-400",
-    name: "App Configuration",
-    path: "/app-configuration",
-    permission: PERMISSIONS.APP_CONFIGURATION_MANAGE,
-  },
-  {
     icon: <TimeIcon />,
     iconClassName: "text-cyan-500 dark:text-cyan-400",
     name: "Traceability Log",
@@ -124,5 +117,12 @@ export const navItems: NavItem[] = [
     name: "User",
     path: "/user",
     permission: PERMISSIONS.USERS_MANAGE,
+  },
+  {
+    icon: <PlugInIcon />,
+    iconClassName: "text-purple-500 dark:text-purple-400",
+    name: "App Configuration",
+    path: "/app-configuration",
+    permission: PERMISSIONS.APP_CONFIGURATION_MANAGE,
   },
 ];
