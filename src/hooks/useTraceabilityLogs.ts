@@ -16,6 +16,8 @@ export type TraceabilityLogQueryState = {
   limit: number;
   serialNumberCode: string;
   isActive?: boolean | null;
+  startDate?: string;
+  endDate?: string;
 };
 
 const getInitialQuery = (
@@ -25,6 +27,8 @@ const getInitialQuery = (
   limit: options.limit ?? 10,
   serialNumberCode: options.serialNumberCode ?? options.issueNo ?? "",
   isActive: options.isActive,
+  startDate: options.startDate,
+  endDate: options.endDate,
 });
 
 export const useTraceabilityLogs = (options: UseTraceabilityLogsOptions = {}) => {
@@ -44,8 +48,17 @@ export const useTraceabilityLogs = (options: UseTraceabilityLogsOptions = {}) =>
       limit: query.limit,
       serialNumberCode: query.serialNumberCode,
       isActive: query.isActive,
+      startDate: query.startDate,
+      endDate: query.endDate,
     }),
-    [query.isActive, query.limit, query.page, query.serialNumberCode]
+    [
+      query.endDate,
+      query.isActive,
+      query.limit,
+      query.page,
+      query.serialNumberCode,
+      query.startDate,
+    ]
   );
 
   const startRequest = useCallback(() => {

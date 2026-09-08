@@ -78,6 +78,8 @@ export type ProcessLogQuery = {
   issueNo?: string;
   partNumber?: string;
   isActive?: boolean | null;
+  startDate?: string;
+  endDate?: string;
 };
 
 const normalizeQuery = (query: ProcessLogQuery) => ({
@@ -85,6 +87,8 @@ const normalizeQuery = (query: ProcessLogQuery) => ({
   limit: query.limit,
   serialNumberCode: query.serialNumberCode ?? query.issueNo,
   isActive: query.isActive ?? undefined,
+  startDate: query.startDate || undefined,
+  endDate: query.endDate || undefined,
 });
 
 const TRACEABILITY_LOG_ENDPOINT = "/api/traceability-logs";
@@ -178,6 +182,9 @@ type BackendProcessLogMock = {
   FinalInspectionRadCoreAsmNameLabelResult?: boolean | null;
   CheckPoints?: boolean[] | null;
   CheckPointStatus?: boolean | null;
+  CapTypePositionResult?: boolean | null;
+  LeakResult?: boolean | null;
+  LeakLastLeakageValue?: number | null;
   OverallStatus: "PASSED" | "REJECTED";
 };
 
@@ -330,6 +337,9 @@ const mapMockProcessLog = (log: BackendProcessLogMock): ProcessLog => {
         },
         mockParameter("NG Box Short Side", log.NgBoxSensorShortSideValue, log.NgBoxSensorShortSideValue === "ON"),
         mockParameter("NG Box Long Side", log.NgBoxSensorLongSideValue, log.NgBoxSensorLongSideValue === "ON"),
+        mockParameter("HE Process", log.CapTypePositionResult, log.CapTypePositionResult ?? undefined),
+        mockParameter("HE Leak", log.LeakResult, log.LeakResult ?? undefined),
+        mockParameter("HE Leak Last Leakage", log.LeakLastLeakageValue),
       ]),
       mockGroup("M-Fan Assembly & Inspection", [
         mockParameter("Serial M-Fan", log.SerialNumberMFan),
@@ -339,8 +349,10 @@ const mapMockProcessLog = (log: BackendProcessLogMock): ProcessLog => {
         mockParameter("Bolt Tighten", log.BoltTightenValue, log.BoltTightenValue === "ON"),
         mockParameter("Bolt Qty", log.BoltTightenQtyValue),
         mockParameter("Nut Tighten", log.NutTightenValue, log.NutTightenValue ?? undefined),
-        mockParameter("Rotation Max / Min", log.MFanInspectionRotationSpeedMaxValue != null ? `${log.MFanInspectionRotationSpeedMaxValue} / ${log.MFanInspectionRotationSpeedMinValue} RPM` : null),
-        mockParameter("Ampere Max / Min", log.MFanInspectionAmpereMaxValue != null ? `${log.MFanInspectionAmpereMaxValue} / ${log.MFanInspectionAmpereMinValue} A` : null),
+        mockParameter("Rotation Max", log.MFanInspectionRotationSpeedMaxValue),
+        mockParameter("Rotation Min", log.MFanInspectionRotationSpeedMinValue),
+        mockParameter("Ampere Max", log.MFanInspectionAmpereMaxValue),
+        mockParameter("Ampere Min", log.MFanInspectionAmpereMinValue),
         mockParameter("Wind Direction", log.MFanInspectionWindDirectionValue),
         mockParameter("M-Fan Test", log.MFanTestResult, log.MFanTestResult ?? undefined),
       ]),

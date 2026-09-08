@@ -3,6 +3,7 @@ import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
 import { useMqttStatus } from "@/hooks/useMqttStatus";
+import { usePrinterStatus } from "@/hooks/usePrinterStatus";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
@@ -48,7 +49,7 @@ function HeaderMqttStatus() {
 
   return (
     <div
-      className="flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
+      className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
       title={`MQTT: ${mqttStatus.status} (${brokerLabel})`}
     >
       <span
@@ -59,7 +60,7 @@ function HeaderMqttStatus() {
       </span>
       <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
       <span className="whitespace-nowrap">
-        <span className="hidden text-gray-400 dark:text-gray-500 sm:inline">
+        <span className="hidden text-gray-400 dark:text-gray-500 xl:inline">
           Last Update:{" "}
         </span>
         API {formatTime(mqttStatus.apiUpdatedAt)}
@@ -67,6 +68,74 @@ function HeaderMqttStatus() {
       <span className="text-gray-300 dark:text-gray-700">|</span>
       <span className="whitespace-nowrap">
         MQTT {formatTime(mqttStatus.mqttUpdatedAt)}
+      </span>
+    </div>
+  );
+}
+
+function HeaderPrinterStatus() {
+  const { apiUpdatedAt, connectionState, printers } = usePrinterStatus();
+  const isApiOnline = connectionState === "connected";
+  const isPending =
+    connectionState === "connecting" || connectionState === "reconnecting";
+  const onlineCount = printers.filter((printer) => printer.isOnline).length;
+  const offlinePrinters = printers.filter((printer) => !printer.isOnline);
+  const totalCount = printers.length;
+  const allOnline = isApiOnline && totalCount > 0 && offlinePrinters.length === 0;
+  const label = isPending
+    ? connectionState === "reconnecting"
+      ? "Reconnecting"
+      : "Connecting"
+    : isApiOnline
+      ? `${onlineCount}/${totalCount || 0} Online`
+      : "API Offline";
+  const statusClasses = allOnline
+    ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-300"
+    : isPending
+      ? "bg-amber-500/10 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300"
+      : "bg-red-500/10 text-red-600 dark:bg-red-400/10 dark:text-red-300";
+  const dotClasses = allOnline
+    ? "bg-emerald-500 dark:bg-emerald-400"
+    : isPending
+      ? "bg-amber-500 dark:bg-amber-400"
+      : "bg-red-500 dark:bg-red-400";
+  const printerSummary =
+    printers.length > 0
+      ? printers
+          .map(
+            (printer) =>
+              `${printer.name}: ${printer.isOnline ? "Online" : "Offline"}`
+          )
+          .join(", ")
+      : "No printer status yet";
+
+  return (
+    <div
+      className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
+      title={`Printer: ${printerSummary}`}
+    >
+      <span
+        className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs font-semibold ${statusClasses}`}
+      >
+        <span className={`h-2 w-2 rounded-full ${dotClasses}`} />
+        Printer {label}
+      </span>
+      <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
+      <span className="whitespace-nowrap">
+        {onlineCount} online / {Math.max(totalCount - onlineCount, 0)} offline
+      </span>
+      {printers.length > 0 && (
+        <span className="hidden min-w-0 truncate text-gray-500 dark:text-gray-400 xl:block xl:max-w-[320px]">
+          {printers
+            .map((printer) => {
+              const name = printer.printerName || printer.name;
+              return `${name} ${printer.isOnline ? "Online" : "Offline"}`;
+            })
+            .join(" | ")}
+        </span>
+      )}
+      <span className="hidden whitespace-nowrap text-gray-400 dark:text-gray-500 sm:inline">
+        {formatTime(apiUpdatedAt)}
       </span>
     </div>
   );
@@ -177,8 +246,9 @@ const AppHeader: React.FC = () => {
             isApplicationMenuOpen ? "flex" : "hidden"
           } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          <div className="flex min-w-0 flex-1 items-center lg:justify-end">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto lg:justify-end">
             <HeaderMqttStatus />
+            <HeaderPrinterStatus />
           </div>
 
           <div className="flex shrink-0 items-center gap-2 2xsm:gap-3">

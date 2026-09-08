@@ -1,11 +1,12 @@
 "use client";
 
 import PageLoader from "@/components/common/PageLoader";
+import DatePicker from "@/components/form/date-picker";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useTraceabilityLogs } from "@/hooks/useTraceabilityLogs";
-import { EyeIcon, RefreshIcon } from "@/icons";
+import { CloseIcon, EyeIcon, RefreshIcon } from "@/icons";
 import TraceabilityLogService, {
   ProcessLog,
   ProcessLogFullValues,
@@ -43,6 +44,8 @@ const formatDate = (value: string) => {
   return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
 };
 
+const toDateFilterValue = (date: Date) => date.toISOString().split("T")[0];
+
 const getPageNumbers = (currentPage: number, totalPage: number) => {
   const pageNumbers: number[] = [];
   const start = Math.max(1, currentPage - 1);
@@ -78,7 +81,7 @@ const getBooleanValue = (value: unknown) => {
 
 const stripUnit = (value: unknown) =>
   String(value ?? "-")
-    .replace(/\s*mm\b/gi, "")
+    .replace(/\s*(?:mm|rpm|a)\b/gi, "")
     .trim();
 
 const formatValue = (value: unknown) => {
@@ -95,6 +98,16 @@ const getFlatParameters = (log: ProcessLog) =>
 
 const findParameter = (log: ProcessLog, label: string) =>
   getFlatParameters(log).find((parameter) => parameter.parameterName === label);
+
+const findParameterByLabels = (log: ProcessLog, labels: string[]) =>
+  getFlatParameters(log).find((parameter) =>
+    labels.some(
+      (label) =>
+        parameter.parameterName?.toLowerCase() === label.toLowerCase() ||
+        parameter.parameterCode?.replace(/_/g, " ").toLowerCase() ===
+          label.toLowerCase()
+    )
+  );
 
 const parameterValue = (parameter?: ProcessLogParameter) => {
   if (!parameter) {
@@ -114,6 +127,9 @@ const parameterValue = (parameter?: ProcessLogParameter) => {
 
 const cellValue = (log: ProcessLog, label: string) =>
   parameterValue(findParameter(log, label));
+
+const cellValueAlias = (log: ProcessLog, labels: string[]) =>
+  parameterValue(findParameterByLabels(log, labels));
 
 const getParameterValues = (parameter?: ProcessLogParameter) =>
   parameter?.values?.length ? parameter.values : [];
@@ -179,6 +195,9 @@ export default function TraceabilityLogTable() {
   const router = useRouter();
   const lastErrorRef = useRef<string | null>(null);
   const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [datePickerKey, setDatePickerKey] = useState(0);
   const [resultFilter, setResultFilter] = useState<ResultFilter>("");
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [measurement, setMeasurement] = useState<MeasurementModalState | null>(
@@ -209,6 +228,17 @@ export default function TraceabilityLogTable() {
   }, [debouncedSearch, query.serialNumberCode, setQuery]);
 
   useEffect(() => {
+    if (
+      startDate === (query.startDate ?? "") &&
+      endDate === (query.endDate ?? "")
+    ) {
+      return;
+    }
+
+    setQuery({ endDate, startDate });
+  }, [endDate, query.endDate, query.startDate, setQuery, startDate]);
+
+  useEffect(() => {
     if (!error || lastErrorRef.current === error) {
       return;
     }
@@ -231,6 +261,19 @@ export default function TraceabilityLogTable() {
     ? firstItem + visibleLogs.length - 1
     : 0;
   const pageNumbers = getPageNumbers(currentPage, totalPage);
+  const resetFilters = () => {
+    setSearch("");
+    setResultFilter("");
+    setStartDate("");
+    setEndDate("");
+    setDatePickerKey((current) => current + 1);
+    setQuery({
+      endDate: "",
+      isActive: null,
+      serialNumberCode: "",
+      startDate: "",
+    });
+  };
   const toggleRow = (id: number) => {
     setExpandedRows((current) => {
       const nextRows = new Set(current);
@@ -321,14 +364,55 @@ export default function TraceabilityLogTable() {
                 <option value="ok">Passed (OK)</option>
                 <option value="ng">Rejected (NG)</option>
               </select>
+              <div className="w-[230px]">
+                <DatePicker
+                  className="h-10 px-3 py-2"
+                  defaultDate={startDate && endDate ? [startDate, endDate] : startDate}
+                  id="traceability-log-date-filter"
+                  key={`traceability-log-date-filter-${datePickerKey}`}
+                  mode="range"
+                  onChange={(dates) => {
+                    if (dates.length > 1) {
+                      setStartDate(toDateFilterValue(dates[0]));
+                      setEndDate(toDateFilterValue(dates[1]));
+                    }
+                  }}
+                  onClose={(dates) => {
+                    if (dates.length === 0) {
+                      setStartDate("");
+                      setEndDate("");
+                      return;
+                    }
+
+                    setStartDate(toDateFilterValue(dates[0]));
+                    setEndDate(
+                      dates.length > 1 ? toDateFilterValue(dates[1]) : ""
+                    );
+                  }}
+                  placeholder="Select date or range"
+                />
+              </div>
               <button
                 aria-label="Refresh traceability logs"
-                className="process-log-refresh-button inline-flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="process-log-refresh-button grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                 onClick={refetch}
                 title="Refresh"
                 type="button"
               >
-                <RefreshIcon className="size-4" />
+                <span className="grid size-5 place-items-center overflow-visible leading-none">
+                  <RefreshIcon className="block size-[18px] overflow-visible fill-current" />
+                </span>
+              </button>
+              <button
+                aria-label="Reset traceability log filters"
+                className="grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                onClick={resetFilters}
+                title="Reset filters"
+                type="button"
+              >
+                <span className="grid size-5 place-items-center overflow-visible leading-none">
+                  <CloseIcon className="block size-[18px] overflow-visible fill-current" />
+                </span>
               </button>
             </div>
 
@@ -345,43 +429,62 @@ export default function TraceabilityLogTable() {
         </div>
 
         <div className="mx-4 mb-4 mt-2 overflow-hidden rounded-lg border border-gray-100 dark:border-white/[0.05]">
-          <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] text-left text-xs">
-          <thead className="text-[11px] font-semibold uppercase text-white">
+          <div className="overflow-hidden">
+        <table className="w-full table-fixed text-left text-[11px]">
+          <colgroup>
+            <col className="w-[4%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[6%]" />
+            <col className="w-[11%]" />
+            <col className="w-[13%]" />
+            <col className="w-[6%]" />
+            <col className="w-[5%]" />
+            <col className="w-[6%]" />
+            <col className="w-[5%]" />
+            <col className="w-[8%]" />
+          </colgroup>
+          <thead className="text-[10px] font-semibold uppercase text-white">
             <tr>
-              <th className="w-16 bg-[#6D8AF3] px-2.5 py-3 text-center">
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5 text-center">
                 No
               </th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3">Timestamp</th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3">Serial No</th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3">Lot Core Asm</th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3">Lot Upper T Asm</th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3">Lot Lower T Asm</th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3 text-center">
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5">Timestamp</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5">Serial No</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5">Lot Core Asm</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5">Lot Upper T Asm</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5">Lot Lower T Asm</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5 text-center">
                 Clinching Height
-                <span className="block text-[9px] font-medium normal-case text-white/85">
+                <span className="block text-[8px] font-medium normal-case text-white/85">
                   (OK/NG)
                 </span>
               </th>
-              <th className="border-x border-white/25 bg-[#6D8AF3] px-2.5 py-3 text-center">
+              <th className="border-x border-white/25 bg-[#6D8AF3] px-1.5 py-2.5 text-center">
                 Clinching Height
-                <span className="block text-[9px] font-medium normal-case text-white/90">
+                <span className="block text-[8px] font-medium normal-case text-white/90">
                   Average Value (18 Pts)
                 </span>
               </th>
-              <th className="border-r border-white/25 bg-[#6D8AF3] px-2.5 py-3 text-center">
+              <th className="border-r border-white/25 bg-[#6D8AF3] px-1.5 py-2.5 text-center">
                 End Plate Width
-                <span className="block text-[9px] font-medium normal-case text-white/90">
+                <span className="block text-[8px] font-medium normal-case text-white/90">
                   Status (60 Pts OK/NG)
                 </span>
               </th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3 text-center">
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5 text-center">
                 NG Box (Red) Sensor
-                <span className="block text-[9px] font-medium normal-case text-white/85">
+                <span className="block text-[8px] font-medium normal-case text-white/85">
                   (OK/NG)
                 </span>
               </th>
-              <th className="bg-[#6D8AF3] px-2.5 py-3 text-center">Action</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5 text-center">HE Process</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5 text-center">HE Leak</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5 text-center">Overall</th>
+              <th className="bg-[#6D8AF3] px-1.5 py-2.5 text-center">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-xs dark:divide-gray-800">
@@ -496,6 +599,10 @@ function ProcessLogRow({
   const endPlate = findParameter(log, "End Plate Width");
   const endPlateStatus = endPlate?.status ?? passed;
   const sensorStatus = getBooleanValue(cellValue(log, "NG Box Long Side")) ?? true;
+  const heProcessStatus = getBooleanValue(
+    cellValueAlias(log, ["HE Process", "Cap Type Position"])
+  );
+  const heLeakStatus = getBooleanValue(cellValueAlias(log, ["HE Leak"]));
 
   return (
     <tr
@@ -505,11 +612,11 @@ function ProcessLogRow({
           : "bg-error-50/40 hover:bg-error-50 dark:bg-error-500/[0.04]"
       }
     >
-      <td className="px-2.5 py-3 text-center font-mono text-xs text-gray-600 dark:text-gray-300">
-        <div className="flex items-center justify-center gap-2">
+      <td className="px-1.5 py-2 text-center font-mono text-[11px] text-gray-600 dark:text-gray-300">
+        <div className="flex items-center justify-center gap-1">
           <button
             aria-label={isExpanded ? "Collapse row detail" : "Expand row detail"}
-            className={`inline-flex size-5 items-center justify-center rounded-full border text-sm leading-none ${
+            className={`inline-flex size-4 shrink-0 items-center justify-center rounded-full border text-xs leading-none ${
               isExpanded
                 ? "border-warning-400 text-warning-600"
                 : "border-sky-400 text-sky-600"
@@ -522,48 +629,48 @@ function ProcessLogRow({
           <span>{index}</span>
         </div>
       </td>
-      <td className="whitespace-nowrap px-2.5 py-3 text-xs text-gray-600 dark:text-gray-300">
+      <td className="truncate whitespace-nowrap px-1.5 py-2 text-[11px] text-gray-600 dark:text-gray-300">
         {formatDate(log.createdAt)}
       </td>
-      <td className="px-2.5 py-3 font-mono font-semibold text-brand-600 dark:text-brand-300">
+      <td className="truncate px-1.5 py-2 font-mono font-semibold text-brand-600 dark:text-brand-300">
         {log.serialNumberCode ?? log.issueNo}
       </td>
-      <td className="px-2.5 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
+      <td className="truncate px-1.5 py-2 font-mono text-[11px] text-gray-700 dark:text-gray-300">
         {cellValue(log, "Core Asm")}
       </td>
-      <td className="px-2.5 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
+      <td className="truncate px-1.5 py-2 font-mono text-[11px] text-gray-700 dark:text-gray-300">
         {cellValue(log, "Upper Tank Asm")}
       </td>
-      <td className="px-2.5 py-3 font-mono text-xs text-gray-700 dark:text-gray-300">
+      <td className="truncate px-1.5 py-2 font-mono text-[11px] text-gray-700 dark:text-gray-300">
         {cellValue(log, "Lower Tank Asm")}
       </td>
-      <td className="px-2.5 py-3 text-center">
+      <td className="px-1.5 py-2 text-center">
         <StatusPill passed={clinchingStatus} />
       </td>
-      <td className="h-16 border-x border-gray-200 bg-sky-50/40 px-2.5 py-0 text-center align-middle dark:border-gray-800 dark:bg-sky-500/[0.04]">
+      <td className="h-12 border-x border-gray-200 bg-sky-50/40 px-1.5 py-0 text-center align-middle dark:border-gray-800 dark:bg-sky-500/[0.04]">
         <div className="flex h-full items-center justify-center">
           <button
-            className="inline-flex h-8 w-[146px] items-center justify-between rounded-lg border border-sky-200 bg-white px-3 font-mono text-xs font-semibold text-gray-800 hover:bg-sky-50 disabled:opacity-60 dark:border-sky-500/30 dark:bg-gray-900 dark:text-white/90 dark:hover:bg-sky-500/10"
+            className="inline-flex h-7 w-full max-w-[122px] items-center justify-between rounded-lg border border-sky-200 bg-white px-2 font-mono text-[11px] font-semibold text-gray-800 hover:bg-sky-50 disabled:opacity-60 dark:border-sky-500/30 dark:bg-gray-900 dark:text-white/90 dark:hover:bg-sky-500/10"
             disabled={isMeasurementLoading}
             onClick={() => onOpenMeasurement(log, "clinching")}
             type="button"
           >
-            <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex min-w-0 items-center gap-1">
               <span>{cellValue(log, "Clinching Height Avg")}</span>
-              <span className="font-sans text-[9px] font-medium text-gray-500 dark:text-gray-400">
+              <span className="font-sans text-[8px] font-medium text-gray-500 dark:text-gray-400">
                 (18 pts)
               </span>
             </span>
-            <span className="inline-flex size-4 shrink-0 items-center justify-center text-sky-500">
+            <span className="inline-flex size-3.5 shrink-0 items-center justify-center text-sky-500">
               <MeasurementEyeIcon />
             </span>
           </button>
         </div>
       </td>
-      <td className="h-16 border-r border-gray-200 bg-emerald-50/40 px-2.5 py-0 text-center align-middle dark:border-gray-800 dark:bg-emerald-500/[0.04]">
+      <td className="h-12 border-r border-gray-200 bg-emerald-50/40 px-1.5 py-0 text-center align-middle dark:border-gray-800 dark:bg-emerald-500/[0.04]">
         <div className="flex h-full items-center justify-center">
           <button
-            className={`inline-flex h-8 w-[198px] items-center justify-between rounded-lg border bg-white px-3 font-mono text-xs font-semibold disabled:opacity-60 dark:bg-gray-900 ${
+            className={`inline-flex h-7 w-full max-w-[152px] items-center justify-between rounded-lg border bg-white px-2 font-mono text-[11px] font-semibold disabled:opacity-60 dark:bg-gray-900 ${
               endPlateStatus
                 ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/30 dark:text-emerald-300 dark:hover:bg-emerald-500/10"
                 : "border-error-300 text-error-700 hover:bg-error-50 dark:border-error-500/40 dark:text-error-300 dark:hover:bg-error-500/10"
@@ -572,9 +679,9 @@ function ProcessLogRow({
             onClick={() => onOpenMeasurement(log, "endPlate")}
             type="button"
           >
-            <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex min-w-0 items-center gap-1">
               <span
-                className={`rounded px-2 py-0.5 ${
+                className={`rounded px-1.5 py-0.5 ${
                   endPlateStatus
                     ? "bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-300"
                     : "bg-error-100 text-error-700 dark:bg-error-500/20 dark:text-error-300"
@@ -582,23 +689,37 @@ function ProcessLogRow({
               >
                 {endPlateStatus ? "OK" : "NG"}
               </span>
-              <span>{parameterValue(endPlate)}</span>
-              <span className="font-sans text-[9px] font-medium text-gray-500 dark:text-gray-400">
+              <span className="truncate">{parameterValue(endPlate)}</span>
+              <span className="font-sans text-[8px] font-medium text-gray-500 dark:text-gray-400">
                 (60 pts)
               </span>
             </span>
-            <span className="inline-flex size-4 shrink-0 items-center justify-center">
+            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
               <MeasurementEyeIcon />
             </span>
           </button>
         </div>
       </td>
-      <td className="px-2.5 py-3 text-center">
+      <td className="px-1.5 py-2 text-center">
         <StatusPill passed={sensorStatus} />
       </td>
-      <td className="px-2.5 py-3 text-center">
+      <td className="px-1.5 py-2 text-center">
+        <OptionalStatusPill passed={heProcessStatus} />
+      </td>
+      <td className="px-1.5 py-2 text-center">
+        <div className="flex flex-col items-center gap-1">
+          <OptionalStatusPill passed={heLeakStatus} />
+          <span className="font-mono text-[9px] leading-none text-gray-500 dark:text-gray-400">
+            {cellValueAlias(log, ["HE Leak Last Leakage", "Leak Last Leakage"])}
+          </span>
+        </div>
+      </td>
+      <td className="px-1.5 py-2 text-center">
+        <StatusPill passed={passed} />
+      </td>
+      <td className="px-1.5 py-2 text-center">
         <button
-          className="process-log-details-button inline-flex h-8 items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
+          className="process-log-details-button inline-flex h-7 items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 text-[11px] font-semibold text-brand-600 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
           onClick={onOpen}
           type="button"
         >
@@ -613,7 +734,7 @@ function ProcessLogRow({
 function StatusPill({ passed }: { passed: boolean }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
         passed
           ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-400"
           : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-400"
@@ -622,6 +743,18 @@ function StatusPill({ passed }: { passed: boolean }) {
       {passed ? "OK" : "NG"}
     </span>
   );
+}
+
+function OptionalStatusPill({ passed }: { passed: boolean | null }) {
+  if (typeof passed !== "boolean") {
+    return (
+      <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+        -
+      </span>
+    );
+  }
+
+  return <StatusPill passed={passed} />;
 }
 
 function MeasurementEyeIcon() {
@@ -654,7 +787,7 @@ function ExpandedDetailRow({
 
   return (
     <tr>
-      <td className="bg-gray-50 p-0 dark:bg-white/[0.02]" colSpan={11}>
+      <td className="bg-gray-50 p-0 dark:bg-white/[0.02]" colSpan={14}>
         <div className="m-3 border-l-4 border-[#6D8AF3] bg-white p-4 shadow-theme-xs dark:bg-gray-900">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-slate-50 px-4 py-3 dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
@@ -670,7 +803,7 @@ function ExpandedDetailRow({
             </div>
             <StatusPill passed={isPassed(log)} />
           </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-6">
+          <div className="mt-4 grid gap-3 lg:grid-cols-7">
             <DetailPanel
               items={[
                 ["Lot Core Asm", cellValue(log, "Core Asm")],
@@ -680,6 +813,16 @@ function ExpandedDetailRow({
               subtitle="Lot component trace"
               tone="brand"
               title="Clinching Assembly"
+            />
+            <DetailPanel
+              items={[
+                ["HE Process", cellValueAlias(log, ["HE Process", "Cap Type Position"])],
+                ["HE Leak", cellValueAlias(log, ["HE Leak"])],
+                ["Leakage", cellValueAlias(log, ["HE Leak Last Leakage", "Leak Last Leakage"])],
+              ]}
+              subtitle="Cap type position and leak test"
+              tone="cyan"
+              title="HE Leak"
             />
             <DetailPanel
               items={[
@@ -704,8 +847,10 @@ function ExpandedDetailRow({
             />
             <DetailPanel
               items={[
-                ["Rotation Max / Min", cellValue(log, "Rotation Max / Min")],
-                ["Ampere Max / Min", cellValue(log, "Ampere Max / Min")],
+                ["Rotation Max", cellValueAlias(log, ["Rotation Max", "Rotation Speed Max"])],
+                ["Rotation Min", cellValueAlias(log, ["Rotation Min", "Rotation Speed Min"])],
+                ["Ampere Max", cellValueAlias(log, ["Ampere Max"])],
+                ["Ampere Min", cellValueAlias(log, ["Ampere Min"])],
                 ["Wind Direction", cellValue(log, "Wind Direction")],
                 ["M-Fan Result", cellValue(log, "M-Fan Test")],
               ]}
@@ -753,12 +898,13 @@ function DetailPanel({
 }: {
   items: DetailPanelItem[];
   subtitle: string;
-  tone: "amber" | "brand" | "emerald" | "sky" | "slate";
+  tone: "amber" | "brand" | "cyan" | "emerald" | "sky" | "slate";
   title: string;
 }) {
   const toneClass = {
     amber: "border-t-warning-400 bg-warning-50/30 dark:border-t-warning-500 dark:bg-warning-500/[0.04]",
     brand: "border-t-brand-500 bg-brand-50/30 dark:border-t-brand-400 dark:bg-brand-500/[0.05]",
+    cyan: "border-t-cyan-500 bg-cyan-50/30 dark:border-t-cyan-400 dark:bg-cyan-500/[0.05]",
     emerald: "border-t-success-500 bg-success-50/30 dark:border-t-success-400 dark:bg-success-500/[0.05]",
     sky: "border-t-sky-500 bg-sky-50/30 dark:border-t-sky-400 dark:bg-sky-500/[0.05]",
     slate: "border-t-gray-400 bg-gray-50 dark:border-t-gray-500 dark:bg-white/[0.03]",
@@ -858,7 +1004,7 @@ function CheckPointModal({
             Matriks Hasil Check Point 1 s/d 20
           </h3>
           <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Semua check point harus true (OK)
+            Semua check point harus OK
           </span>
         </div>
 
@@ -871,9 +1017,6 @@ function CheckPointModal({
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-[10px] font-semibold text-gray-500 dark:text-gray-400">
                   CP-{String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="font-mono text-[10px] text-gray-400 dark:text-gray-500">
-                  {String(isPassedPoint)}
                 </span>
               </div>
               <div className="mt-3 flex justify-center">

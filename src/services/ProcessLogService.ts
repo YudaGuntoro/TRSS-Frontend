@@ -32,6 +32,8 @@ export type ProcessLogQuery = {
   serialNumberCode?: string;
   status?: boolean | null;
   isFinished?: boolean | null;
+  startDate?: string;
+  endDate?: string;
 };
 
 const PROCESS_LOG_ENDPOINT = "/api/process-logs";
@@ -42,6 +44,8 @@ const normalizeQuery = (query: ProcessLogQuery) => ({
   serialNumberCode: query.serialNumberCode,
   status: query.status ?? undefined,
   isFinished: query.isFinished ?? undefined,
+  startDate: query.startDate || undefined,
+  endDate: query.endDate || undefined,
 });
 
 const pick = <T>(

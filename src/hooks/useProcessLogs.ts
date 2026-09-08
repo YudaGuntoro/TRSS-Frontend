@@ -17,6 +17,8 @@ export type ProcessLogQueryState = {
   serialNumberCode: string;
   status?: boolean | null;
   isFinished?: boolean | null;
+  startDate?: string;
+  endDate?: string;
 };
 
 const getInitialQuery = (options: UseProcessLogsOptions): ProcessLogQueryState => ({
@@ -25,6 +27,8 @@ const getInitialQuery = (options: UseProcessLogsOptions): ProcessLogQueryState =
   serialNumberCode: options.serialNumberCode ?? "",
   status: options.status,
   isFinished: options.isFinished,
+  startDate: options.startDate,
+  endDate: options.endDate,
 });
 
 export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
@@ -45,12 +49,16 @@ export const useProcessLogs = (options: UseProcessLogsOptions = {}) => {
       serialNumberCode: query.serialNumberCode,
       status: query.status,
       isFinished: query.isFinished,
+      startDate: query.startDate,
+      endDate: query.endDate,
     }),
     [
+      query.endDate,
       query.isFinished,
       query.limit,
       query.page,
       query.serialNumberCode,
+      query.startDate,
       query.status,
     ]
   );

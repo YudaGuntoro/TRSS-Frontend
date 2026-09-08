@@ -1,15 +1,24 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
+import DatePicker from "@/components/form/date-picker";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useProcessLogs } from "@/hooks/useProcessLogs";
-import { EyeIcon, RefreshIcon } from "@/icons";
+import { CloseIcon, EyeIcon, RefreshIcon } from "@/icons";
 import { ProcessLogDetail, ProcessLogListItem } from "@/services/ProcessLogService";
 import { useEffect, useRef, useState } from "react";
 
 type StatusFilter = "" | "ok" | "ng";
 type FinishFilter = "" | "processing" | "finish";
+type MeasurementKind = "clinching" | "endPlate";
+type MeasurementModalState = {
+  kind: MeasurementKind;
+  serialNumberCode: string;
+  timestamp: string;
+  summary: string;
+  values: unknown[];
+};
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -23,6 +32,8 @@ const formatDate = (value: string) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
 };
+
+const toDateFilterValue = (date: Date) => date.toISOString().split("T")[0];
 
 const getPageNumbers = (currentPage: number, totalPage: number) => {
   const pageNumbers: number[] = [];
@@ -44,13 +55,40 @@ const formatType = (value: string) =>
 const getDetailValue = (detail: ProcessLogDetail, key: string) =>
   detail[key] ?? detail[key.charAt(0).toUpperCase() + key.slice(1)];
 
+const getBooleanValue = (value: unknown) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalizedValue = value.trim().toLowerCase();
+  if (["true", "ok", "passed", "on"].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (["false", "ng", "rejected", "off"].includes(normalizedValue)) {
+    return false;
+  }
+
+  return null;
+};
+
+const stripUnit = (value: unknown) =>
+  String(value ?? "-")
+    .replace(/\s*(?:mm|rpm|a)\b/gi, "")
+    .trim();
+
 const formatValue = (value: unknown) => {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
 
-  if (typeof value === "boolean") {
-    return value ? "OK" : "NG";
+  const booleanValue = getBooleanValue(value);
+  if (typeof booleanValue === "boolean") {
+    return booleanValue ? "OK" : "NG";
   }
 
   if (Array.isArray(value)) {
@@ -64,7 +102,7 @@ const formatValue = (value: unknown) => {
     }).format(value);
   }
 
-  return String(value);
+  return stripUnit(value);
 };
 
 const detailFields = {
@@ -79,6 +117,9 @@ const detailFields = {
     ["End Plate", "endPlateWidthResults"],
     ["End Plate Status", "endPlateWidthStatus"],
     ["NG Box Long", "ngBoxSensorLongSideValue"],
+    ["HE Process", "capTypePositionResult"],
+    ["HE Leak", "leakResult"],
+    ["HE Leakage", "leakLastLeakageValue"],
   ],
   mfan: [
     ["Serial M-Fan", "serialNumberMFan"],
@@ -98,13 +139,20 @@ const detailFields = {
   ],
 };
 
+const getProcessTypeKey = (type?: string) =>
+  type?.replace(/[-_\s]/g, "").toLowerCase() === "mfan" ? "mfan" : "clinching";
+
 export default function ProcessLogTable() {
   const toast = useToast();
   const lastErrorRef = useRef<string | null>(null);
   const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [datePickerKey, setDatePickerKey] = useState(0);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [finishFilter, setFinishFilter] = useState<FinishFilter>("");
   const [selectedLog, setSelectedLog] = useState<ProcessLogListItem | null>(null);
+  const [measurement, setMeasurement] = useState<MeasurementModalState | null>(null);
   const debouncedSearch = useDebouncedValue(search.trim(), 500);
 
   const {
@@ -125,6 +173,21 @@ export default function ProcessLogTable() {
   const firstItem = data.length > 0 ? (currentPage - 1) * currentLimit + 1 : 0;
   const lastItem = data.length > 0 ? firstItem + data.length - 1 : 0;
   const pageNumbers = getPageNumbers(currentPage, totalPage);
+  const resetFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setFinishFilter("");
+    setStartDate("");
+    setEndDate("");
+    setDatePickerKey((current) => current + 1);
+    setQuery({
+      endDate: "",
+      isFinished: null,
+      serialNumberCode: "",
+      startDate: "",
+      status: null,
+    });
+  };
 
   useEffect(() => {
     if (debouncedSearch !== query.serialNumberCode) {
@@ -144,6 +207,17 @@ export default function ProcessLogTable() {
 
     setQuery({ isFinished, status });
   }, [finishFilter, query.isFinished, query.status, setQuery, statusFilter]);
+
+  useEffect(() => {
+    if (
+      startDate === (query.startDate ?? "") &&
+      endDate === (query.endDate ?? "")
+    ) {
+      return;
+    }
+
+    setQuery({ endDate, startDate });
+  }, [endDate, query.endDate, query.startDate, setQuery, startDate]);
 
   useEffect(() => {
     if (!error || lastErrorRef.current === error) {
@@ -193,14 +267,55 @@ export default function ProcessLogTable() {
                 <option value="processing">Processing</option>
                 <option value="finish">Finish</option>
               </select>
+              <div className="w-[230px]">
+                <DatePicker
+                  className="h-10 px-3 py-2"
+                  defaultDate={startDate && endDate ? [startDate, endDate] : startDate}
+                  id="process-log-date-filter"
+                  key={`process-log-date-filter-${datePickerKey}`}
+                  mode="range"
+                  onChange={(dates) => {
+                    if (dates.length > 1) {
+                      setStartDate(toDateFilterValue(dates[0]));
+                      setEndDate(toDateFilterValue(dates[1]));
+                    }
+                  }}
+                  onClose={(dates) => {
+                    if (dates.length === 0) {
+                      setStartDate("");
+                      setEndDate("");
+                      return;
+                    }
+
+                    setStartDate(toDateFilterValue(dates[0]));
+                    setEndDate(
+                      dates.length > 1 ? toDateFilterValue(dates[1]) : ""
+                    );
+                  }}
+                  placeholder="Select date or range"
+                />
+              </div>
               <button
                 aria-label="Refresh process logs"
-                className="inline-flex size-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                 onClick={refetch}
                 title="Refresh"
                 type="button"
               >
-                <RefreshIcon className="size-4" />
+                <span className="grid size-5 place-items-center overflow-visible leading-none">
+                  <RefreshIcon className="block size-[18px] overflow-visible fill-current" />
+                </span>
+              </button>
+              <button
+                aria-label="Reset process log filters"
+                className="grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                onClick={resetFilters}
+                title="Reset filters"
+                type="button"
+              >
+                <span className="grid size-5 place-items-center overflow-visible leading-none">
+                  <CloseIcon className="block size-[18px] overflow-visible fill-current" />
+                </span>
               </button>
             </div>
 
@@ -218,12 +333,14 @@ export default function ProcessLogTable() {
 
         <div className="mx-4 mb-4 mt-2 overflow-hidden rounded-lg border border-gray-100 dark:border-white/[0.05]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-left text-xs">
+          <table className="w-full min-w-[1080px] text-left text-xs">
             <thead className="bg-[#6D8AF3] text-[11px] font-semibold uppercase text-white">
               <tr>
                 <th className="w-16 px-4 py-3 text-center">No</th>
                 <th className="px-4 py-3">Serial Number</th>
                 <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3 text-center">HE Process</th>
+                <th className="px-4 py-3 text-center">HE Leak</th>
                 <th className="px-4 py-3 text-center">Finish</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="w-28 px-4 py-3 text-center">Detail</th>
@@ -245,6 +362,22 @@ export default function ProcessLogTable() {
                     <span className="inline-flex rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                       {formatType(log.type)}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <OptionalStatusPill
+                      passed={
+                        getBooleanValue(
+                          getDetailValue(log.detail, "capTypePositionResult")
+                        )
+                      }
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <OptionalStatusPill
+                      passed={
+                        getBooleanValue(getDetailValue(log.detail, "leakResult"))
+                      }
+                    />
                   </td>
                   <td className="px-4 py-3 text-center">
                     <ProgressPill finished={log.isFinished} />
@@ -324,7 +457,12 @@ export default function ProcessLogTable() {
         </footer>
       </div>
 
-      <ProcessLogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+      <ProcessLogDetailModal
+        log={selectedLog}
+        onClose={() => setSelectedLog(null)}
+        onOpenMeasurement={setMeasurement}
+      />
+      <MeasurementModal detail={measurement} onClose={() => setMeasurement(null)} />
     </>
   );
 }
@@ -341,6 +479,18 @@ function StatusPill({ passed }: { passed: boolean }) {
       {passed ? "OK" : "NG"}
     </span>
   );
+}
+
+function OptionalStatusPill({ passed }: { passed: boolean | null }) {
+  if (typeof passed !== "boolean") {
+    return (
+      <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+        -
+      </span>
+    );
+  }
+
+  return <StatusPill passed={passed} />;
 }
 
 function ProgressPill({ finished }: { finished: boolean }) {
@@ -360,11 +510,13 @@ function ProgressPill({ finished }: { finished: boolean }) {
 function ProcessLogDetailModal({
   log,
   onClose,
+  onOpenMeasurement,
 }: {
   log: ProcessLogListItem | null;
   onClose: () => void;
+  onOpenMeasurement: (measurement: MeasurementModalState) => void;
 }) {
-  const type = log?.type.toLowerCase() === "mfan" ? "mfan" : "clinching";
+  const type = getProcessTypeKey(log?.type);
   const fields = detailFields[type];
 
   return (
@@ -392,18 +544,62 @@ function ProcessLogDetailModal({
           {fields.map(([label, key]) => {
             const value = getDetailValue(log?.detail ?? {}, key);
             const accentClass = getDetailCardClass(label, value);
+            const isClinchingMeasurement =
+              type === "clinching" &&
+              (key === "clinchingHeightAverage" || key === "endPlateWidthResults");
+            const measurementValues =
+              key === "clinchingHeightAverage"
+                ? getDetailValue(log?.detail ?? {}, "clinchingHeightValues")
+                : value;
+            const values = Array.isArray(measurementValues)
+              ? measurementValues
+              : value !== undefined && value !== null
+                ? [value]
+                : [];
 
-            return (
-              <div
-                className={`rounded-lg border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] ${accentClass}`}
-                key={key}
-              >
+            const cardContent = (
+              <>
                 <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                   {label}
                 </p>
                 <p className={`mt-2 text-base font-semibold ${getValueClassName(value)}`}>
                   {formatValue(value)}
                 </p>
+                {isClinchingMeasurement && (
+                  <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 dark:text-brand-300">
+                    Lihat titik
+                    <MeasurementEyeIcon />
+                  </span>
+                )}
+              </>
+            );
+
+            return isClinchingMeasurement ? (
+              <button
+                className={`cursor-pointer rounded-lg border border-gray-200 bg-white p-4 text-left shadow-theme-xs transition-colors hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:bg-brand-500/10 ${accentClass}`}
+                key={key}
+                onClick={() =>
+                  onOpenMeasurement({
+                    kind:
+                      key === "clinchingHeightAverage"
+                        ? "clinching"
+                        : "endPlate",
+                    serialNumberCode: log?.serialNumberCode ?? "-",
+                    summary: formatValue(value),
+                    timestamp: log?.createdAt ?? "",
+                    values,
+                  })
+                }
+                type="button"
+              >
+                {cardContent}
+              </button>
+            ) : (
+              <div
+                className={`rounded-lg border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] ${accentClass}`}
+                key={key}
+              >
+                {cardContent}
               </div>
             );
           })}
@@ -421,6 +617,179 @@ function ProcessLogDetailModal({
       </div>
     </Modal>
   );
+}
+
+function MeasurementEyeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-3.5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+    </svg>
+  );
+}
+
+function MeasurementModal({
+  detail,
+  onClose,
+}: {
+  detail: MeasurementModalState | null;
+  onClose: () => void;
+}) {
+  const isClinching = detail?.kind === "clinching";
+  const values = detail?.values ?? [];
+  const passedCount = values.filter((value) => getBooleanValue(value) === true).length;
+  const rejectedCount = values.filter((value) => getBooleanValue(value) === false).length;
+
+  return (
+    <Modal className="mx-4 max-w-5xl overflow-hidden p-0" isOpen={Boolean(detail)} onClose={onClose}>
+      <div className="border-b border-gray-200 bg-white px-6 py-5 dark:border-gray-800 dark:bg-gray-950">
+        <div className="pr-10">
+          <div className="flex items-center gap-2">
+            <span className={`size-2 rounded-full ${isClinching ? "bg-sky-500" : "bg-emerald-500"}`} />
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              {isClinching
+                ? "Detail Pengukuran Clinching Height (Point 1 - 18)"
+                : "Detail Pengukuran End Plate Width (Point 1 - 60)"}
+            </h2>
+          </div>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Serial: {detail?.serialNumberCode ?? "-"} | Timestamp:{" "}
+            {detail ? formatDate(detail.timestamp) : "-"}
+          </p>
+        </div>
+      </div>
+
+      <div className="max-h-[70vh] overflow-y-auto bg-gray-50 p-6 pb-8 dark:bg-gray-950">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <SummaryBox
+            label={isClinching ? "Average Value" : "Total Titik Sensor"}
+            tone={isClinching ? "sky" : "brand"}
+            value={isClinching ? detail?.summary ?? "-" : `${values.length} Points`}
+          />
+          {isClinching ? (
+            <>
+              <SummaryBox label="Nilai Terendah (Min)" tone="cyan" value={getMinMax(values, "min")} />
+              <SummaryBox label="Nilai Tertinggi (Max)" tone="indigo" value={getMinMax(values, "max")} />
+              <SummaryBox label="Total Points" tone="emerald" value={`${values.length} Points`} />
+            </>
+          ) : (
+            <>
+              <SummaryBox label="Passed (OK)" tone="emerald" value={`${passedCount} Points`} />
+              <SummaryBox label="Rejected (NG)" tone="rose" value={`${rejectedCount} Points`} />
+              <SummaryBox
+                label="Status Akhir Unit"
+                tone={rejectedCount > 0 ? "rose" : "emerald"}
+                value={rejectedCount > 0 ? "NG" : "OK"}
+              />
+            </>
+          )}
+        </div>
+
+        <div
+          className={`mt-6 grid gap-3 ${
+            isClinching
+              ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-6"
+              : "grid-cols-[repeat(auto-fill,minmax(92px,1fr))]"
+          }`}
+        >
+          {values.map((value, index) => {
+            const booleanValue = getBooleanValue(value);
+            const passed = booleanValue !== false;
+
+            return (
+              <div
+                className={`min-h-20 rounded-lg border px-3 py-3 ${
+                  !isClinching && !passed
+                    ? "border-error-300 bg-white dark:border-error-500/35 dark:bg-gray-900"
+                    : isClinching
+                      ? "border-sky-200 bg-white dark:border-sky-500/30 dark:bg-gray-900"
+                      : "border-emerald-200 bg-white dark:border-emerald-500/30 dark:bg-gray-900"
+                }`}
+                key={`${detail?.kind ?? "measurement"}-${index}`}
+              >
+                <p className="font-mono text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                  Point {String(index + 1).padStart(2, "0")}
+                </p>
+                <p
+                  className={`mt-3 text-center font-mono text-base font-bold leading-none ${
+                    isClinching
+                      ? "text-gray-900 dark:text-white"
+                      : passed
+                        ? "text-success-700 dark:text-success-300"
+                        : "text-error-700 dark:text-error-300"
+                  }`}
+                >
+                  {formatValue(value)}
+                </p>
+              </div>
+            );
+          })}
+          {values.length === 0 && (
+            <div className="col-span-full rounded-lg border border-dashed border-gray-200 px-5 py-8 text-center text-sm text-gray-500 dark:border-white/[0.12] dark:text-gray-400">
+              No measurement values recorded.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-end border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-950">
+        <button
+          className="h-9 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600"
+          onClick={onClose}
+          type="button"
+        >
+          Tutup
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function SummaryBox({
+  label,
+  tone = "brand",
+  value,
+}: {
+  label: string;
+  tone?: "brand" | "cyan" | "emerald" | "indigo" | "rose" | "sky";
+  value: string;
+}) {
+  const toneClass = {
+    brand: "border-brand-200 bg-white text-brand-700 dark:border-brand-500/30 dark:bg-gray-900 dark:text-brand-300",
+    cyan: "border-cyan-200 bg-white text-cyan-700 dark:border-cyan-500/30 dark:bg-gray-900 dark:text-cyan-300",
+    emerald: "border-success-200 bg-white text-success-700 dark:border-success-500/30 dark:bg-gray-900 dark:text-success-300",
+    indigo: "border-indigo-200 bg-white text-indigo-700 dark:border-indigo-500/30 dark:bg-gray-900 dark:text-indigo-300",
+    rose: "border-error-200 bg-white text-error-700 dark:border-error-500/30 dark:bg-gray-900 dark:text-error-300",
+    sky: "border-sky-200 bg-white text-sky-700 dark:border-sky-500/30 dark:bg-gray-900 dark:text-sky-300",
+  }[tone];
+
+  return (
+    <div className={`rounded-lg border p-4 ${toneClass}`}>
+      <p className="text-xs font-medium opacity-80">{label}</p>
+      <p className="mt-2 font-mono text-lg font-bold">{value}</p>
+    </div>
+  );
+}
+
+function getMinMax(values: unknown[], mode: "min" | "max") {
+  const numbers = values
+    .map((value) => Number(stripUnit(value).replace(",", ".")))
+    .filter(Number.isFinite);
+
+  if (numbers.length === 0) {
+    return "-";
+  }
+
+  return String(mode === "min" ? Math.min(...numbers) : Math.max(...numbers));
 }
 
 function getValueClassName(value: unknown) {

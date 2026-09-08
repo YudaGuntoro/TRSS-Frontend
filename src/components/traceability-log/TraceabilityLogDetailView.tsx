@@ -163,7 +163,7 @@ const formatValue = (value: ProcessLogFullValueDetail["value"]) => {
 };
 
 const stripMeasurementUnit = (value: ProcessLogFullValueDetail["value"]) =>
-  formatValue(value).replace(/\s*mm\b/gi, "").trim();
+  formatValue(value).replace(/\s*(?:mm|rpm|a)\b/gi, "").trim();
 
 const getValueClassName = (value: ProcessLogFullValueDetail["value"]) => {
   const booleanValue = getBooleanValue(value);
@@ -457,6 +457,19 @@ export default function TraceabilityLogDetailView({
 const getDetail = (details: ProcessLogFullValueDetail[], parameterName: string) =>
   details.find((detail) => detail.parameterName === parameterName);
 
+const getDetailAlias = (
+  details: ProcessLogFullValueDetail[],
+  parameterNames: string[]
+) =>
+  details.find((detail) =>
+    parameterNames.some(
+      (parameterName) =>
+        detail.parameterName?.toLowerCase() === parameterName.toLowerCase() ||
+        detail.parameterCode?.replace(/_/g, " ").toLowerCase() ===
+          parameterName.toLowerCase()
+    )
+  );
+
 const getMeasurementPointNumber = (
   detail: ProcessLogFullValueDetail,
   kind: MeasurementKind
@@ -583,17 +596,155 @@ function MeasurementEyeIcon() {
   );
 }
 
-function MultiRowRecordSheet({ detailTables, identifier, onOpenCheckPoints, onOpenMeasurement, processLog }: { detailTables: DetailTableConfig[]; identifier: string; onOpenCheckPoints: () => void; onOpenMeasurement: (detail: MeasurementDetail) => void; processLog: ProcessLogFullValues }) {
-  const clinching = detailTables.find((table) => table.key === "clinching")?.details ?? [];
-  const mFan = detailTables.find((table) => table.key === "mFan")?.details ?? [];
-  const overall = detailTables.find((table) => table.key === "overall")?.details ?? [];
-  const serialClinching = detailTables.find((table) => table.key === "clinching")?.serialNumberCode ?? processLog.serialNumberCode ?? identifier;
-  const serialMFan = detailTables.find((table) => table.key === "mFan")?.serialNumberCode ?? "-";
+function MultiRowRecordSheet({
+  detailTables,
+  identifier,
+  onOpenCheckPoints,
+  onOpenMeasurement,
+  processLog,
+}: {
+  detailTables: DetailTableConfig[];
+  identifier: string;
+  onOpenCheckPoints: () => void;
+  onOpenMeasurement: (detail: MeasurementDetail) => void;
+  processLog: ProcessLogFullValues;
+}) {
+  const clinching =
+    detailTables.find((table) => table.key === "clinching")?.details ?? [];
+  const mFan =
+    detailTables.find((table) => table.key === "mFan")?.details ?? [];
+  const overall =
+    detailTables.find((table) => table.key === "overall")?.details ?? [];
+  const serialClinching =
+    detailTables.find((table) => table.key === "clinching")
+      ?.serialNumberCode ??
+    processLog.serialNumberCode ??
+    identifier;
+  const serialMFan =
+    detailTables.find((table) => table.key === "mFan")?.serialNumberCode ?? "-";
   const checkPoints = getDetail(overall, "Check Points");
   const clinchingHeight = buildMeasurementDetail(clinching, "clinchingHeight");
   const endPlate = buildMeasurementDetail(clinching, "endPlate");
 
-  return <article className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"><div className="min-w-[1180px]"><header className="flex items-center justify-between border-b border-brand-500 bg-[#6D8AF3] px-5 py-3 text-white dark:border-brand-400 dark:bg-brand-600"><div className="flex items-center gap-3 text-xs"><span className="inline-flex size-7 items-center justify-center rounded-full bg-white/20 font-mono font-bold text-white">01</span><span className="font-mono text-white/85">{formatDate(processLog.createdAt)}</span><span className="font-mono font-bold text-white">{serialClinching}</span><span className="text-white/60">|</span><span className="font-mono font-bold text-white">{serialMFan}</span></div><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${processLog.status ? "border-success-200 bg-success-50 text-success-700" : "border-error-200 bg-error-50 text-error-700"}`}>{processLog.status ? "UNIT PASSED" : "UNIT REJECTED"}</span></header><div className="grid grid-cols-9 divide-x divide-gray-200 border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800"><MatrixCell label="Serial Clinching" detail={{ parameterName: "Serial Clinching", value: serialClinching }} /><MatrixCell label="Core Asm" detail={getDetail(clinching, "Core Asm")} /><MatrixCell label="Upper Tank" detail={getDetail(clinching, "Upper Tank Asm")} /><MatrixCell label="Lower Tank" detail={getDetail(clinching, "Lower Tank Asm")} /><MatrixCell label="O-Ring Set" detail={getDetail(clinching, "O-Ring Set")} /><MatrixCell label="NG Box (Short)" detail={getDetail(clinching, "NG Box Short Side")} /><MatrixCell label="Clinching Avg (18 Pts)" detail={clinchingHeight} onClick={clinchingHeight ? () => onOpenMeasurement(clinchingHeight) : undefined} /><MatrixCell label="End Plate (60 Pts)" detail={endPlate} onClick={endPlate ? () => onOpenMeasurement(endPlate) : undefined} /><MatrixCell label="NG Box (Long)" detail={getDetail(clinching, "NG Box Long Side")} /></div><div className="grid grid-cols-9 divide-x divide-gray-200 border-b border-gray-200 bg-gray-50/50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900/25"><MatrixCell label="Serial M-Fan" detail={{ parameterName: "Serial M-Fan", value: serialMFan }} /><MatrixCell label="Lot Fan Asm" detail={getDetail(mFan, "Lot Fan Asm")} /><MatrixCell label="Lot Motor Asm" detail={getDetail(mFan, "Lot Motor Asm")} /><MatrixCell label="Lot Guide Asm" detail={getDetail(mFan, "Lot Guide Asm")} /><MatrixCell label="MFan Bolt Tighten" detail={getDetail(mFan, "Bolt Tighten")} /><MatrixCell label="Bolt Qty" detail={getDetail(mFan, "Bolt Qty")} /><MatrixCell label="Nut Tighten" detail={getDetail(mFan, "Nut Tighten")} /><MatrixCell label="Rotation Max / Min" detail={getDetail(mFan, "Rotation Max / Min")} /><MatrixCell label="Ampere Max / Min" detail={getDetail(mFan, "Ampere Max / Min")} /></div><div className="grid grid-cols-9 divide-x divide-gray-200 dark:divide-gray-800"><MatrixCell label="Wind Direction" detail={getDetail(mFan, "Wind Direction")} /><MatrixCell label="M-Fan Insp Test" detail={getDetail(mFan, "M-Fan Test")} /><MatrixCell label="Motor Fan Label" detail={getDetail(overall, "Motor Fan Label")} /><MatrixCell label="ECM Bolt Tighten" detail={getDetail(overall, "ECM Bolt Tighten")} /><MatrixCell label="ECM Bolt Qty" detail={getDetail(overall, "ECM Bolt Qty")} /><button className="col-span-4 px-3 py-4 text-left transition-colors hover:bg-violet-50 dark:hover:bg-violet-500/10" onClick={onOpenCheckPoints} type="button"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Final Inspection (Check Point 1 - 20)</p><p className={`mt-1 inline-flex rounded-md px-2.5 py-1 text-sm font-semibold ${processLog.status ? "bg-success-600 text-white" : "bg-error-600 text-white"}`}>{processLog.status ? "PASSED" : "REJECTED"} ({checkPoints ? formatValue(checkPoints.value) : "-"})</p></div><span className="text-xs text-violet-700 dark:text-violet-300">Click to view 20 CP</span></div></button></div></div></article>;
+  return (
+    <article className="overflow-x-auto rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="min-w-[1280px]">
+        <header className="flex items-center justify-between border-b border-brand-500 bg-[#6D8AF3] px-5 py-3 text-white dark:border-brand-400 dark:bg-brand-600">
+          <div className="flex items-center gap-3 text-xs">
+            <span className="inline-flex size-7 items-center justify-center rounded-full bg-white/20 font-mono font-bold text-white">
+              01
+            </span>
+            <span className="font-mono text-white/85">
+              {formatDate(processLog.createdAt)}
+            </span>
+            <span className="font-mono font-bold text-white">
+              {serialClinching}
+            </span>
+            <span className="text-white/60">|</span>
+            <span className="font-mono font-bold text-white">{serialMFan}</span>
+          </div>
+          <span
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              processLog.status
+                ? "border-success-200 bg-success-50 text-success-700"
+                : "border-error-200 bg-error-50 text-error-700"
+            }`}
+          >
+            {processLog.status ? "UNIT PASSED" : "UNIT REJECTED"}
+          </span>
+        </header>
+
+        <div className="grid grid-cols-10 divide-x divide-gray-200 border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+          <MatrixCell
+            detail={{ parameterName: "Serial Clinching", value: serialClinching }}
+            label="Serial Clinching"
+          />
+          <MatrixCell label="Core Asm" detail={getDetail(clinching, "Core Asm")} />
+          <MatrixCell label="Upper Tank" detail={getDetail(clinching, "Upper Tank Asm")} />
+          <MatrixCell label="Lower Tank" detail={getDetail(clinching, "Lower Tank Asm")} />
+          <MatrixCell label="O-Ring Set" detail={getDetail(clinching, "O-Ring Set")} />
+          <MatrixCell label="NG Box (Short)" detail={getDetail(clinching, "NG Box Short Side")} />
+          <MatrixCell
+            detail={clinchingHeight}
+            label="Clinching Avg (18 Pts)"
+            onClick={clinchingHeight ? () => onOpenMeasurement(clinchingHeight) : undefined}
+          />
+          <MatrixCell
+            detail={endPlate}
+            label="End Plate (60 Pts)"
+            onClick={endPlate ? () => onOpenMeasurement(endPlate) : undefined}
+          />
+          <MatrixCell label="NG Box (Long)" detail={getDetail(clinching, "NG Box Long Side")} />
+          <MatrixCell
+            label="HE Process"
+            detail={getDetailAlias(clinching, ["HE Process", "Cap Type Position"])}
+          />
+        </div>
+
+        <div className="grid grid-cols-10 divide-x divide-gray-200 border-b border-gray-200 bg-gray-50/50 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900/25">
+          <MatrixCell label="HE Leak" detail={getDetailAlias(clinching, ["HE Leak"])} />
+          <MatrixCell
+            label="HE Leakage"
+            detail={getDetailAlias(clinching, ["HE Leak Last Leakage", "Leak Last Leakage"])}
+          />
+          <MatrixCell
+            detail={{ parameterName: "Serial M-Fan", value: serialMFan }}
+            label="Serial M-Fan"
+          />
+          <MatrixCell label="Lot Fan Asm" detail={getDetail(mFan, "Lot Fan Asm")} />
+          <MatrixCell label="Lot Motor Asm" detail={getDetail(mFan, "Lot Motor Asm")} />
+          <MatrixCell label="Lot Guide Asm" detail={getDetail(mFan, "Lot Guide Asm")} />
+          <MatrixCell label="MFan Bolt Tighten" detail={getDetail(mFan, "Bolt Tighten")} />
+          <MatrixCell label="Bolt Qty" detail={getDetail(mFan, "Bolt Qty")} />
+          <MatrixCell label="Nut Tighten" detail={getDetail(mFan, "Nut Tighten")} />
+          <MatrixCell
+            label="Rotation Max"
+            detail={getDetailAlias(mFan, ["Rotation Max", "Rotation Speed Max"])}
+          />
+        </div>
+
+        <div className="grid grid-cols-10 divide-x divide-gray-200 dark:divide-gray-800">
+          <MatrixCell
+            label="Rotation Min"
+            detail={getDetailAlias(mFan, ["Rotation Min", "Rotation Speed Min"])}
+          />
+          <MatrixCell label="Ampere Max" detail={getDetailAlias(mFan, ["Ampere Max"])} />
+          <MatrixCell label="Ampere Min" detail={getDetailAlias(mFan, ["Ampere Min"])} />
+          <MatrixCell label="Wind Direction" detail={getDetail(mFan, "Wind Direction")} />
+          <MatrixCell label="M-Fan Insp Test" detail={getDetail(mFan, "M-Fan Test")} />
+          <MatrixCell label="Motor Fan Label" detail={getDetail(overall, "Motor Fan Label")} />
+          <MatrixCell label="ECM Bolt Tighten" detail={getDetail(overall, "ECM Bolt Tighten")} />
+          <MatrixCell label="ECM Bolt Qty" detail={getDetail(overall, "ECM Bolt Qty")} />
+          <button
+            className="col-span-2 px-3 py-4 text-left transition-colors hover:bg-violet-50 dark:hover:bg-violet-500/10"
+            onClick={onOpenCheckPoints}
+            type="button"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">
+                  Final Inspection (Check Point 1 - 20)
+                </p>
+                <p
+                  className={`mt-1 inline-flex rounded-md px-2.5 py-1 text-sm font-semibold ${
+                    processLog.status
+                      ? "bg-success-600 text-white"
+                      : "bg-error-600 text-white"
+                  }`}
+                >
+                  {processLog.status ? "PASSED" : "REJECTED"} (
+                  {checkPoints ? formatValue(checkPoints.value) : "-"})
+                </p>
+              </div>
+              <span className="text-xs text-violet-700 dark:text-violet-300">
+                View 20 CP
+              </span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 function MeasurementModal({
@@ -628,7 +779,7 @@ function CheckPointModal({ isOpen, onClose, processLog }: { isOpen: boolean; onC
     : Array.from({ length: 20 }, () => processLog.status ?? false);
   const passedCount = checkPoints.filter(Boolean).length;
 
-  return <Modal className="mx-4 max-w-4xl p-0" isOpen={isOpen} onClose={onClose}><div className="border-b border-gray-200 px-6 py-5 dark:border-gray-800"><div className="pr-10"><h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">Final Inspection (Check Point 1 - 20)</h2><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{processLog.serialNumberCode} - {passedCount}/20 check points passed</p></div></div><div className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4 lg:grid-cols-5">{checkPoints.map((isPassed, index) => <div className={`rounded-lg border px-4 py-3 ${isPassed ? "border-success-200 bg-success-50 dark:border-success-500/25 dark:bg-success-500/10" : "border-error-200 bg-error-50 dark:border-error-500/25 dark:bg-error-500/10"}`} key={index}><p className="text-xs font-semibold text-gray-500 dark:text-gray-400">CP-{String(index + 1).padStart(2, "0")}</p><p className={`mt-1 text-sm font-bold ${isPassed ? "text-success-700 dark:text-success-400" : "text-error-700 dark:text-error-400"}`}>{isPassed ? "OK" : "NG"}</p></div>)}</div><div className="flex justify-end border-t border-gray-200 px-6 py-4 dark:border-gray-800"><button className="h-9 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600" onClick={onClose} type="button">Close</button></div></Modal>;
+  return <Modal className="mx-4 max-w-4xl p-0" isOpen={isOpen} onClose={onClose}><div className="border-b border-gray-200 px-6 py-5 dark:border-gray-800"><div className="pr-10"><h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">Final Inspection (Check Point 1 - 20)</h2><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{processLog.serialNumberCode} - {passedCount}/20 check points OK</p></div></div><div className="grid grid-cols-2 gap-3 p-6 sm:grid-cols-4 lg:grid-cols-5">{checkPoints.map((isPassed, index) => <div className={`rounded-lg border px-4 py-3 ${isPassed ? "border-success-200 bg-success-50 dark:border-success-500/25 dark:bg-success-500/10" : "border-error-200 bg-error-50 dark:border-error-500/25 dark:bg-error-500/10"}`} key={index}><p className="text-xs font-semibold text-gray-500 dark:text-gray-400">CP-{String(index + 1).padStart(2, "0")}</p><p className={`mt-1 text-sm font-bold ${isPassed ? "text-success-700 dark:text-success-400" : "text-error-700 dark:text-error-400"}`}>{isPassed ? "OK" : "NG"}</p></div>)}</div><div className="flex justify-end border-t border-gray-200 px-6 py-4 dark:border-gray-800"><button className="h-9 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600" onClick={onClose} type="button">Close</button></div></Modal>;
 }
 
 export function SummaryCard({ label, value }: { label: string; value: string }) {
