@@ -74,13 +74,6 @@ export const navItems: NavItem[] = [
     permission: PERMISSIONS.STOCK_IN_VIEW,
   },
   {
-    icon: <UserIcon />,
-    iconClassName: "text-rose-500 dark:text-rose-400",
-    name: "User",
-    path: "/user",
-    permission: PERMISSIONS.USERS_MANAGE,
-  },
-  {
     icon: <PlugInIcon />,
     iconClassName: "text-purple-500 dark:text-purple-400",
     name: "App Configuration",
@@ -124,5 +117,12 @@ export const navItems: NavItem[] = [
         permission: PERMISSIONS.MQTT_LOGS_VIEW,
       },
     ],
+  },
+  {
+    icon: <UserIcon />,
+    iconClassName: "text-rose-500 dark:text-rose-400",
+    name: "User",
+    path: "/user",
+    permission: PERMISSIONS.USERS_MANAGE,
   },
 ];
