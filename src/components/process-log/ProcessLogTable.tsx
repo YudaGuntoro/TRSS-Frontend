@@ -333,14 +333,12 @@ export default function ProcessLogTable() {
 
         <div className="mx-4 mb-4 mt-2 overflow-hidden rounded-lg border border-gray-100 dark:border-white/[0.05]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px] text-left text-xs">
+          <table className="w-full min-w-[820px] text-left text-xs">
             <thead className="bg-[#6D8AF3] text-[11px] font-semibold uppercase text-white">
               <tr>
                 <th className="w-16 px-4 py-3 text-center">No</th>
                 <th className="px-4 py-3">Serial Number</th>
                 <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3 text-center">HE Process</th>
-                <th className="px-4 py-3 text-center">HE Leak</th>
                 <th className="px-4 py-3 text-center">Finish</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="w-28 px-4 py-3 text-center">Detail</th>
@@ -362,22 +360,6 @@ export default function ProcessLogTable() {
                     <span className="inline-flex rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                       {formatType(log.type)}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <OptionalStatusPill
-                      passed={
-                        getBooleanValue(
-                          getDetailValue(log.detail, "capTypePositionResult")
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <OptionalStatusPill
-                      passed={
-                        getBooleanValue(getDetailValue(log.detail, "leakResult"))
-                      }
-                    />
                   </td>
                   <td className="px-4 py-3 text-center">
                     <ProgressPill finished={log.isFinished} />
@@ -479,18 +461,6 @@ function StatusPill({ passed }: { passed: boolean }) {
       {passed ? "OK" : "NG"}
     </span>
   );
-}
-
-function OptionalStatusPill({ passed }: { passed: boolean | null }) {
-  if (typeof passed !== "boolean") {
-    return (
-      <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-        -
-      </span>
-    );
-  }
-
-  return <StatusPill passed={passed} />;
 }
 
 function ProgressPill({ finished }: { finished: boolean }) {
