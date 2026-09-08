@@ -25,6 +25,7 @@ type MeasurementModalState = {
   summary: string;
   values: MeasurementValue[];
 };
+type DetailPanelItem = [string, string, { onClick?: () => void }?];
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -117,6 +118,26 @@ const cellValue = (log: ProcessLog, label: string) =>
 const getParameterValues = (parameter?: ProcessLogParameter) =>
   parameter?.values?.length ? parameter.values : [];
 
+const getCheckPointParameter = (log: ProcessLog) =>
+  findParameter(log, "Check Points");
+
+const getCheckPointValues = (parameter?: ProcessLogParameter) => {
+  if (parameter?.values?.length) {
+    return parameter.values.map((value) => getBooleanValue(value) !== false);
+  }
+
+  const displayValue = parameterValue(parameter);
+  const passedMatch = displayValue.match(/(\d+)\s*\/\s*(\d+)/);
+  if (!passedMatch) {
+    return [];
+  }
+
+  const passedCount = Number(passedMatch[1]);
+  const totalCount = Number(passedMatch[2]);
+
+  return Array.from({ length: totalCount }, (_, index) => index < passedCount);
+};
+
 const getMeasurementFromFullValues = (
   fullValues: ProcessLogFullValues,
   kind: MeasurementKind
@@ -163,6 +184,7 @@ export default function TraceabilityLogTable() {
   const [measurement, setMeasurement] = useState<MeasurementModalState | null>(
     null
   );
+  const [checkPointLog, setCheckPointLog] = useState<ProcessLog | null>(null);
   const [isMeasurementLoading, setIsMeasurementLoading] = useState(false);
   const debouncedSearch = useDebouncedValue(search.trim(), 500);
   const {
@@ -380,7 +402,12 @@ export default function TraceabilityLogTable() {
                   onOpenMeasurement={openMeasurement}
                   onToggle={() => toggleRow(log.id)}
                 />
-                {expandedRows.has(log.id) && <ExpandedDetailRow log={log} />}
+                {expandedRows.has(log.id) && (
+                  <ExpandedDetailRow
+                    log={log}
+                    onOpenCheckPoints={() => setCheckPointLog(log)}
+                  />
+                )}
               </Fragment>
             ))}
           </tbody>
@@ -442,6 +469,7 @@ export default function TraceabilityLogTable() {
       </div>
 
       <MeasurementModal detail={measurement} onClose={() => setMeasurement(null)} />
+      <CheckPointModal log={checkPointLog} onClose={() => setCheckPointLog(null)} />
     </>
   );
 }
@@ -614,7 +642,16 @@ function MeasurementEyeIcon() {
   );
 }
 
-function ExpandedDetailRow({ log }: { log: ProcessLog }) {
+function ExpandedDetailRow({
+  log,
+  onOpenCheckPoints,
+}: {
+  log: ProcessLog;
+  onOpenCheckPoints: () => void;
+}) {
+  const checkPointParameter = getCheckPointParameter(log);
+  const checkPointValues = getCheckPointValues(checkPointParameter);
+
   return (
     <tr>
       <td className="bg-gray-50 p-0 dark:bg-white/[0.02]" colSpan={11}>
@@ -633,7 +670,7 @@ function ExpandedDetailRow({ log }: { log: ProcessLog }) {
             </div>
             <StatusPill passed={isPassed(log)} />
           </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-5">
+          <div className="mt-4 grid gap-3 lg:grid-cols-6">
             <DetailPanel
               items={[
                 ["Lot Core Asm", cellValue(log, "Core Asm")],
@@ -678,14 +715,28 @@ function ExpandedDetailRow({ log }: { log: ProcessLog }) {
             />
             <DetailPanel
               items={[
+                ["Rad Core Label", cellValue(log, "Rad Core Label")],
                 ["Motor Fan Label", cellValue(log, "Motor Fan Label")],
                 ["ECM Bolt", cellValue(log, "ECM Bolt Tighten")],
                 ["ECM Bolt Qty", cellValue(log, "ECM Bolt Qty")],
-                ["Check Points", cellValue(log, "Check Points")],
               ]}
-              subtitle="Label, bolt and final points"
+              subtitle="Label & bolt tightening"
               tone="emerald"
-              title="ECM & Final"
+              title="ECM Assembly"
+            />
+            <DetailPanel
+              items={[
+                ["Rad Core Label", cellValue(log, "Final Rad Core Label")],
+                [
+                  "Check Points",
+                  cellValue(log, "Check Points"),
+                  { onClick: checkPointValues.length ? onOpenCheckPoints : undefined },
+                ],
+                ["NG Box Sensor", cellValue(log, "NG Box Long Side")],
+              ]}
+              subtitle="Label, 20 check points, sensor"
+              tone="emerald"
+              title="Final Inspection"
             />
           </div>
         </div>
@@ -700,7 +751,7 @@ function DetailPanel({
   tone,
   title,
 }: {
-  items: Array<[string, string]>;
+  items: DetailPanelItem[];
   subtitle: string;
   tone: "amber" | "brand" | "emerald" | "sky" | "slate";
   title: string;
@@ -724,18 +775,136 @@ function DetailPanel({
         </p>
       </div>
       <div className="mt-3 space-y-2">
-        {items.map(([label, value]) => (
+        {items.map(([label, value, action]) => (
           <div className="flex items-center justify-between gap-3" key={label}>
             <span className="text-xs text-gray-500 dark:text-gray-400">
               {label}
             </span>
-            <span className={`rounded border px-2 py-1 font-mono text-xs font-semibold ${getDetailValueClass(value)}`}>
-              {value}
-            </span>
+            {action?.onClick ? (
+              <button
+                className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 font-mono text-xs font-semibold transition-colors hover:shadow-theme-xs ${getDetailValueClass(value)}`}
+                onClick={action.onClick}
+                type="button"
+              >
+                <span>{value}</span>
+                <MeasurementEyeIcon />
+              </button>
+            ) : (
+              <span className={`rounded border px-2 py-1 font-mono text-xs font-semibold ${getDetailValueClass(value)}`}>
+                {value}
+              </span>
+            )}
           </div>
         ))}
       </div>
     </section>
+  );
+}
+
+function CheckPointModal({
+  log,
+  onClose,
+}: {
+  log: ProcessLog | null;
+  onClose: () => void;
+}) {
+  const parameter = log ? getCheckPointParameter(log) : undefined;
+  const checkPoints = getCheckPointValues(parameter);
+  const passedCount = checkPoints.filter(Boolean).length;
+  const rejectedCount = checkPoints.length - passedCount;
+  const allPassed = checkPoints.length > 0 && rejectedCount === 0;
+  const finalRadCoreLabel = log ? cellValue(log, "Final Rad Core Label") : "-";
+
+  return (
+    <Modal className="mx-4 max-w-5xl overflow-hidden p-0" isOpen={Boolean(log)} onClose={onClose}>
+      <div className="border-b border-gray-200 bg-white px-6 py-5 dark:border-gray-800 dark:bg-gray-950">
+        <div className="pr-10">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-teal-500" />
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+                Detail Final Inspection (Check Point 1 - 20)
+              </h2>
+            </div>
+            {checkPoints.length > 0 && (
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                  allPassed
+                    ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-300"
+                    : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-300"
+                }`}
+              >
+                {allPassed ? "All 20 Check Points Passed" : `${rejectedCount} Check Points Rejected`}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Serial: {log?.serialNumberCode ?? log?.issueNo ?? "-"} | Timestamp:{" "}
+            {log ? formatDate(log.createdAt) : "-"}
+          </p>
+        </div>
+      </div>
+
+      <div className="max-h-[70vh] overflow-y-auto bg-gray-50 p-6 pb-8 dark:bg-gray-950">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <SummaryBox label="Total Check Points" tone="brand" value={`${checkPoints.length || 20} Points`} />
+          <SummaryBox label="Passed (OK)" tone="emerald" value={`${passedCount} Points`} />
+          <SummaryBox label="Rejected (NG)" tone="rose" value={`${rejectedCount} Points`} />
+          <SummaryBox label="Rad Core Label" tone={getBooleanValue(finalRadCoreLabel) === false ? "rose" : "emerald"} value={finalRadCoreLabel} />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-sm font-semibold uppercase text-gray-700 dark:text-gray-300">
+            Matriks Hasil Check Point 1 s/d 20
+          </h3>
+          <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Semua check point harus true (OK)
+          </span>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+          {(checkPoints.length ? checkPoints : Array.from({ length: 20 }, () => false)).map((isPassedPoint, index) => (
+            <div
+              className="min-h-20 rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-gray-800 dark:bg-gray-900"
+              key={index}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                  CP-{String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="font-mono text-[10px] text-gray-400 dark:text-gray-500">
+                  {String(isPassedPoint)}
+                </span>
+              </div>
+              <div className="mt-3 flex justify-center">
+                <span
+                  className={`inline-flex rounded-md border px-3 py-1 text-xs font-bold ${
+                    isPassedPoint
+                      ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-300"
+                      : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-300"
+                  }`}
+                >
+                  {isPassedPoint ? "OK" : "NG"}
+                </span>
+              </div>
+              <p className="mt-2 text-center text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                Check Point {index + 1}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-950">
+        <button
+          className="h-9 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+          onClick={onClose}
+          type="button"
+        >
+          Tutup
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -847,23 +1016,20 @@ function MeasurementModal({
                 }`}
                 key={`${detail?.kind ?? "measurement"}-${index}`}
               >
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
                   <span className={`whitespace-nowrap font-mono text-[11px] font-semibold ${isClinching ? "text-sky-700 dark:text-sky-300" : passed ? "text-emerald-700 dark:text-emerald-300" : "text-error-700 dark:text-error-300"}`}>
                     {pointLabel}
                   </span>
-                  {!isClinching && (
-                    <span
-                      className={`shrink-0 rounded px-2 py-0.5 text-[11px] font-semibold ${
-                        passed
-                          ? "bg-success-50 text-success-700 dark:bg-success-500/20 dark:text-success-300"
-                          : "bg-error-50 text-error-700 dark:bg-error-500/20 dark:text-error-300"
-                      }`}
-                    >
-                      {passed ? "OK" : "NG"}
-                    </span>
-                  )}
                 </div>
-                <p className={`mt-3 text-center font-mono text-base font-bold leading-none ${!isClinching && !passed ? "text-error-700 dark:text-error-300" : "text-gray-900 dark:text-white"}`}>
+                <p
+                  className={`mt-3 text-center font-mono text-base font-bold leading-none ${
+                    isClinching
+                      ? "text-gray-900 dark:text-white"
+                      : passed
+                        ? "text-success-700 dark:text-success-300"
+                        : "text-error-700 dark:text-error-300"
+                  }`}
+                >
                   {isClinching ? stripUnit(value) : formatValue(value)}
                 </p>
               </div>

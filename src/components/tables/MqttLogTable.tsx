@@ -71,18 +71,18 @@ function MqttLogDetail({ id }: { id: number }) {
   ];
   const payload = formatPayload(log.payload);
   return (
-    <div className="space-y-5 pt-5">
-      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="space-y-4 pt-4">
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
         {fields.map(([label, value]) => (
           <div key={label}>
-            <dt className="text-sm text-gray-500 dark:text-gray-400">{label}</dt>
-            <dd className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "-"}</dd>
+            <dt className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</dt>
+            <dd className="mt-1 whitespace-pre-wrap break-words text-sm leading-5">{value || "-"}</dd>
           </div>
         ))}
       </dl>
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <h3 className="font-medium">Payload / Message</h3>
+          <h3 className="text-sm font-semibold">Payload / Message</h3>
           <Button size="sm" variant="outline" disabled={!log.payload} onClick={async () => {
             try {
               await navigator.clipboard.writeText(payload);
@@ -92,8 +92,8 @@ function MqttLogDetail({ id }: { id: number }) {
             }
           }}>Copy payload</Button>
         </div>
-        <p role="status" className="mb-2 text-sm">{copyMessage}</p>
-        <pre tabIndex={0} className="max-h-80 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-gray-100 p-4 text-xs dark:bg-gray-800">{payload}</pre>
+        <p role="status" className="mb-2 min-h-4 text-xs text-gray-500 dark:text-gray-400">{copyMessage}</p>
+        <pre tabIndex={0} className="whitespace-pre-wrap break-words rounded-lg bg-gray-100 p-3 text-[11px] leading-4 dark:bg-gray-800">{payload}</pre>
       </div>
     </div>
   );
@@ -221,11 +221,11 @@ export default function MqttLogTable() {
         onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
         onLimitChange={(limit) => updateFilters({ limit })}
       />
-      <Modal isOpen={selectedId !== null} onClose={() => setSelectedId(null)} className="mx-4 max-w-3xl p-6 sm:p-8">
-        <div role="dialog" aria-modal="true" aria-labelledby="mqtt-detail-title" className="max-h-[80vh] overflow-y-auto text-gray-800 dark:text-white/90">
-          <h2 id="mqtt-detail-title" className="pr-12 text-xl font-semibold">MQTT Log Detail</h2>
+      <Modal isOpen={selectedId !== null} onClose={() => setSelectedId(null)} className="mx-4 max-w-5xl p-5 sm:p-6">
+        <div role="dialog" aria-modal="true" aria-labelledby="mqtt-detail-title" className="text-gray-800 dark:text-white/90">
+          <h2 id="mqtt-detail-title" className="pr-12 text-lg font-semibold">MQTT Log Detail</h2>
           {selectedId !== null && <MqttLogDetail key={selectedId} id={selectedId} />}
-          <div className="mt-6 flex justify-end"><Button size="sm" variant="outline" onClick={() => setSelectedId(null)}>Close</Button></div>
+          <div className="mt-4 flex justify-end"><Button size="sm" variant="outline" onClick={() => setSelectedId(null)}>Close</Button></div>
         </div>
       </Modal>
     </>

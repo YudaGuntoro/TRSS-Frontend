@@ -7,7 +7,6 @@ import {
   ListIcon,
   PlugInIcon,
   RefreshIcon,
-  TableIcon,
   TimeIcon,
   UserIcon,
 } from "../icons/index";
@@ -100,13 +99,6 @@ export const navItems: NavItem[] = [
     iconClassName: "text-sky-500 dark:text-sky-400",
     name: "Process Log",
     path: "/process-log",
-    permission: PERMISSIONS.PROCESS_LOGS_VIEW,
-  },
-  {
-    icon: <TableIcon />,
-    iconClassName: "text-emerald-500 dark:text-emerald-400",
-    name: "Data Summary",
-    path: "/data-summary",
     permission: PERMISSIONS.PROCESS_LOGS_VIEW,
   },
   {

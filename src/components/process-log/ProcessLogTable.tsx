@@ -254,11 +254,13 @@ export default function ProcessLogTable() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
+                      className="process-log-details-button inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
                       onClick={() => setSelectedLog(log)}
                       type="button"
                     >
-                      <EyeIcon className="size-4 fill-current" />
+                      <span className="inline-flex size-4 shrink-0 items-center justify-center overflow-visible">
+                        <EyeIcon className="size-4 fill-current" />
+                      </span>
                       Detail
                     </button>
                   </td>
@@ -387,19 +389,24 @@ function ProcessLogDetailModal({
 
       <div className="max-h-[70vh] overflow-y-auto bg-gray-50 p-6 dark:bg-gray-950">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {fields.map(([label, key]) => (
-            <div
-              className="rounded-lg border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]"
-              key={key}
-            >
-              <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
-                {label}
-              </p>
-              <p className={`mt-2 text-base font-semibold ${getValueClassName(getDetailValue(log?.detail ?? {}, key))}`}>
-                {formatValue(getDetailValue(log?.detail ?? {}, key))}
-              </p>
-            </div>
-          ))}
+          {fields.map(([label, key]) => {
+            const value = getDetailValue(log?.detail ?? {}, key);
+            const accentClass = getDetailCardClass(label, value);
+
+            return (
+              <div
+                className={`rounded-lg border border-gray-200 bg-white p-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] ${accentClass}`}
+                key={key}
+              >
+                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+                  {label}
+                </p>
+                <p className={`mt-2 text-base font-semibold ${getValueClassName(value)}`}>
+                  {formatValue(value)}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -428,4 +435,30 @@ function getValueClassName(value: unknown) {
   }
 
   return "text-gray-800 dark:text-white/90";
+}
+
+function getDetailCardClass(label: string, value: unknown) {
+  const formatted = formatValue(value).toLowerCase();
+
+  if (formatted === "ok" || formatted === "on" || formatted.includes("/60 ok")) {
+    return "border-l-4 border-l-success-500 bg-success-50/40 dark:border-l-success-400 dark:bg-success-500/[0.06]";
+  }
+
+  if (formatted === "ng" || formatted === "off") {
+    return "border-l-4 border-l-error-500 bg-error-50/40 dark:border-l-error-400 dark:bg-error-500/[0.06]";
+  }
+
+  if (label.toLowerCase().includes("serial")) {
+    return "border-l-4 border-l-brand-500 bg-brand-50/40 dark:border-l-brand-400 dark:bg-brand-500/[0.06]";
+  }
+
+  if (label.toLowerCase().includes("bolt") || label.toLowerCase().includes("nut")) {
+    return "border-l-4 border-l-warning-500 bg-warning-50/40 dark:border-l-warning-400 dark:bg-warning-500/[0.06]";
+  }
+
+  if (label.toLowerCase().includes("rotation") || label.toLowerCase().includes("ampere")) {
+    return "border-l-4 border-l-sky-500 bg-sky-50/40 dark:border-l-sky-400 dark:bg-sky-500/[0.06]";
+  }
+
+  return "border-l-4 border-l-gray-300 bg-gray-50/40 dark:border-l-gray-600 dark:bg-white/[0.02]";
 }
