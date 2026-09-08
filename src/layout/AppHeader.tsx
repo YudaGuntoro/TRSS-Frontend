@@ -16,6 +16,12 @@ const timeFormatter = new Intl.DateTimeFormat("en-GB", {
 
 const formatTime = (date?: Date) => (date ? timeFormatter.format(date) : "--:--:--");
 
+const printerColumns = [
+  { aliases: ["clinching"], label: "Clinching" },
+  { aliases: ["stock_in", "stock in", "stockin"], label: "Stock In" },
+  { aliases: ["mfan", "m_fan", "m-fan", "m fan"], label: "M-Fan" },
+];
+
 function HeaderMqttStatus() {
   const mqttStatus = useMqttStatus();
   const isApiOnline = mqttStatus.connectionState === "connected";
@@ -108,6 +114,24 @@ function HeaderPrinterStatus() {
           )
           .join(", ")
       : "No printer status yet";
+  const orderedPrinters = printerColumns.map((column) => {
+    const printer = printers.find((item) => {
+      const key = item.key.replace(/[-\s]/g, "_").toLowerCase();
+      const name = `${item.name} ${item.printerName ?? ""}`.toLowerCase();
+
+      return column.aliases.some(
+        (alias) => key.includes(alias) || name.includes(alias)
+      );
+    });
+
+    return {
+      ...column,
+      errorMessage: printer?.errorMessage,
+      isOnline: printer?.isOnline ?? false,
+      printerName: printer?.printerName ?? printer?.name,
+      status: printer?.status ?? "Offline",
+    };
+  });
 
   return (
     <div
@@ -121,20 +145,35 @@ function HeaderPrinterStatus() {
         Printer {label}
       </span>
       <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
-      <span className="whitespace-nowrap">
-        {onlineCount} online / {Math.max(totalCount - onlineCount, 0)} offline
-      </span>
-      {printers.length > 0 && (
-        <span className="hidden min-w-0 truncate text-gray-500 dark:text-gray-400 xl:block xl:max-w-[320px]">
-          {printers
-            .map((printer) => {
-              const name = printer.printerName || printer.name;
-              return `${name} ${printer.isOnline ? "Online" : "Offline"}`;
-            })
-            .join(" | ")}
-        </span>
-      )}
-      <span className="hidden whitespace-nowrap text-gray-400 dark:text-gray-500 sm:inline">
+      <div className="grid shrink-0 grid-cols-3 gap-2">
+        {orderedPrinters.map((printer) => (
+          <span
+            className="inline-flex min-w-[76px] items-center gap-1.5 whitespace-nowrap"
+            key={printer.label}
+            title={`${printer.label}: ${printer.status}${
+              printer.printerName ? ` (${printer.printerName})` : ""
+            }${printer.errorMessage ? ` - ${printer.errorMessage}` : ""}`}
+          >
+            <span
+              className={`size-2 rounded-full ${
+                printer.isOnline
+                  ? "bg-emerald-500 dark:bg-emerald-400"
+                  : "bg-red-500 dark:bg-red-400"
+              }`}
+            />
+            <span
+              className={
+                printer.isOnline
+                  ? "text-emerald-700 dark:text-emerald-300"
+                  : "text-red-600 dark:text-red-300"
+              }
+            >
+              {printer.label}
+            </span>
+          </span>
+        ))}
+      </div>
+      <span className="hidden whitespace-nowrap text-gray-400 dark:text-gray-500 xl:inline">
         {formatTime(apiUpdatedAt)}
       </span>
     </div>
