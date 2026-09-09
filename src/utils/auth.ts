@@ -8,6 +8,7 @@ export const ROLES = {
 export type UserRole = (typeof ROLES)[keyof typeof ROLES];
 
 export const PERMISSIONS = {
+  ALL: "*",
   ADMIN_ACCESS: "admin.access",
   DASHBOARD_VIEW: "dashboard.view",
   MASTER_DATA_MANAGE: "master-data.manage",
@@ -16,8 +17,19 @@ export const PERMISSIONS = {
   STOCK_IN_CREATE: "stock-in.create",
   STOCK_IN_EDIT: "stock-in.edit",
   STOCK_IN_DELETE: "stock-in.delete",
+  STOCK_IN_REWORK_VIEW: "stock-in-rework.view",
+  STOCK_IN_REWORK_CREATE: "stock-in-rework.create",
+  STOCK_IN_REWORK_EDIT: "stock-in-rework.edit",
+  STOCK_IN_REWORK_DELETE: "stock-in-rework.delete",
+  TRACEABILITY_LOG_VIEW: "traceability-log.view",
+  TRACEABILITY_LOG_DETAIL: "traceability-log.detail",
+  TRACEABILITY_LOG_EXPORT: "traceability-log.export",
+  PROCESS_LOG_VIEW: "process-log.view",
+  PROCESS_LOG_DETAIL: "process-log.detail",
+  PROCESS_LOG_EXPORT: "process-log.export",
   PRINT_HISTORY_VIEW: "print-history.view",
   PRINT_HISTORY_REPRINT: "print-history.reprint",
+  USERS_VIEW: "users.view",
   USERS_MANAGE: "users.manage",
   APP_CONFIGURATION_MANAGE: "app-configuration.manage",
   PROCESS_LOGS_VIEW: "process-logs.view",
@@ -49,23 +61,35 @@ const ROLE_CLAIM_KEYS = [
 ];
 
 const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
-  [ROLES.SUPERADMIN]: new Set(Object.values(PERMISSIONS)),
-  [ROLES.ADMIN]: new Set(Object.values(PERMISSIONS)),
+  [ROLES.SUPERADMIN]: new Set([PERMISSIONS.ALL]),
+  [ROLES.ADMIN]: new Set([PERMISSIONS.ALL]),
   [ROLES.USER]: new Set([
     PERMISSIONS.DASHBOARD_VIEW,
-    PERMISSIONS.PARTS_MANAGE,
     PERMISSIONS.STOCK_IN_VIEW,
     PERMISSIONS.STOCK_IN_CREATE,
     PERMISSIONS.STOCK_IN_EDIT,
+    PERMISSIONS.STOCK_IN_DELETE,
+    PERMISSIONS.STOCK_IN_REWORK_VIEW,
+    PERMISSIONS.STOCK_IN_REWORK_CREATE,
+    PERMISSIONS.STOCK_IN_REWORK_EDIT,
+    PERMISSIONS.STOCK_IN_REWORK_DELETE,
+    PERMISSIONS.TRACEABILITY_LOG_VIEW,
+    PERMISSIONS.TRACEABILITY_LOG_DETAIL,
+    PERMISSIONS.TRACEABILITY_LOG_EXPORT,
+    PERMISSIONS.PROCESS_LOG_VIEW,
+    PERMISSIONS.PROCESS_LOG_DETAIL,
+    PERMISSIONS.PROCESS_LOG_EXPORT,
     PERMISSIONS.PRINT_HISTORY_VIEW,
     PERMISSIONS.PRINT_HISTORY_REPRINT,
-    PERMISSIONS.PROCESS_LOGS_VIEW,
+    PERMISSIONS.USERS_VIEW,
+    PERMISSIONS.USERS_MANAGE,
   ]),
   [ROLES.GUEST]: new Set([
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.STOCK_IN_VIEW,
-    PERMISSIONS.PRINT_HISTORY_VIEW,
-    PERMISSIONS.PROCESS_LOGS_VIEW,
+    PERMISSIONS.STOCK_IN_REWORK_VIEW,
+    PERMISSIONS.TRACEABILITY_LOG_VIEW,
+    PERMISSIONS.PROCESS_LOG_VIEW,
   ]),
 };
 
@@ -190,7 +214,16 @@ export const getAuthUser = (): AuthUser | null =>
 export const hasPermission = (
   role: UserRole | null | undefined,
   permission: Permission
-) => Boolean(role && ROLE_PERMISSIONS[role]?.has(permission));
+) => {
+  if (!role) {
+    return false;
+  }
+
+  const permissions = ROLE_PERMISSIONS[role];
+  return Boolean(
+    permissions?.has(PERMISSIONS.ALL) || permissions?.has(permission)
+  );
+};
 
 export const clearAuthSession = () => {
   if (typeof document === "undefined") {
@@ -240,7 +273,9 @@ export const getRequiredPermission = (pathname: string): Permission => {
   }
 
   if (pathname.startsWith("/stock-in")) {
-    return PERMISSIONS.STOCK_IN_VIEW;
+    return pathname.startsWith("/stock-in-rework")
+      ? PERMISSIONS.STOCK_IN_REWORK_VIEW
+      : PERMISSIONS.STOCK_IN_VIEW;
   }
 
   if (pathname.startsWith("/user")) {
@@ -253,10 +288,13 @@ export const getRequiredPermission = (pathname: string): Permission => {
 
   if (
     pathname.startsWith("/traceability-log") ||
-    pathname.startsWith("/process-log") ||
     pathname.startsWith("/data-summary")
   ) {
-    return PERMISSIONS.PROCESS_LOGS_VIEW;
+    return PERMISSIONS.TRACEABILITY_LOG_VIEW;
+  }
+
+  if (pathname.startsWith("/process-log")) {
+    return PERMISSIONS.PROCESS_LOG_VIEW;
   }
 
   if (pathname.startsWith("/print-history")) {

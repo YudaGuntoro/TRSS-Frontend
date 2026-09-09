@@ -123,6 +123,11 @@ const getBooleanValue = (value: unknown) => {
   return null;
 };
 
+const formatNumber = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(value);
+
 const trimNumericText = (value: string) => {
   const trimmedValue = value.trim();
 
@@ -130,17 +135,7 @@ const trimNumericText = (value: string) => {
     return trimmedValue;
   }
 
-  const separator = trimmedValue.includes(",") ? "," : ".";
-  const [integerPart, decimalPart] = trimmedValue.split(separator);
-
-  if (!decimalPart) {
-    return integerPart;
-  }
-
-  const compactDecimal = decimalPart.replace(/0+$/, "");
-  return compactDecimal
-    ? `${integerPart}${separator}${compactDecimal}`
-    : integerPart;
+  return formatNumber(Number(trimmedValue.replace(",", ".")));
 };
 
 const formatValue = (value: ProcessLogFullValueDetail["value"]) => {
@@ -154,9 +149,7 @@ const formatValue = (value: ProcessLogFullValueDetail["value"]) => {
   }
 
   if (typeof value === "number") {
-    return new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 4,
-    }).format(value);
+    return formatNumber(value);
   }
 
   return trimNumericText(String(value));

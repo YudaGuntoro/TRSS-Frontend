@@ -126,6 +126,8 @@ export type BackendProcessLog = {
   processes?: BackendProcessLogProcess[];
   serialNumberCode?: string;
   status?: boolean;
+  OverallStatus?: boolean | string | null;
+  overallStatus?: boolean | string | null;
   isFinished?: boolean;
   type?: string;
   updatedAt?: string;
@@ -185,7 +187,29 @@ type BackendProcessLogMock = {
   CapTypePositionResult?: boolean | null;
   LeakResult?: boolean | null;
   LeakLastLeakageValue?: number | null;
-  OverallStatus: "PASSED" | "REJECTED";
+  OverallStatus?: boolean | string | null;
+  overallStatus?: boolean | string | null;
+};
+
+const normalizeOverallStatus = (value: boolean | string | null | undefined) => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const normalizedValue = value.trim().toLowerCase();
+  if (["true", "ok", "passed"].includes(normalizedValue)) {
+    return true;
+  }
+
+  if (["false", "ng", "rejected"].includes(normalizedValue)) {
+    return false;
+  }
+
+  return false;
 };
 
 const normalizeLogValue = (value: unknown): string | number | boolean => {
@@ -259,6 +283,12 @@ export const mapProcessLogResponse = (log: BackendProcessLog): ProcessLog => {
     log.serialNumberCode ||
     "-";
   const sourceProcesses = log.processes ?? log.details ?? [];
+  const status =
+    log.overallStatus !== undefined && log.overallStatus !== null
+      ? normalizeOverallStatus(log.overallStatus)
+      : log.OverallStatus !== undefined && log.OverallStatus !== null
+        ? normalizeOverallStatus(log.OverallStatus)
+        : log.status;
 
   return {
     id: log.id,
@@ -270,8 +300,8 @@ export const mapProcessLogResponse = (log: BackendProcessLog): ProcessLog => {
     isActive:
       typeof log.isActive === "boolean"
         ? log.isActive
-        : Boolean(log.status),
-    status: log.status,
+        : Boolean(status),
+    status,
     isFinished: log.isFinished,
     isParent: log.isParent,
     serialNumberCode: log.serialNumberCode,
@@ -304,7 +334,9 @@ const mockGroup = (
 });
 
 const mapMockProcessLog = (log: BackendProcessLogMock): ProcessLog => {
-  const isPassed = log.OverallStatus === "PASSED";
+  const isPassed = normalizeOverallStatus(
+    log.OverallStatus ?? log.overallStatus
+  );
   const endPlatePassed = log.EndPlateWidthStatus;
   const checkPointPassed = log.CheckPointStatus ?? false;
   const endPlateSummary = `${log.EndPlateWidthResults.filter(Boolean).length}/${log.EndPlateWidthResults.length} OK`;
@@ -473,7 +505,7 @@ const TraceabilityLogService = {
       message: string;
       data: BackendProcessLogFullValues | BackendProcessLogMock;
     }>(
-      `${TRACEABILITY_LOG_ENDPOINT}/full-values/${encodeURIComponent(serialNumberCode)}`,
+      `${TRACEABILITY_LOG_ENDPOINT}/by-serial-number/${encodeURIComponent(serialNumberCode)}`,
       options
     );
 

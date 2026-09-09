@@ -81,6 +81,23 @@ const stripUnit = (value: unknown) =>
     .replace(/\s*(?:mm|rpm|a)\b/gi, "")
     .trim();
 
+const formatDecimalValue = (value: unknown) => {
+  if (typeof value === "number") {
+    return new Intl.NumberFormat("en-US", {
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  const strippedValue = stripUnit(value);
+  if (!/^-?\d+[,.]\d+$/.test(strippedValue)) {
+    return strippedValue;
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(Number(strippedValue.replace(",", ".")));
+};
+
 const formatValue = (value: unknown) => {
   if (value === null || value === undefined || value === "") {
     return "-";
@@ -97,12 +114,10 @@ const formatValue = (value: unknown) => {
   }
 
   if (typeof value === "number") {
-    return new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 4,
-    }).format(value);
+    return formatDecimalValue(value);
   }
 
-  return stripUnit(value);
+  return formatDecimalValue(value);
 };
 
 const detailFields = {
