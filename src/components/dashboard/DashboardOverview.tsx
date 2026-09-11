@@ -562,17 +562,18 @@ function getLogStatus(log: DashboardRecentLog) {
   return log.isActive ? "Active" : "Inactive";
 }
 
-function getLogIssueNumbers(log: DashboardRecentLog) {
+function getLogIssueNumbers(log: DashboardRecentLog, issueType: string) {
   const issueNumbers = Array.from(
-    new Set(log.issues.map((issue) => issue.issueNumber).filter(Boolean))
+    new Set(
+      log.issues
+        .filter((issue) => issue.issueType === issueType)
+        .map((issue) => issue.issueNumber)
+        .filter(Boolean)
+    )
   ) as string[];
 
   if (issueNumbers.length > 0) {
     return issueNumbers;
-  }
-
-  if (log.issueNo && log.issueNo !== log.serialNumberCode) {
-    return [log.issueNo];
   }
 
   return [];
@@ -591,9 +592,11 @@ function RecentLogsTable({
     >
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Logs</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Recent Traceability Logs
+          </h3>
           <p className={`mt-1 text-sm ${mutedText}`}>
-            Latest production log activity
+            Latest traceability log activity
           </p>
         </div>
         <span className="inline-flex w-fit items-center rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-3 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]">
@@ -609,13 +612,25 @@ function RecentLogsTable({
                 isHeader
                 className="min-w-48 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
               >
-                SN / Serial Number
+                Serial Clinching
+              </TableCell>
+              <TableCell
+                isHeader
+                className="min-w-48 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
+              >
+                Serial M-Fan
               </TableCell>
               <TableCell
                 isHeader
                 className="min-w-64 px-4 py-3 text-center text-theme-xs font-semibold uppercase text-white"
               >
-                Issue No
+                Issue Clinching
+              </TableCell>
+              <TableCell
+                isHeader
+                className="min-w-64 px-4 py-3 text-center text-theme-xs font-semibold uppercase text-white"
+              >
+                Issue M-Fan
               </TableCell>
               <TableCell
                 isHeader
@@ -636,7 +651,7 @@ function RecentLogsTable({
             {isLoading &&
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={index}>
-                  {Array.from({ length: 4 }).map((__, cellIndex) => (
+                  {Array.from({ length: 6 }).map((__, cellIndex) => (
                     <TableCell key={cellIndex} className="px-4 py-4">
                       <LoadingBlock className="h-4 w-full" />
                     </TableCell>
@@ -648,9 +663,9 @@ function RecentLogsTable({
               <TableRow>
                 <TableCell
                   className="px-4 py-8 text-center text-sm text-gray-500 dark:text-[#8f93ad]"
-                  colSpan={4}
+                  colSpan={6}
                 >
-                  No recent logs found
+                  No recent traceability logs found
                 </TableCell>
               </TableRow>
             )}
@@ -668,17 +683,43 @@ function RecentLogsTable({
                   <TableCell className="px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
                     <p
                       className="max-w-[260px] truncate"
-                      title={log.serialNumberCode ?? "-"}
+                      title={log.serialNumberClinching ?? log.serialNumberCode ?? "-"}
                     >
-                      {log.serialNumberCode ?? "-"}
+                      {log.serialNumberClinching ?? log.serialNumberCode ?? "-"}
+                    </p>
+                  </TableCell>
+                  <TableCell className="px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
+                    <p
+                      className="max-w-[260px] truncate"
+                      title={log.serialNumberMFan ?? "-"}
+                    >
+                      {log.serialNumberMFan ?? "-"}
                     </p>
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex flex-wrap gap-2">
-                      {getLogIssueNumbers(log).length > 0 ? (
-                        getLogIssueNumbers(log).map((issueNumber) => (
+                      {getLogIssueNumbers(log, "Clinching").length > 0 ? (
+                        getLogIssueNumbers(log, "Clinching").map((issueNumber) => (
                           <span
                             className="inline-flex rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-2.5 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]"
+                            key={issueNumber}
+                          >
+                            {issueNumber}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-theme-sm text-gray-500 dark:text-[#8f93ad]">
+                          -
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-4 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      {getLogIssueNumbers(log, "M-Fan").length > 0 ? (
+                        getLogIssueNumbers(log, "M-Fan").map((issueNumber) => (
+                          <span
+                            className="inline-flex rounded-full border border-[#4ceac6]/25 bg-[#4ceac6]/10 px-2.5 py-1 text-xs font-semibold text-[#087866] dark:border-[#4ceac6]/30 dark:text-[#8ff5df]"
                             key={issueNumber}
                           >
                             {issueNumber}
@@ -731,7 +772,7 @@ export default function DashboardOverview() {
               Overview Dashboard
             </h1>
             <p className={`mt-1 text-sm ${mutedText}`}>
-              Production output, quality status, and latest process logs
+              Production output, quality status, and latest traceability logs
             </p>
           </div>
           <button

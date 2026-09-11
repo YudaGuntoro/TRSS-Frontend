@@ -77,14 +77,6 @@ const getStatusClassName = (status: PrintStatus) =>
 const getReferenceLabel = (row: PrintHistory) =>
   row.referenceNumber || (row.referenceId ? String(row.referenceId) : "-");
 
-const isReprintableModule = (module: PrintModule) =>
-  module === 1 ||
-  module === "1" ||
-  module === "StockIn" ||
-  module === 2 ||
-  module === "2" ||
-  module === "Clinching";
-
 const getErrorMessage = (error: unknown, fallbackMessage: string) =>
   error instanceof Error && error.message ? error.message : fallbackMessage;
 
@@ -272,21 +264,12 @@ export default function PrintHistoryTable() {
         headerClassName: "px-3",
         width: "150px",
         render: (_, row) => {
-          const isReprintable =
-            canReprint &&
-            isReprintableModule(row.module) &&
-            Boolean(row.referenceNumber);
-
           return canReprint ? (
             <button
               className="inline-flex h-9 min-w-[86px] items-center justify-center whitespace-nowrap rounded-lg bg-brand-500 px-3 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-brand-600 focus:outline-none focus:ring-3 focus:ring-brand-500/25 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={reprintingId !== null || !isReprintable}
+              disabled={reprintingId !== null}
               onClick={() => setSelectedHistory(row)}
-              title={
-                isReprintable
-                  ? "Reprint label"
-                  : "Reprint is unavailable for this record"
-              }
+              title="Reprint label"
               type="button"
             >
               Reprint

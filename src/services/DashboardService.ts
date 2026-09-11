@@ -1,7 +1,7 @@
 import api, { ApiRequestOptions } from "@/utils/api";
 import {
-  BackendProcessLog,
-  mapProcessLogResponse,
+  BackendTraceabilityLogV2,
+  mapTraceabilityLogV2Response,
   ProcessLog,
   ProcessLogDetail,
   ProcessLogParameter,
@@ -63,8 +63,8 @@ const DashboardService = {
   },
 
   getRecentLogs: async (count = 10, options?: ApiRequestOptions) => {
-    const response = await api.get<ApiDataResponse<BackendProcessLog[]>>(
-      "/api/dashboard/recent-logs",
+    const response = await api.get<ApiDataResponse<BackendTraceabilityLogV2[]>>(
+      "/api/v2/traceability-logs/recents",
       {
         ...options,
         params: {
@@ -76,7 +76,7 @@ const DashboardService = {
 
     return {
       ...response.data,
-      data: response.data.data.map(mapProcessLogResponse),
+      data: response.data.data.map(mapTraceabilityLogV2Response),
     };
   },
 };

@@ -39,6 +39,8 @@ export type ProcessLog = {
   isFinished?: boolean;
   isParent?: boolean;
   serialNumberCode?: string;
+  serialNumberClinching?: string;
+  serialNumberMFan?: string;
   type?: string;
   createdAt: string;
   updatedAt?: string;
@@ -85,13 +87,13 @@ export type ProcessLogQuery = {
 const normalizeQuery = (query: ProcessLogQuery) => ({
   page: query.page,
   limit: query.limit,
-  serialNumberCode: query.serialNumberCode ?? query.issueNo,
+  search: query.serialNumberCode ?? query.issueNo,
   isActive: query.isActive ?? undefined,
   startDate: query.startDate || undefined,
   endDate: query.endDate || undefined,
 });
 
-const TRACEABILITY_LOG_ENDPOINT = "/api/traceability-logs";
+const TRACEABILITY_LOG_ENDPOINT = "/api/v2/traceability-logs";
 
 export type BackendProcessLogParameter = {
   parameterCode?: string;
@@ -148,6 +150,25 @@ export type BackendProcessLogFullValues = {
   isFinished?: boolean;
   createdAt: string;
   updatedAt?: string;
+};
+
+export type BackendTraceabilityLogV2 = {
+  id: number;
+  serialNumberClinching?: string | null;
+  serialNumberMFan?: string | null;
+  status?: boolean;
+  isFinish?: boolean;
+  issueNumbersClinching?: string[];
+  issueNumbersMfan?: string[];
+  detail?: Record<string, BackendTraceabilityLogV2DetailParameter[]>;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type BackendTraceabilityLogV2DetailParameter = {
+  parameter?: string;
+  value?: unknown;
+  status?: boolean;
 };
 
 type BackendProcessLogMock = {
@@ -312,6 +333,51 @@ export const mapProcessLogResponse = (log: BackendProcessLog): ProcessLog => {
   };
 };
 
+export const mapTraceabilityLogV2Response = (log: BackendTraceabilityLogV2): ProcessLog => {
+  const clinchingIssues = log.issueNumbersClinching ?? [];
+  const mFanIssues = log.issueNumbersMfan ?? [];
+  const issues: ProcessLogIssue[] = [
+    ...clinchingIssues.map((issueNumber) => ({
+      issueNumber,
+      issueType: "Clinching",
+    })),
+    ...mFanIssues.map((issueNumber) => ({
+      issueNumber,
+      issueType: "M-Fan",
+    })),
+  ];
+  const issueNo = joinUnique([
+    log.serialNumberClinching ?? undefined,
+    log.serialNumberMFan ?? undefined,
+    ...clinchingIssues,
+    ...mFanIssues,
+  ]);
+  const status = log.status ?? false;
+
+  return {
+    id: log.id,
+    issueNo: issueNo || "-",
+    issues,
+    isActive: status,
+    status,
+    isFinished: log.isFinish,
+    serialNumberCode: log.serialNumberClinching ?? undefined,
+    serialNumberClinching: log.serialNumberClinching ?? undefined,
+    serialNumberMFan: log.serialNumberMFan ?? undefined,
+    createdAt: log.createdAt,
+    updatedAt: log.updatedAt,
+    details: [
+      mockGroup("Traceability Summary", [
+        mockParameter("Serial Clinching", log.serialNumberClinching),
+        mockParameter("Serial M-Fan", log.serialNumberMFan),
+        mockParameter("Issue Clinching", clinchingIssues.join(", ") || null),
+        mockParameter("Issue M-Fan", mFanIssues.join(", ") || null),
+      ]),
+      ...mapV2DetailToProcessDetails(log.detail),
+    ],
+  };
+};
+
 const mockParameter = (
   parameterName: string,
   value: string | number | boolean | null | undefined,
@@ -332,6 +398,79 @@ const mockGroup = (
   parameters,
   children: [],
 });
+
+const parameterNameMap: Record<string, string> = {
+  CHECK_POINT_ALL: "Check Points",
+  ECM_ASSY_BOLT_TIGHTEN_QTY_VALUE: "ECM Bolt Qty",
+  ECM_ASSY_BOLT_TIGHTEN_VALUE: "ECM Bolt Tighten",
+  FINAL_INSPECTION_RAD_CORE_ASM_NAME_LABEL_RESULT: "Final Rad Core Label",
+  MOTOR_FAN_ASSY_LABEL_RESULT: "Motor Fan Label",
+  NG_BOX_SENSOR_ECM_ASSY_VALUE: "NG Box Long Side",
+  NG_BOX_SENSOR_FINAL_INSPECTION_VALUE: "NG Box Long Side",
+  RAD_CORE_ASM_NAME_LABEL_RESULT: "Rad Core Label",
+};
+
+const formatParameterName = (parameter?: string) => {
+  if (!parameter) {
+    return "-";
+  }
+
+  return (
+    parameterNameMap[parameter] ??
+    parameter
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ")
+  );
+};
+
+const normalizeV2DetailValue = (
+  parameter: BackendTraceabilityLogV2DetailParameter
+) => {
+  if (
+    parameter.parameter === "CHECK_POINT_ALL" &&
+    Array.isArray(parameter.value)
+  ) {
+    return parameter.value.map((value) => String(value) === "1");
+  }
+
+  return normalizeLogValue(parameter.value);
+};
+
+const mapV2DetailParameter = (
+  parameter: BackendTraceabilityLogV2DetailParameter,
+  index: number
+): ProcessLogParameter => {
+  const normalizedValue = normalizeV2DetailValue(parameter);
+  const values = Array.isArray(normalizedValue)
+    ? normalizedValue
+    : [normalizedValue];
+  const firstValue = values[0] ?? "-";
+
+  return {
+    parameterId: index,
+    parameterCode: parameter.parameter,
+    parameterName: formatParameterName(parameter.parameter),
+    dataType: getValueDataType(firstValue),
+    status: parameter.status,
+    values,
+  };
+};
+
+const mapV2DetailToProcessDetails = (
+  detail?: BackendTraceabilityLogV2["detail"]
+): ProcessLogDetail[] =>
+  Object.entries(detail ?? {}).map(([processName, parameters]) =>
+    mockGroup(
+      formatParameterName(processName),
+      parameters.map((parameter, index) =>
+        mapV2DetailParameter(parameter, index)
+      )
+    )
+  );
 
 const mapMockProcessLog = (log: BackendProcessLogMock): ProcessLog => {
   const isPassed = normalizeOverallStatus(
@@ -404,8 +543,15 @@ const mapMockProcessLog = (log: BackendProcessLogMock): ProcessLog => {
   };
 };
 
-const isMockProcessLog = (log: BackendProcessLog | BackendProcessLogMock): log is BackendProcessLogMock =>
+const isMockProcessLog = (
+  log: BackendProcessLog | BackendProcessLogMock | BackendTraceabilityLogV2
+): log is BackendProcessLogMock =>
   "SerialNumberClinching" in log;
+
+const isTraceabilityLogV2 = (
+  log: BackendProcessLog | BackendProcessLogMock | BackendTraceabilityLogV2
+): log is BackendTraceabilityLogV2 =>
+  "serialNumberClinching" in log || "serialNumberMFan" in log || "isFinish" in log;
 
 const mockDetailsToFullValues = (details: ProcessLogDetail[]) =>
   details.flatMap((group) =>
@@ -446,6 +592,66 @@ const mapFullValueSection = (
   details: section?.details ?? [],
 });
 
+const mapV2FullValues = (log: BackendTraceabilityLogV2): ProcessLogFullValues => {
+  const detailValues = Object.entries(log.detail ?? {}).flatMap(
+    ([processName, parameters]) =>
+      parameters.map((parameter) => {
+        const normalizedValue = normalizeV2DetailValue(parameter);
+
+        return {
+          processCode: processName,
+          processName: formatParameterName(processName),
+          parameterCode: parameter.parameter,
+          parameterName: formatParameterName(parameter.parameter),
+          value: Array.isArray(normalizedValue) ? null : normalizedValue,
+          values: Array.isArray(normalizedValue)
+            ? normalizedValue
+            : [normalizedValue],
+        };
+      })
+  );
+
+  return {
+    id: log.id,
+    serialNumberCode: log.serialNumberClinching ?? undefined,
+    clinching: {
+      serialNumberCode: log.serialNumberClinching ?? undefined,
+      details: [
+        {
+          parameterCode: "SERIAL_NUMBER_CLINCHING",
+          parameterName: "Serial Clinching",
+          value: log.serialNumberClinching ?? null,
+        },
+        {
+          parameterCode: "ISSUE_NUMBERS_CLINCHING",
+          parameterName: "Issue Clinching",
+          value: (log.issueNumbersClinching ?? []).join(", ") || null,
+        },
+      ],
+    },
+    mFan: {
+      serialNumberCode: log.serialNumberMFan ?? undefined,
+      details: [
+        {
+          parameterCode: "SERIAL_NUMBER_MFAN",
+          parameterName: "Serial M-Fan",
+          value: log.serialNumberMFan ?? null,
+        },
+        {
+          parameterCode: "ISSUE_NUMBERS_MFAN",
+          parameterName: "Issue M-Fan",
+          value: (log.issueNumbersMfan ?? []).join(", ") || null,
+        },
+      ],
+    },
+    overall: detailValues,
+    status: log.status,
+    isFinished: log.isFinish,
+    createdAt: log.createdAt,
+    updatedAt: log.updatedAt,
+  };
+};
+
 export const mapProcessLogFullValuesResponse = (
   log: BackendProcessLogFullValues
 ): ProcessLogFullValues => ({
@@ -465,7 +671,9 @@ const TraceabilityLogService = {
     query: ProcessLogQuery = {},
     options?: ApiRequestOptions
   ) => {
-    const response = await api.get<ApiListResponse<BackendProcessLog | BackendProcessLogMock>>(
+    const response = await api.get<
+      ApiListResponse<BackendProcessLog | BackendProcessLogMock | BackendTraceabilityLogV2>
+    >(
       TRACEABILITY_LOG_ENDPOINT,
       {
         ...options,
@@ -476,7 +684,11 @@ const TraceabilityLogService = {
     return {
       ...response.data,
       data: response.data.data.map((log) =>
-        isMockProcessLog(log) ? mapMockProcessLog(log) : mapProcessLogResponse(log)
+        isMockProcessLog(log)
+          ? mapMockProcessLog(log)
+          : isTraceabilityLogV2(log)
+            ? mapTraceabilityLogV2Response(log)
+            : mapProcessLogResponse(log)
       ),
     };
   },
@@ -485,13 +697,15 @@ const TraceabilityLogService = {
     const response = await api.get<{
       success: boolean;
       message: string;
-      data: BackendProcessLog | BackendProcessLogMock;
+      data: BackendProcessLog | BackendProcessLogMock | BackendTraceabilityLogV2;
     }>(`${TRACEABILITY_LOG_ENDPOINT}/${id}`, options);
 
     return {
       ...response.data,
       data: isMockProcessLog(response.data.data)
         ? mapMockProcessLog(response.data.data)
+        : isTraceabilityLogV2(response.data.data)
+          ? mapTraceabilityLogV2Response(response.data.data)
         : mapProcessLogResponse(response.data.data),
     };
   },
@@ -503,7 +717,7 @@ const TraceabilityLogService = {
     const response = await api.get<{
       success: boolean;
       message: string;
-      data: BackendProcessLogFullValues | BackendProcessLogMock;
+      data: BackendProcessLogFullValues | BackendProcessLogMock | BackendTraceabilityLogV2;
     }>(
       `${TRACEABILITY_LOG_ENDPOINT}/by-serial-number/${encodeURIComponent(serialNumberCode)}`,
       options
@@ -513,6 +727,8 @@ const TraceabilityLogService = {
       ...response.data,
       data: isMockProcessLog(response.data.data)
         ? mapMockFullValues(response.data.data)
+        : isTraceabilityLogV2(response.data.data)
+          ? mapV2FullValues(response.data.data)
         : mapProcessLogFullValuesResponse(response.data.data),
     };
   },
