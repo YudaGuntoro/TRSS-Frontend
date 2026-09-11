@@ -35,6 +35,7 @@ export type UserCreatePayload = {
 export type UserUpdatePayload = {
   name: string;
   username: string;
+  newPassword?: string;
   role: string;
   isActive: boolean;
 };

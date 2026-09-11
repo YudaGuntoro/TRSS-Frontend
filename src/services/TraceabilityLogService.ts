@@ -73,13 +73,45 @@ export type ProcessLogFullValues = {
   updatedAt?: string;
 };
 
+export type TraceabilityLogV2Parameter = {
+  parameter: string;
+  parameterDesc?: string | null;
+  value: unknown;
+  status?: boolean | null;
+};
+
+export type TraceabilityLogV2DetailGroup = {
+  clinching: TraceabilityLogV2Parameter[];
+  mfan: TraceabilityLogV2Parameter[];
+  ecm: TraceabilityLogV2Parameter[];
+  final: TraceabilityLogV2Parameter[];
+};
+
+export type TraceabilityLogItem = {
+  id: number;
+  code?: string;
+  serialNumberClinching: string;
+  serialNumberMFan?: string | null;
+  serialNumberCode?: string;
+  status: boolean;
+  isFinish: boolean;
+  issueNumbersClinching: string[];
+  issueNumbersMfan: string[];
+  createdAt: string;
+  updatedAt?: string | null;
+  detail?: TraceabilityLogV2DetailGroup | null;
+};
+
 export type ProcessLogQuery = {
   page?: number;
   limit?: number;
+  search?: string;
   serialNumberCode?: string;
   issueNo?: string;
   partNumber?: string;
   isActive?: boolean | null;
+  status?: boolean | null;
+  isFinish?: boolean | null;
   startDate?: string;
   endDate?: string;
 };
@@ -87,8 +119,16 @@ export type ProcessLogQuery = {
 const normalizeQuery = (query: ProcessLogQuery) => ({
   page: query.page,
   limit: query.limit,
-  search: query.serialNumberCode ?? query.issueNo,
+  search: query.search ?? query.serialNumberCode ?? query.issueNo,
   isActive: query.isActive ?? undefined,
+  status:
+    query.status !== undefined && query.status !== null
+      ? query.status
+      : undefined,
+  isFinish:
+    query.isFinish !== undefined && query.isFinish !== null
+      ? query.isFinish
+      : undefined,
   startDate: query.startDate || undefined,
   endDate: query.endDate || undefined,
 });
@@ -731,6 +771,24 @@ const TraceabilityLogService = {
           ? mapV2FullValues(response.data.data)
         : mapProcessLogFullValuesResponse(response.data.data),
     };
+  },
+
+  getTraceabilityLogV2BySerialNumber: async (
+    serialNumberCode: string,
+    options?: ApiRequestOptions
+  ) => {
+    const response = await api.get<{
+      code?: number;
+      status?: string;
+      success?: boolean;
+      message: string;
+      data: TraceabilityLogItem;
+    }>(
+      `${TRACEABILITY_LOG_ENDPOINT}/by-serial-number/${encodeURIComponent(serialNumberCode)}`,
+      options
+    );
+
+    return response.data;
   },
 };
 

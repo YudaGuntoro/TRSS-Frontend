@@ -102,6 +102,10 @@ export default function UserModal({
       isActive: formData.isActive,
     };
 
+    if (user && formData.password.trim()) {
+      updatePayload.newPassword = formData.password.trim();
+    }
+
     const createPayload: UserCreatePayload = {
       ...updatePayload,
       password: formData.password.trim(),
@@ -176,22 +180,21 @@ export default function UserModal({
           </div>
         </div>
 
-        {!user && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-              placeholder="Enter password"
-            />
-          </div>
-        )}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            {user ? "New Password" : "Password"}
+            {user && <span className="ml-1 text-error-500">(Optional)</span>}
+          </label>
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required={!user}
+            className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            placeholder={user ? "Leave blank to keep current password" : "Enter password"}
+          />
+        </div>
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">

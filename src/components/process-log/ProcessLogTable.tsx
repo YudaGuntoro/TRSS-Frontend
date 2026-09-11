@@ -122,35 +122,34 @@ const formatValue = (value: unknown) => {
 
 const detailFields = {
   clinching: [
-    ["Serial Clinching", "serialNumberClinching"],
-    ["Core ASM", "coreAsmValue"],
-    ["Upper Tank ASM", "upperTankAsmValue"],
-    ["Lower Tank ASM", "lowerTankAsmValue"],
-    ["O-Ring Set", "oRingSetResult"],
-    ["NG Box Short", "ngBoxSensorShortSideValue"],
-    ["Clinching Avg", "clinchingHeightAverage"],
-    ["End Plate", "endPlateWidthResults"],
-    ["End Plate Status", "endPlateWidthStatus"],
-    ["NG Box Long", "ngBoxSensorLongSideValue"],
-    ["HE Process", "capTypePositionResult"],
-    ["HE Leak", "leakResult"],
-    ["HE Leakage", "leakLastLeakageValue"],
+    ["Name Label Clinching", "serialNumberClinching"],
+    ["Core ASM Result", "coreAsmValue"],
+    ["Upper Tank ASM Result", "upperTankAsmValue"],
+    ["Lower Tank ASM Result", "lowerTankAsmValue"],
+    ["O-Ring Set Result", "oRingSetResult"],
+    ["NG Box Sensor Short Side", "ngBoxSensorShortSideValue"],
+    ["Clinching Height Result", "clinchingHeightAverage"],
+    ["End Plate Width Result", "endPlateWidthResults"],
+    ["NG Box Sensor Long Side", "ngBoxSensorLongSideValue"],
+    ["Cap Type Position Result", "capTypePositionResult"],
+    ["Leak Result", "leakResult"],
+    ["Leak Last Leakage Value", "leakLastLeakageValue"],
   ],
   mfan: [
-    ["Serial M-Fan", "serialNumberMFan"],
-    ["Lot Fan ASM", "lotFanAsmResult"],
-    ["Lot Motor ASM", "lotMotorAsmResult"],
-    ["Lot Guide ASM", "lotGuideAsmResult"],
-    ["Bolt Tighten", "boltTightenValue"],
-    ["Bolt Qty", "boltTightenQtyValue"],
-    ["Nut Tighten", "nutTightenValue"],
-    ["Rotation Max", "mFanInspectionRotationSpeedMaxValue"],
-    ["Rotation Min", "mFanInspectionRotationSpeedMinValue"],
-    ["Ampere Max", "mFanInspectionAmpereMaxValue"],
-    ["Ampere Min", "mFanInspectionAmpereMinValue"],
-    ["Wind Direction", "mFanInspectionWindDirectionValue"],
-    ["M-Fan Test", "mFanTestResult"],
-    ["NG Box M-Fan", "ngBoxSensorMFanInspectionValue"],
+    ["Name Label M-Fan", "serialNumberMFan"],
+    ["Lot Fan ASM Result", "lotFanAsmResult"],
+    ["Lot Motor ASM Result", "lotMotorAsmResult"],
+    ["Lot Guide ASM Result", "lotGuideAsmResult"],
+    ["Bolt Tighten Result", "boltTightenValue"],
+    ["Bolt Tighten Qty", "boltTightenQtyValue"],
+    ["Nut Tighten Result", "nutTightenValue"],
+    ["M-Fan Inspection Rotation Speed Max Value", "mFanInspectionRotationSpeedMaxValue"],
+    ["M-Fan Inspection Rotation Speed Min Value", "mFanInspectionRotationSpeedMinValue"],
+    ["M-Fan Inspection Ampere Max Value", "mFanInspectionAmpereMaxValue"],
+    ["M-Fan Inspection Ampere Min Value", "mFanInspectionAmpereMinValue"],
+    ["M-Fan Inspection Wind Direction Value", "mFanInspectionWindDirectionValue"],
+    ["M-Fan Test Result", "mFanTestResult"],
+    ["NG Box Sensor M-Fan Inspection", "ngBoxSensorMFanInspectionValue"],
   ],
 };
 
@@ -279,8 +278,8 @@ export default function ProcessLogTable() {
                 value={finishFilter}
               >
                 <option value="">All Progress</option>
-                <option value="processing">Processing</option>
-                <option value="finish">Finish</option>
+                <option value="processing">In Progress</option>
+                <option value="finish">Finished</option>
               </select>
               <div className="w-[230px]">
                 <DatePicker
@@ -354,7 +353,7 @@ export default function ProcessLogTable() {
                 <th className="w-16 px-4 py-3 text-center">No</th>
                 <th className="px-4 py-3">Serial Number</th>
                 <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3 text-center">Finish</th>
+                <th className="px-4 py-3 text-center">Progress</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="w-28 px-4 py-3 text-center">Detail</th>
               </tr>
@@ -481,13 +480,18 @@ function StatusPill({ passed }: { passed: boolean }) {
 function ProgressPill({ finished }: { finished: boolean }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
         finished
-          ? "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300"
-          : "border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/15 dark:text-warning-300"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"
+          : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"
       }`}
     >
-      {finished ? "Finish" : "Processing"}
+      <span
+        className={`size-1.5 rounded-full ${
+          finished ? "bg-emerald-500" : "bg-amber-500"
+        }`}
+      />
+      {finished ? "Finished" : "In Progress"}
     </span>
   );
 }
