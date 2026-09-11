@@ -143,10 +143,13 @@ export const useMqttStatus = () => {
       retryConnection();
     });
 
-    void startConnection();
+    const startTimeout = window.setTimeout(() => {
+      void startConnection();
+    }, 250);
 
     return () => {
       isMounted = false;
+      window.clearTimeout(startTimeout);
       if (retryTimeout) {
         window.clearTimeout(retryTimeout);
       }
