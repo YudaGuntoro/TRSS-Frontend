@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import { useEffect, useRef, useMemo, useState } from "react";
 import Badge from "@/components/ui/badge/Badge";
 import CreateButton from "@/components/common/CreateButton";
@@ -13,23 +14,6 @@ import { ConfirmModal } from "@/components/ui/modal";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/utils/auth";
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  month: "short",
-  year: "numeric",
-});
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return dateFormatter.format(date);
-};
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;

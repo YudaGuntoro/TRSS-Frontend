@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import PageLoader from "@/components/common/PageLoader";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
@@ -22,20 +23,6 @@ type ArrayPointModalState = {
   status?: boolean | null;
 };
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-});
-
-const formatDate = (value?: string | null) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
-};
 
 const getBooleanValue = (value: unknown): boolean | null => {
   if (typeof value === "boolean") return value;
@@ -570,19 +557,19 @@ function IssueListModal({
 }) {
   return (
     <Modal className="mx-4 max-w-md overflow-hidden p-0" isOpen={true} onClose={onClose}>
-      <div className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-950">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="border-b border-gray-200 bg-white px-6 py-4 pr-16 dark:border-gray-800 dark:bg-gray-950 sm:pr-20">
+        <div className="flex items-start">
+          <div className="min-w-0">
             <h3 className="text-base font-bold text-gray-900 dark:text-white">
               {data.title}
             </h3>
             <p className="font-mono text-xs text-gray-500 dark:text-gray-400">
               Serial: {data.serialNumber}
             </p>
+            <p className="mt-1 text-xs font-semibold text-brand-600 dark:text-brand-300">
+              {data.issues.length} Issues
+            </p>
           </div>
-          <span className="rounded-full bg-brand-50 px-2.5 py-0.5 font-mono text-xs font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-            {data.issues.length} Issues
-          </span>
         </div>
       </div>
 

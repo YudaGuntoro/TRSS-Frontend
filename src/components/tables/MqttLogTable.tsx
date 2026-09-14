@@ -1,13 +1,17 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import { useEffect, useRef, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import DatePicker from "@/components/form/date-picker";
 import Badge from "@/components/ui/badge/Badge";
 import Button from "@/components/ui/button/Button";
+import {
+  RefreshActionIcon,
+  ResetActionIcon,
+} from "@/components/ui/icons/ActionIcons";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
-import { CloseIcon, RefreshIcon } from "@/icons";
 import MqttLogService, { MQTT_LOG_STATUSES, MqttLog, MqttLogQuery } from "@/services/MqttLogService";
 import { ApiListResponse } from "@/services/ParameterService";
 
@@ -19,15 +23,7 @@ const datePickerClass = "mt-1 h-11 w-full rounded-lg border border-gray-300 bg-t
 const filterFieldClass =
   "shrink-0 text-sm text-gray-700 dark:text-gray-300";
 const iconButtonClass =
-  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition disabled:cursor-not-allowed disabled:opacity-50";
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit", month: "short", year: "numeric",
-  hour: "2-digit", minute: "2-digit", second: "2-digit",
-});
-const formatDate = (value: string | null) => {
-  const date = value ? new Date(value) : null;
-  return date && !Number.isNaN(date.getTime()) ? dateFormatter.format(date) : "-";
-};
+  "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg leading-none transition disabled:cursor-not-allowed disabled:opacity-50";
 const formatPayload = (payload: string | null) => {
   if (!payload) return "-";
   try {
@@ -199,7 +195,9 @@ export default function MqttLogTable() {
             title="Reset filters"
             type="button"
           >
-            <CloseIcon className="size-5" />
+            <span className="inline-flex size-[18px] items-center justify-center leading-none">
+              <ResetActionIcon />
+            </span>
           </button>
           <button
             aria-label={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
@@ -209,7 +207,9 @@ export default function MqttLogTable() {
             title={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
             type="button"
           >
-            <RefreshIcon className="size-5" />
+            <span className="inline-flex size-[18px] items-center justify-center leading-none">
+              <RefreshActionIcon />
+            </span>
           </button>
         </div>
       </div>

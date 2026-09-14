@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import DashboardService, {
   DashboardRecentLog,
   DashboardStats,
+  DashboardStatsPeriod,
   DashboardSummary,
 } from "@/services/DashboardService";
 
@@ -16,7 +17,10 @@ type DashboardData = {
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
-export const useDashboard = (recentLogCount = 10) => {
+export const useDashboard = (
+  recentLogCount = 10,
+  statsPeriod: DashboardStatsPeriod = "day"
+) => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +37,10 @@ export const useDashboard = (recentLogCount = 10) => {
 
     Promise.all([
       DashboardService.getSummary({ signal: controller.signal }),
-      DashboardService.getStats({ signal: controller.signal }),
+      DashboardService.getStats(
+        { period: statsPeriod },
+        { signal: controller.signal }
+      ),
       DashboardService.getRecentLogs(recentLogCount, {
         signal: controller.signal,
       }),
@@ -64,7 +71,7 @@ export const useDashboard = (recentLogCount = 10) => {
     return () => {
       controller.abort();
     };
-  }, [recentLogCount, reloadKey]);
+  }, [recentLogCount, reloadKey, statsPeriod]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

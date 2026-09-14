@@ -1,8 +1,9 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import dynamic from "next/dynamic";
 import type { ApexOptions } from "apexcharts";
-import type { ReactNode } from "react";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,36 +11,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RefreshActionIcon } from "@/components/ui/icons/ActionIcons";
 import { useTheme } from "@/context/ThemeContext";
 import { useDashboard } from "@/hooks/useDashboard";
-import {
-  AlertIcon,
-  BoxIconLine,
-  CheckCircleIcon,
-  PieChartIcon,
-  TimeIcon,
-} from "@/icons";
 import {
   DashboardChartItem,
   DashboardPeriodSummary,
   DashboardRecentLog,
+  DashboardStatsPeriod,
 } from "@/services/DashboardService";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
-
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  month: "short",
-  year: "numeric",
-});
 
 const dashboardPanel =
   "rounded-lg border bg-white shadow-theme-sm dark:bg-[#22243a] dark:shadow-[0_18px_50px_rgba(5,8,24,0.22)]";
 const dashboardSubPanel =
   "rounded-lg bg-gray-50 dark:bg-[#1b1d31]";
 const mutedText = "text-gray-500 dark:text-[#8f93ad]";
+const okText = "text-[#008a3d] dark:text-[#22c55e]";
+const ngText = "text-[#d00000] dark:text-[#ff3b30]";
 
 const overviewBorder = {
   amber: "border-gray-200 dark:border-[#35384f]",
@@ -56,24 +46,20 @@ const getChartTheme = (isDark: boolean) => ({
   tooltip: isDark ? "dark" : "light",
 } as const);
 
-const formatDate = (value?: string) => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return dateFormatter.format(date);
-};
-
 const formatNumber = (value?: number) =>
   new Intl.NumberFormat("en-US").format(value ?? 0);
 
 const formatPercent = (value?: number) => `${(value ?? 0).toFixed(2)}%`;
+
+const statsPeriodOptions: Array<{
+  label: string;
+  value: DashboardStatsPeriod;
+}> = [
+  { label: "Day", value: "day" },
+  { label: "Week", value: "week" },
+  { label: "Month", value: "month" },
+  { label: "Year", value: "year" },
+];
 
 const getTotal = (items: DashboardChartItem[]) =>
   items.reduce((total, item) => total + item.value, 0);
@@ -88,28 +74,24 @@ const getRate = (value?: number, total?: number) => {
 
 const summaryToneClasses = {
   blue: {
-    accent: "bg-[#1488ff]",
     border: overviewBorder.blue,
-    icon: "bg-[#1488ff]/10 text-[#1488ff] ring-[#1488ff]/20 dark:bg-[#1488ff]/12 dark:text-[#60b8ff] dark:ring-[#1488ff]/25",
     label: "text-[#0868c7] dark:text-[#8bc9ff]",
+    topBorder: "border-t-[#1488ff]",
   },
   pink: {
-    accent: "bg-[#ff2fb3]",
     border: overviewBorder.pink,
-    icon: "bg-[#ff2fb3]/10 text-[#d91b96] ring-[#ff2fb3]/20 dark:bg-[#ff2fb3]/12 dark:text-[#ff72cf] dark:ring-[#ff2fb3]/25",
     label: "text-[#c21887] dark:text-[#ff9bde]",
+    topBorder: "border-t-[#ff2fb3]",
   },
   teal: {
-    accent: "bg-[#4ceac6]",
     border: overviewBorder.teal,
-    icon: "bg-[#4ceac6]/12 text-[#0d9b82] ring-[#16bfa1]/20 dark:text-[#4ceac6] dark:ring-[#4ceac6]/25",
     label: "text-[#087866] dark:text-[#8ff5df]",
+    topBorder: "border-t-[#4ceac6]",
   },
   amber: {
-    accent: "bg-[#ffb31a]",
     border: overviewBorder.amber,
-    icon: "bg-[#ffb31a]/12 text-[#c77c00] ring-[#ffb31a]/25 dark:text-[#ffc95c]",
     label: "text-[#a46300] dark:text-[#ffd27a]",
+    topBorder: "border-t-[#ffb31a]",
   },
 };
 
@@ -122,13 +104,11 @@ function LoadingBlock({ className = "" }: { className?: string }) {
 }
 
 function SummaryCard({
-  icon,
   isLoading,
   label,
   summary,
   tone = "teal",
 }: {
-  icon: ReactNode;
   isLoading: boolean;
   label: string;
   summary?: DashboardPeriodSummary;
@@ -140,10 +120,10 @@ function SummaryCard({
   const ngRate = getRate(summary?.ngCount, totalProduction);
 
   return (
-    <div className={`${dashboardPanel} overflow-hidden p-5 ${classes.border}`}>
-      <div className={`mb-5 h-1 w-16 rounded-full ${classes.accent}`} />
-
-      <div className="flex items-start justify-between gap-4">
+    <div
+      className={`${dashboardPanel} overflow-hidden border-t-4 p-5 ${classes.border} ${classes.topBorder}`}
+    >
+      <div className="flex items-start">
         <div>
           <p className={`text-xs font-semibold uppercase ${classes.label}`}>
             {label}
@@ -155,11 +135,6 @@ function SummaryCard({
               {formatNumber(totalProduction)}
             </h3>
           )}
-        </div>
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-md ring-1 ${classes.icon}`}
-        >
-          {icon}
         </div>
       </div>
 
@@ -173,13 +148,13 @@ function SummaryCard({
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className={`${dashboardSubPanel} px-4 py-3.5`}>
             <p className={`text-sm font-medium ${mutedText}`}>OK</p>
-            <p className="mt-3 text-xl font-semibold text-[#4ceac6]">
+            <p className={`mt-3 text-xl font-semibold ${okText}`}>
               {formatNumber(summary?.okCount)}
             </p>
           </div>
           <div className={`${dashboardSubPanel} px-4 py-3.5`}>
             <p className={`text-sm font-medium ${mutedText}`}>NG</p>
-            <p className="mt-3 text-xl font-semibold text-[#ff5b8a]">
+            <p className={`mt-3 text-xl font-semibold ${ngText}`}>
               {formatNumber(summary?.ngCount)}
             </p>
           </div>
@@ -196,13 +171,13 @@ function SummaryCard({
         <div className="mt-5 space-y-2">
           <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-[#171829]">
             <div
-              className="h-full rounded-full bg-[#4ceac6]"
+              className="h-full rounded-full bg-[#008a3d]"
               style={{ width: `${okRate}%` }}
             />
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-[#171829]">
             <div
-              className="h-full rounded-full bg-[#ff5b8a]"
+              className="h-full rounded-full bg-[#d00000]"
               style={{ width: `${ngRate}%` }}
             />
           </div>
@@ -216,10 +191,12 @@ function ProductionTrendChart({
   data,
   isDark,
   isLoading,
+  periodLabel,
 }: {
   data: DashboardChartItem[];
   isDark: boolean;
   isLoading: boolean;
+  periodLabel: string;
 }) {
   const total = getTotal(data);
   const chartTheme = getChartTheme(isDark);
@@ -285,7 +262,7 @@ function ProductionTrendChart({
             Production Trend
           </h3>
           <p className={`mt-1 text-sm ${mutedText}`}>
-            Last 7 days production volume
+            {periodLabel} production volume
           </p>
         </div>
         <div className="text-right">
@@ -321,10 +298,12 @@ function QualityDistributionChart({
   data,
   isDark,
   isLoading,
+  periodLabel,
 }: {
   data: DashboardChartItem[];
   isDark: boolean;
   isLoading: boolean;
+  periodLabel: string;
 }) {
   const total = getTotal(data);
   const chartTheme = getChartTheme(isDark);
@@ -339,12 +318,16 @@ function QualityDistributionChart({
     dataLabels: {
       enabled: true,
       dropShadow: {
-        enabled: false,
+        blur: 2,
+        color: "#111827",
+        enabled: true,
+        opacity: 0.45,
+        top: 1,
       },
       style: {
-        colors: ["#111827"],
-        fontSize: "13px",
-        fontWeight: 800,
+        colors: ["#FFFFFF"],
+        fontSize: "14px",
+        fontWeight: 900,
       },
     },
     labels: data.map((item) => item.label),
@@ -402,7 +385,7 @@ function QualityDistributionChart({
         Quality Distribution
       </h3>
       <p className={`mt-1 text-sm ${mutedText}`}>
-        OK vs NG production result
+        OK vs NG production result, {periodLabel.toLowerCase()}
       </p>
 
       {isLoading ? (
@@ -423,10 +406,12 @@ function TopPartsChart({
   data,
   isDark,
   isLoading,
+  periodLabel,
 }: {
   data: DashboardChartItem[];
   isDark: boolean;
   isLoading: boolean;
+  periodLabel: string;
 }) {
   const chartTheme = getChartTheme(isDark);
   const options: ApexOptions = {
@@ -479,7 +464,7 @@ function TopPartsChart({
         Top Parts Production
       </h3>
       <p className={`mt-1 text-sm ${mutedText}`}>
-        Highest produced part numbers
+        Highest produced part numbers, {periodLabel.toLowerCase()}
       </p>
 
       {isLoading ? (
@@ -510,20 +495,69 @@ function TotalQualityPanel({
   return (
     <div className="grid h-full grid-cols-1 gap-4 sm:grid-cols-2">
       <div className={`${dashboardPanel} ${overviewBorder.teal} p-5`}>
-        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#4ceac6]/12 text-[#0d9b82] ring-1 ring-[#16bfa1]/20 dark:text-[#4ceac6] dark:ring-[#4ceac6]/25">
-          <CheckCircleIcon className="h-5 w-5 fill-current" />
+        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#008a3d]/10 text-[#008a3d] ring-1 ring-[#008a3d]/25 dark:text-[#22c55e] dark:ring-[#22c55e]/25">
+          <svg
+            aria-hidden="true"
+            className="block size-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 12.5l2.6 2.6L16.5 9"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+            <path
+              d="M21 12a9 9 0 1 1-3.1-6.8"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
         </div>
-        <p className="mt-5 text-sm font-semibold text-[#087866] dark:text-[#8ff5df]">Total OK</p>
+        <p className={`mt-5 text-sm font-semibold ${okText}`}>Total OK</p>
         <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
           {isLoading ? "-" : formatNumber(summary?.okCount)}
         </h3>
       </div>
 
       <div className={`${dashboardPanel} ${overviewBorder.pink} p-5`}>
-        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#ff5b8a]/12 text-[#d92d5c] ring-1 ring-[#ff5b8a]/20 dark:text-[#ff5b8a] dark:ring-[#ff5b8a]/25">
-          <AlertIcon className="h-5 w-5 fill-current" />
+        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#d00000]/10 text-[#d00000] ring-1 ring-[#d00000]/25 dark:text-[#ff3b30] dark:ring-[#ff3b30]/25">
+          <svg
+            aria-hidden="true"
+            className="block size-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 8.25v5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+            <path
+              d="M12 17.25h.01"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.5"
+            />
+            <path
+              d="M10.35 4.55 2.7 18a2 2 0 0 0 1.74 3h15.12a2 2 0 0 0 1.74-3L13.65 4.55a1.9 1.9 0 0 0-3.3 0Z"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
         </div>
-        <p className="mt-5 text-sm font-semibold text-[#b4234c] dark:text-[#ff9bb6]">Total NG</p>
+        <p className={`mt-5 text-sm font-semibold ${ngText}`}>Total NG</p>
         <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
           {isLoading ? "-" : formatNumber(summary?.ngCount)}
         </h3>
@@ -540,7 +574,35 @@ function TotalQualityPanel({
             </h3>
           </div>
           <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#1488ff]/10 text-[#1488ff] ring-1 ring-[#1488ff]/20 dark:bg-[#1488ff]/12 dark:text-[#60b8ff] dark:ring-[#1488ff]/25">
-            <PieChartIcon className="h-5 w-5 fill-current" />
+            <svg
+              aria-hidden="true"
+              className="block size-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 3v9h9"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+              <path
+                d="M20.5 15.5A9 9 0 1 1 8.5 3.5"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+              <path
+                d="M15 3.5A9 9 0 0 1 20.5 9H15V3.5Z"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
           </div>
         </div>
         <div className="mt-6 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-[#171829]">
@@ -735,8 +797,8 @@ function RecentLogsTable({
                   <TableCell className="px-4 py-4">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
-                          ? "bg-[#4ceac6]/12 text-[#087866] dark:text-[#4ceac6]"
-                          : "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400"
+                          ? "bg-[#008a3d]/10 text-[#008a3d] dark:text-[#22c55e]"
+                          : "bg-[#d00000]/10 text-[#d00000] dark:text-[#ff3b30]"
                         }`}
                     >
                       {getLogStatus(log)}
@@ -755,10 +817,15 @@ function RecentLogsTable({
 }
 
 export default function DashboardOverview() {
+  const [statsPeriod, setStatsPeriod] =
+    useState<DashboardStatsPeriod>("day");
   const { error, isLoading, recentLogs, refetch, stats, summary } =
-    useDashboard(10);
+    useDashboard(10, statsPeriod);
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const statsPeriodLabel =
+    statsPeriodOptions.find((option) => option.value === statsPeriod)?.label ??
+    "Day";
 
   return (
     <div className="-m-4 min-h-[calc(100vh-88px)] bg-gray-50 p-4 text-gray-900 dark:bg-[#171829] dark:text-white md:-m-6 md:p-6">
@@ -775,14 +842,37 @@ export default function DashboardOverview() {
               Production output, quality status, and latest traceability logs
             </p>
           </div>
-          <button
-            className="inline-flex h-10 items-center justify-center rounded-md border border-[#16bfa1]/30 bg-[#4ceac6]/12 px-4 text-sm font-semibold text-[#087866] transition-colors hover:bg-[#4ceac6]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#4ceac6]/35 dark:text-[#8ff5df] dark:hover:bg-[#4ceac6]/18"
-            disabled={isLoading}
-            onClick={refetch}
-            type="button"
-          >
-            Refresh
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex h-10 overflow-hidden rounded-md border border-gray-200 bg-white p-1 dark:border-[#35384f] dark:bg-[#22243a]">
+              {statsPeriodOptions.map((option) => (
+                <button
+                  className={`rounded px-3 text-sm font-semibold transition-colors ${
+                    statsPeriod === option.value
+                      ? "bg-[#1488ff]/12 text-[#0868c7] dark:bg-[#1488ff]/16 dark:text-[#8bc9ff]"
+                      : "text-[#0868c7] hover:bg-[#1488ff]/8 hover:text-[#0759aa] dark:text-[#8bc9ff] dark:hover:bg-[#1488ff]/12 dark:hover:text-white"
+                  }`}
+                  disabled={isLoading && statsPeriod === option.value}
+                  key={option.value}
+                  onClick={() => setStatsPeriod(option.value)}
+                  type="button"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <button
+              aria-label="Refresh dashboard"
+              className="inline-flex size-10 items-center justify-center rounded-md border border-[#1488ff]/25 bg-[#1488ff]/12 text-[#0868c7] leading-none transition-colors hover:bg-[#1488ff]/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#1488ff]/35 dark:text-[#8bc9ff] dark:hover:bg-[#1488ff]/18"
+              disabled={isLoading}
+              onClick={refetch}
+              title="Refresh"
+              type="button"
+            >
+              <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                <RefreshActionIcon />
+              </span>
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -793,21 +883,18 @@ export default function DashboardOverview() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5">
           <SummaryCard
-            icon={<TimeIcon className="h-5 w-5 fill-current" />}
             isLoading={isLoading}
             label="Today Production"
             summary={summary?.today}
             tone="teal"
           />
           <SummaryCard
-            icon={<BoxIconLine className="h-5 w-5 fill-current" />}
             isLoading={isLoading}
             label="This Month"
             summary={summary?.thisMonth}
             tone="amber"
           />
           <SummaryCard
-            icon={<CheckCircleIcon className="h-5 w-5 fill-current" />}
             isLoading={isLoading}
             label="Total Production"
             summary={summary?.total}
@@ -821,6 +908,7 @@ export default function DashboardOverview() {
               data={stats?.productionTrend ?? []}
               isDark={isDark}
               isLoading={isLoading}
+              periodLabel={statsPeriodLabel}
             />
           </div>
           <div className="col-span-12 xl:col-span-4">
@@ -828,6 +916,7 @@ export default function DashboardOverview() {
               data={stats?.qualityDistribution ?? []}
               isDark={isDark}
               isLoading={isLoading}
+              periodLabel={statsPeriodLabel}
             />
           </div>
           <div className="col-span-12 xl:col-span-4">
@@ -835,6 +924,7 @@ export default function DashboardOverview() {
               data={stats?.topPartsProduction ?? []}
               isDark={isDark}
               isLoading={isLoading}
+              periodLabel={statsPeriodLabel}
             />
           </div>
           <div className="col-span-12 xl:col-span-8">

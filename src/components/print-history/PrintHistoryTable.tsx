@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import { ConfirmModal } from "@/components/ui/modal/ConfirmModal";
@@ -13,27 +14,6 @@ import PrintHistoryService, {
 import { PERMISSIONS } from "@/utils/auth";
 import { useAuth } from "@/context/AuthContext";
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  month: "short",
-  year: "numeric",
-});
-
-const formatDate = (value?: string | null) => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return dateFormatter.format(date);
-};
 
 const formatModule = (module: PrintModule) => {
   if (module === 1 || module === "1" || module === "StockIn") {

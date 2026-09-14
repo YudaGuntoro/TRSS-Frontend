@@ -1,30 +1,21 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import PageLoader from "@/components/common/PageLoader";
 import DatePicker from "@/components/form/date-picker";
+import {
+  RefreshActionIcon,
+  ResetActionIcon,
+} from "@/components/ui/icons/ActionIcons";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useTraceabilityLogs } from "@/hooks/useTraceabilityLogs";
-import { CloseIcon, RefreshIcon } from "@/icons";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type StatusFilter = "" | "ok" | "ng";
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const formatDate = (value?: string | null) => {
-  if (!value) return "-";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
-};
 
 const toDateFilterValue = (date: Date) => date.toISOString().split("T")[0];
 
@@ -191,22 +182,26 @@ export default function TraceabilityLogTable() {
 
             <button
               aria-label="Refresh traceability logs"
-              className="grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
               onClick={refetch}
               title="Refresh"
               type="button"
             >
-              <RefreshIcon className="size-[18px] fill-current" />
+              <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                <RefreshActionIcon />
+              </span>
             </button>
 
             <button
               aria-label="Reset traceability log filters"
-              className="grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
               onClick={resetFilters}
               title="Reset filters"
               type="button"
             >
-              <CloseIcon className="size-[18px] fill-current" />
+              <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                <ResetActionIcon />
+              </span>
             </button>
           </div>
 
@@ -460,19 +455,19 @@ function IssueListModal({
 }) {
   return (
     <Modal className="mx-4 max-w-md overflow-hidden p-0" isOpen={true} onClose={onClose}>
-      <div className="border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-950">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="border-b border-gray-200 bg-white px-6 py-4 pr-16 dark:border-gray-800 dark:bg-gray-950 sm:pr-20">
+        <div className="flex items-start">
+          <div className="min-w-0">
             <h3 className="text-base font-bold text-gray-900 dark:text-white">
               {data.title}
             </h3>
             <p className="font-mono text-xs text-gray-500 dark:text-gray-400">
               Serial: {data.serialNumber}
             </p>
+            <p className="mt-1 text-xs font-semibold text-brand-600 dark:text-brand-300">
+              {data.issues.length} Issues
+            </p>
           </div>
-          <span className="rounded-full bg-brand-50 px-2.5 py-0.5 font-mono text-xs font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-            {data.issues.length} Issues
-          </span>
         </div>
       </div>
 

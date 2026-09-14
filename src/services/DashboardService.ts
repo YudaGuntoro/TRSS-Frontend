@@ -31,6 +31,14 @@ export type DashboardStats = {
   productionTrend: DashboardChartItem[];
 };
 
+export type DashboardStatsPeriod = "day" | "week" | "month" | "year";
+
+export type DashboardStatsQuery = {
+  period?: DashboardStatsPeriod;
+  topParts?: number;
+  trendDays?: number;
+};
+
 export type DashboardLogParameter = ProcessLogParameter;
 
 export type DashboardLogDetail = ProcessLogDetail;
@@ -53,10 +61,19 @@ const DashboardService = {
     return response.data;
   },
 
-  getStats: async (options?: ApiRequestOptions) => {
+  getStats: async (
+    query: DashboardStatsQuery = {},
+    options?: ApiRequestOptions
+  ) => {
     const response = await api.get<ApiDataResponse<DashboardStats>>(
       "/api/dashboard/stats",
-      options
+      {
+        ...options,
+        params: {
+          ...options?.params,
+          ...query,
+        },
+      }
     );
 
     return response.data;

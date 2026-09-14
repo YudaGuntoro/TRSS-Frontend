@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import { useEffect, useRef, useMemo, useState } from "react";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import CreateButton from "@/components/common/CreateButton";
@@ -14,19 +15,6 @@ import DatePicker from "@/components/form/date-picker";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/utils/auth";
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return dateFormatter.format(date);
-};
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;

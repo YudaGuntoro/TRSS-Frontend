@@ -1,5 +1,6 @@
 "use client";
 
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import { ConfirmModal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
@@ -19,22 +20,6 @@ import AppConfigModal from "./AppConfigModal";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/utils/auth";
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  month: "short",
-  year: "numeric",
-});
-
-const formatDate = (value?: string) => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
-};
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;

@@ -92,6 +92,8 @@ const getColumnValue = <T extends object>(
   return getNestedValue(row, column.key);
 };
 
+const isDateLikeColumn = (key: string) => /(?:At|Date|timestamp)$/i.test(key);
+
 const formatCellValue = (value: unknown) => {
   if (value === null || value === undefined || value === "") {
     return "-";
@@ -281,7 +283,9 @@ export default function DataTable<T extends object>({
                     style={{ width: column.width }}
                     className={`px-5 py-3 text-theme-xs font-semibold text-white ${
                       alignClasses[column.align ?? "left"]
-                    } ${column.headerClassName ?? ""}`}
+                    } ${isDateLikeColumn(column.key) ? "whitespace-nowrap" : ""} ${
+                      column.headerClassName ?? ""
+                    }`}
                   >
                     {column.sortable && onSortChange ? (
                       <button
@@ -356,7 +360,9 @@ export default function DataTable<T extends object>({
                           style={{ width: column.width }}
                           className={`px-5 py-4 text-theme-sm text-gray-700 dark:text-gray-300 ${
                             alignClasses[column.align ?? "left"]
-                          } ${column.className ?? ""}`}
+                          } ${isDateLikeColumn(column.key) ? "whitespace-nowrap" : ""} ${
+                            column.className ?? ""
+                          }`}
                         >
                           {column.render
                             ? column.render(value, row, index)

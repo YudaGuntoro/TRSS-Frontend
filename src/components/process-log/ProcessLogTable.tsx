@@ -1,11 +1,16 @@
 "use client";
 
-import { Modal } from "@/components/ui/modal";
+import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import DatePicker from "@/components/form/date-picker";
+import {
+  RefreshActionIcon,
+  ResetActionIcon,
+} from "@/components/ui/icons/ActionIcons";
+import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useProcessLogs } from "@/hooks/useProcessLogs";
-import { CloseIcon, EyeIcon, RefreshIcon } from "@/icons";
+import { EyeIcon } from "@/icons";
 import { ProcessLogDetail, ProcessLogListItem } from "@/services/ProcessLogService";
 import { useEffect, useRef, useState } from "react";
 
@@ -20,18 +25,6 @@ type MeasurementModalState = {
   values: unknown[];
 };
 
-const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  month: "short",
-  year: "numeric",
-});
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
-};
 
 const toDateFilterValue = (date: Date) => date.toISOString().split("T")[0];
 
@@ -311,24 +304,24 @@ export default function ProcessLogTable() {
               </div>
               <button
                 aria-label="Refresh process logs"
-                className="grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                 onClick={refetch}
                 title="Refresh"
                 type="button"
               >
-                <span className="grid size-5 place-items-center overflow-visible leading-none">
-                  <RefreshIcon className="block size-[18px] overflow-visible fill-current" />
+                <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                  <RefreshActionIcon />
                 </span>
               </button>
               <button
                 aria-label="Reset process log filters"
-                className="grid size-10 shrink-0 place-items-center rounded-lg border border-gray-300 bg-white text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                 onClick={resetFilters}
                 title="Reset filters"
                 type="button"
               >
-                <span className="grid size-5 place-items-center overflow-visible leading-none">
-                  <CloseIcon className="block size-[18px] overflow-visible fill-current" />
+                <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                  <ResetActionIcon />
                 </span>
               </button>
             </div>

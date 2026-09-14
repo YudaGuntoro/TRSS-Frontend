@@ -1,13 +1,12 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import SerialNumberService, {
-  SerialNumber,
-  SerialNumberIssue,
-} from "@/services/SerialNumberService";
+import TraceabilityLogService, {
+  TraceabilityLogIssueItem,
+} from "@/services/TraceabilityLogService";
 import StockInReworkService from "@/services/StockInReworkService";
 
 type StockInReworkModalProps = {
@@ -37,197 +36,15 @@ const getSerialNumberCodeFromInput = (value: string) => {
   return parts[parts.length - 1] ?? "";
 };
 
-const mapIssueRows = (issues: SerialNumberIssue[]): IssueFormRow[] =>
+const mapIssueRows = (issues: TraceabilityLogIssueItem[]): IssueFormRow[] =>
   issues.map((issue, index) => ({
-    id: `${issue.id}-${issue.number || index}`,
-    issueNumber: issue.number,
-    partName: issue.partName,
-    partNumber: issue.partNumber,
+    id: `${issue.issueNumber || index}`,
+    issueNumber: issue.issueNumber,
+    partName: issue.partName ?? undefined,
+    partNumber: issue.partNumber ?? undefined,
     note: "",
-    status: true,
+    status: false,
   }));
-
-type SerialNumberSelectProps = {
-  disabled?: boolean;
-  isOpen: boolean;
-  onSelect: (serialNumberCode: string) => void;
-  value: string;
-};
-
-function SerialNumberSearchSelect({
-  disabled = false,
-  isOpen,
-  onSelect,
-  value,
-}: SerialNumberSelectProps) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [search, setSearch] = useState("");
-  const [options, setOptions] = useState<SerialNumber[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const debouncedSearch = useDebouncedValue(search.trim(), 500);
-
-  useEffect(() => {
-    if (!isOpen || disabled) return;
-
-    const controller = new AbortController();
-    const requestId = globalThis.setTimeout(() => {
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      SerialNumberService.getSerialNumbers(
-        {
-          isFinished: true,
-          limit: 50,
-          page: 1,
-          search: debouncedSearch,
-          status: false,
-        },
-        {
-          signal: controller.signal,
-        }
-      )
-        .then((result) => {
-          setOptions(result.data);
-        })
-        .catch((fetchError: unknown) => {
-          if (
-            fetchError instanceof DOMException &&
-            fetchError.name === "AbortError"
-          ) {
-            return;
-          }
-
-          setError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : "Failed to load serial numbers"
-          );
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) {
-            setIsLoading(false);
-          }
-        });
-    }, 0);
-
-    return () => {
-      globalThis.clearTimeout(requestId);
-      controller.abort();
-    };
-  }, [debouncedSearch, disabled, isOpen]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelect = (serialNumberCode: string) => {
-    setSearch(serialNumberCode);
-    onSelect(serialNumberCode);
-    setIsDropdownOpen(false);
-  };
-
-  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const rawValue = event.target.value;
-    const serialNumberCode = getSerialNumberCodeFromInput(rawValue);
-    const hasScannedPayload = /\s/.test(rawValue.trim());
-
-    setSearch(hasScannedPayload ? serialNumberCode : rawValue);
-    onSelect(hasScannedPayload ? serialNumberCode : "");
-    setIsDropdownOpen(true);
-  };
-
-  return (
-    <div ref={wrapperRef} className="relative">
-      <input
-        aria-controls="stock-in-rework-serial-options"
-        aria-expanded={isDropdownOpen}
-        aria-haspopup="listbox"
-        autoComplete="off"
-        autoFocus
-        className={inputClassName}
-        disabled={disabled}
-        onChange={handleInputChange}
-        onFocus={() => setIsDropdownOpen(true)}
-        placeholder="Search serial number"
-        ref={inputRef}
-        role="combobox"
-        type="text"
-        value={search}
-      />
-
-      {isDropdownOpen && (
-        <div className="absolute left-0 top-full z-999 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-theme-lg dark:border-gray-700 dark:bg-gray-900">
-          <div
-            className="max-h-64 overflow-y-auto py-1"
-            id="stock-in-rework-serial-options"
-            role="listbox"
-          >
-            {isLoading && (
-              <p className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
-                Loading serial numbers...
-              </p>
-            )}
-
-            {!isLoading && error && (
-              <p className="px-3 py-3 text-sm text-error-600 dark:text-error-400">
-                {error}
-              </p>
-            )}
-
-            {!isLoading && !error && options.length === 0 && (
-              <p className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
-                No serial numbers found
-              </p>
-            )}
-
-            {!isLoading &&
-              !error &&
-              options.map((option) => (
-                <button
-                  className={`flex w-full flex-col px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.04] ${
-                    option.serialNumberCode === value
-                      ? "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-300"
-                      : "text-gray-700 dark:text-gray-300"
-                  }`}
-                  key={option.id}
-                  onClick={() => handleSelect(option.serialNumberCode)}
-                  aria-selected={option.serialNumberCode === value}
-                  role="option"
-                  type="button"
-                >
-                  <span className="font-medium">
-                    {option.serialNumberCode}
-                  </span>
-                  {option.type && (
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {option.type}
-                    </span>
-                  )}
-                </button>
-              ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function StockInReworkModal({
   isOpen,
@@ -236,8 +53,13 @@ export default function StockInReworkModal({
 }: StockInReworkModalProps) {
   const toast = useToast();
   const [serialNumberCode, setSerialNumberCode] = useState("");
-  const [selectedSerialNumber, setSelectedSerialNumber] =
-    useState<SerialNumber | null>(null);
+  const normalizedSerialNumberCode =
+    getSerialNumberCodeFromInput(serialNumberCode);
+  const debouncedSerialNumberCode = useDebouncedValue(
+    normalizedSerialNumberCode,
+    300
+  );
+  const [loadedSerialNumberCode, setLoadedSerialNumberCode] = useState("");
   const [issueRows, setIssueRows] = useState<IssueFormRow[]>([]);
   const [isLoadingIssues, setIsLoadingIssues] = useState(false);
   const [issueLoadError, setIssueLoadError] = useState<string | null>(null);
@@ -247,7 +69,7 @@ export default function StockInReworkModal({
     if (!isOpen) return;
 
     setSerialNumberCode("");
-    setSelectedSerialNumber(null);
+    setLoadedSerialNumberCode("");
     setIssueRows([]);
     setIsLoadingIssues(false);
     setIssueLoadError(null);
@@ -255,11 +77,8 @@ export default function StockInReworkModal({
   }, [isOpen]);
 
   useEffect(() => {
-    const normalizedSerialNumberCode =
-      getSerialNumberCodeFromInput(serialNumberCode);
-
-    if (!isOpen || !normalizedSerialNumberCode) {
-      setSelectedSerialNumber(null);
+    if (!isOpen || !debouncedSerialNumberCode) {
+      setLoadedSerialNumberCode("");
       setIssueRows([]);
       setIsLoadingIssues(false);
       setIssueLoadError(null);
@@ -267,26 +86,30 @@ export default function StockInReworkModal({
     }
 
     const controller = new AbortController();
-    setSelectedSerialNumber(null);
+    setLoadedSerialNumberCode("");
     setIssueRows([]);
     setIsLoadingIssues(true);
     setIssueLoadError(null);
 
-    SerialNumberService.getSerialNumberByCode(normalizedSerialNumberCode, {
-      signal: controller.signal,
-    })
+    TraceabilityLogService.getTraceabilityLogIssuesBySerialNumber(
+      debouncedSerialNumberCode,
+      false,
+      {
+        signal: controller.signal,
+      }
+    )
       .then((result) => {
-        if (!result.data) {
-          setSelectedSerialNumber(null);
+        if (!result.data || result.data.issues.length === 0) {
+          setLoadedSerialNumberCode("");
           setIssueRows([]);
           setIssueLoadError(
-            `Serial number ${normalizedSerialNumberCode} tidak ditemukan.`
+            `Serial number ${debouncedSerialNumberCode} tidak ditemukan atau bukan status NG.`
           );
           return;
         }
 
-        setSelectedSerialNumber(result.data);
-        setIssueRows(mapIssueRows(result.data.issues ?? []));
+        setLoadedSerialNumberCode(result.data.serialNumber);
+        setIssueRows(mapIssueRows(result.data.issues));
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -294,7 +117,7 @@ export default function StockInReworkModal({
         }
 
         setIssueLoadError(
-          getErrorMessage(error, "Failed to load serial number detail")
+          getErrorMessage(error, "Failed to load traceability log issues")
         );
       })
       .finally(() => {
@@ -304,7 +127,7 @@ export default function StockInReworkModal({
       });
 
     return () => controller.abort();
-  }, [isOpen, serialNumberCode]);
+  }, [debouncedSerialNumberCode, isOpen]);
 
   const handleIssueChange = (
     id: string,
@@ -326,7 +149,6 @@ export default function StockInReworkModal({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    const normalizedSerialNumberCode = serialNumberCode.trim();
     const normalizedIssueRows = issueRows.map((row) => ({
       issueNumber: row.issueNumber.trim(),
       note: row.note.trim(),
@@ -357,7 +179,11 @@ export default function StockInReworkModal({
       return;
     }
 
-    if (!selectedSerialNumber || normalizedIssueRows.length === 0) {
+    if (
+      !loadedSerialNumberCode ||
+      loadedSerialNumberCode !== normalizedSerialNumberCode ||
+      normalizedIssueRows.length === 0
+    ) {
       toast.error({
         title: "Error",
         message: "Issue numbers are not available for the selected serial number",
@@ -411,11 +237,14 @@ export default function StockInReworkModal({
           <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Serial Number
           </label>
-          <SerialNumberSearchSelect
+          <input
+            autoComplete="off"
+            autoFocus
+            className={inputClassName}
             disabled={isSubmitting}
-            isOpen={isOpen}
-            key={isOpen ? "serial-select-open" : "serial-select-closed"}
-            onSelect={setSerialNumberCode}
+            onChange={(event) => setSerialNumberCode(event.target.value)}
+            placeholder="Input serial number"
+            type="text"
             value={serialNumberCode}
           />
         </div>
@@ -425,7 +254,7 @@ export default function StockInReworkModal({
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Issue Numbers
             </label>
-            {selectedSerialNumber && (
+            {loadedSerialNumberCode && (
               <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 {issueRows.length} issue{issueRows.length === 1 ? "" : "s"}
               </span>
@@ -490,21 +319,9 @@ export default function StockInReworkModal({
                     <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
                       Status
                     </label>
-                    <select
-                      className={inputClassName}
-                      disabled={isSubmitting}
-                      onChange={(event) =>
-                        handleIssueChange(
-                          row.id,
-                          "status",
-                          event.target.value === "true"
-                        )
-                      }
-                      value={String(row.status)}
-                    >
-                      <option value="true">OK</option>
-                      <option value="false">NG</option>
-                    </select>
+                    <div className="flex h-10 items-center rounded-lg border border-error-200 bg-error-50 px-3 text-sm font-semibold text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
+                      NG
+                    </div>
                   </div>
 
                   <div>

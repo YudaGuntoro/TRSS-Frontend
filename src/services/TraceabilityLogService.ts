@@ -102,6 +102,17 @@ export type TraceabilityLogItem = {
   detail?: TraceabilityLogV2DetailGroup | null;
 };
 
+export type TraceabilityLogIssueItem = {
+  issueNumber: string;
+  partNumber?: string | null;
+  partName?: string | null;
+};
+
+export type TraceabilityLogIssues = {
+  serialNumber: string;
+  issues: TraceabilityLogIssueItem[];
+};
+
 export type ProcessLogQuery = {
   page?: number;
   limit?: number;
@@ -841,6 +852,29 @@ const TraceabilityLogService = {
     }>(
       `${TRACEABILITY_LOG_ENDPOINT}/by-serial-number/${encodeURIComponent(serialNumberCode)}`,
       options
+    );
+
+    return response.data;
+  },
+
+  getTraceabilityLogIssuesBySerialNumber: async (
+    serialNumberCode: string,
+    status = false,
+    options?: ApiRequestOptions
+  ) => {
+    const response = await api.get<{
+      success: boolean;
+      message: string;
+      data: TraceabilityLogIssues;
+    }>(
+      `${TRACEABILITY_LOG_ENDPOINT}/issues/by-serial-number/${encodeURIComponent(serialNumberCode)}`,
+      {
+        ...options,
+        params: {
+          ...options?.params,
+          status,
+        },
+      }
     );
 
     return response.data;

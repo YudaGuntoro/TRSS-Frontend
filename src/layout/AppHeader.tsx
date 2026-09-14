@@ -38,11 +38,6 @@ function HeaderMqttStatus() {
         ? "Online"
         : "Offline"
       : "API Offline";
-  const statusClasses = isOnline
-    ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-400/10 dark:text-emerald-300"
-    : isPending
-      ? "bg-amber-500/10 text-amber-600 dark:bg-amber-400/10 dark:text-amber-300"
-      : "bg-red-500/10 text-red-600 dark:bg-red-400/10 dark:text-red-300";
   const dotClasses = isOnline
     ? "bg-emerald-500 dark:bg-emerald-400"
     : isPending
@@ -58,17 +53,9 @@ function HeaderMqttStatus() {
       className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
       title={`MQTT: ${mqttStatus.status} (${brokerLabel})`}
     >
-      <span
-        className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs font-semibold ${statusClasses}`}
-      >
-        <span className={`h-2 w-2 rounded-full ${dotClasses}`} />
-        {label}
-      </span>
-      <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
+      <span className={`size-2 shrink-0 rounded-full ${dotClasses}`} />
+      <span className="sr-only">{label}</span>
       <span className="whitespace-nowrap">
-        <span className="hidden text-gray-400 dark:text-gray-500 xl:inline">
-          Last Update:{" "}
-        </span>
         API {formatTime(mqttStatus.apiUpdatedAt)}
       </span>
       <span className="text-gray-300 dark:text-gray-700">|</span>
@@ -135,20 +122,20 @@ function HeaderPrinterStatus() {
 
   return (
     <div
-      className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
+      className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 text-[11px] font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400 xl:gap-2 xl:px-3 xl:text-xs"
       title={`Printer: ${printerSummary}`}
     >
       <span
-        className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-xs font-semibold ${statusClasses}`}
+        className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold xl:text-xs ${statusClasses}`}
       >
         <span className={`h-2 w-2 rounded-full ${dotClasses}`} />
         Printer {label}
       </span>
       <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
-      <div className="grid shrink-0 grid-cols-3 gap-2">
+      <div className="grid shrink-0 grid-cols-3 gap-1.5 xl:gap-2">
         {orderedPrinters.map((printer) => (
           <span
-            className="inline-flex min-w-[76px] items-center gap-1.5 whitespace-nowrap"
+            className="inline-flex min-w-[64px] items-center gap-1.5 whitespace-nowrap xl:min-w-[76px]"
             key={printer.label}
             title={`${printer.label}: ${printer.status}${
               printer.printerName ? ` (${printer.printerName})` : ""
@@ -285,7 +272,7 @@ const AppHeader: React.FC = () => {
             isApplicationMenuOpen ? "flex" : "hidden"
           } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto lg:justify-end">
+          <div className="flex min-w-0 flex-1 items-center justify-start gap-2 overflow-visible 2xl:justify-end">
             <HeaderMqttStatus />
             <HeaderPrinterStatus />
           </div>
