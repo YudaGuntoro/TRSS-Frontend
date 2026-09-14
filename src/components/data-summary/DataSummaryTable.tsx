@@ -5,9 +5,9 @@ import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useTraceabilityLogs } from "@/hooks/useTraceabilityLogs";
 import TraceabilityLogService, {
-  ProcessLog,
   ProcessLogFullValueDetail,
   ProcessLogFullValues,
+  TraceabilityLogItem,
 } from "@/services/TraceabilityLogService";
 
 type SummaryColumn = {
@@ -15,7 +15,7 @@ type SummaryColumn = {
   label: string;
   getValue: (
     fullValues: ProcessLogFullValues | undefined,
-    processLog: ProcessLog
+    processLog: TraceabilityLogItem
   ) => string;
 };
 

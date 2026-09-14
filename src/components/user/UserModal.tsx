@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import UserService, {
@@ -8,6 +8,13 @@ import UserService, {
   UserCreatePayload,
   UserUpdatePayload,
 } from "@/services/UserService";
+import { CheckCircleIcon } from "@/icons";
+import {
+  getRolePermissions,
+  normalizeRole,
+  PERMISSION_LABELS,
+  ROLE_OPTIONS,
+} from "@/utils/auth";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -28,15 +35,13 @@ const initialFormData: UserFormData = {
   name: "",
   username: "",
   password: "",
-  role: "user",
+  role: "operator",
   isActive: true,
 };
 
-const roleOptions = [
-  { label: "Admin", value: "admin" },
-  { label: "User", value: "user" },
-  { label: "Guest", value: "guest" },
-];
+const assignableRoleOptions = ROLE_OPTIONS.filter((role) =>
+  ["admin", "operator"].includes(role.value)
+);
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
@@ -50,6 +55,10 @@ export default function UserModal({
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
+  const selectedRolePermissions = useMemo(
+    () => getRolePermissions(formData.role),
+    [formData.role]
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -61,7 +70,7 @@ export default function UserModal({
         name: user.name || "",
         username: user.username || "",
         password: "",
-        role: user.role || "user",
+        role: normalizeRole(user.role)?.toString() || "operator",
         isActive: user.isActive ?? true,
       });
       return;
@@ -142,12 +151,15 @@ export default function UserModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[560px] p-6">
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[760px] p-6">
       <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-white/90">
         {user ? "Update User" : "Create User"}
       </h3>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form
+        onSubmit={handleSubmit}
+        className="flex max-h-[80vh] flex-col gap-4 overflow-y-auto pr-1"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -192,7 +204,9 @@ export default function UserModal({
             onChange={handleChange}
             required={!user}
             className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-            placeholder={user ? "Leave blank to keep current password" : "Enter password"}
+            placeholder={
+              user ? "Leave blank to keep current password" : "Enter password"
+            }
           />
         </div>
 
@@ -206,12 +220,42 @@ export default function UserModal({
             onChange={handleChange}
             className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
           >
-            {roleOptions.map((role) => (
+            {assignableRoleOptions.map((role) => (
               <option key={role.value} value={role.value}>
                 {role.label}
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                Role Access
+              </p>
+              <p className="text-theme-xs text-gray-500 dark:text-gray-400">
+                Static permission preview for the selected role
+              </p>
+            </div>
+            <span className="text-theme-xs font-medium text-gray-500 dark:text-gray-400">
+              {selectedRolePermissions.length} permissions
+            </span>
+          </div>
+
+          <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+            {selectedRolePermissions.map((permission) => (
+              <div
+                key={permission}
+                className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
+              >
+                <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400">
+                  <CheckCircleIcon className="size-3 fill-current" />
+                </span>
+                <span>{PERMISSION_LABELS[permission]}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

@@ -116,6 +116,8 @@ export type ProcessLogQuery = {
   endDate?: string;
 };
 
+export type TraceabilityLogQuery = ProcessLogQuery;
+
 const normalizeQuery = (query: ProcessLogQuery) => ({
   page: query.page,
   limit: query.limit,
@@ -251,6 +253,14 @@ type BackendProcessLogMock = {
   OverallStatus?: boolean | string | null;
   overallStatus?: boolean | string | null;
 };
+
+const mapTraceabilityV2Parameter = (
+  parameter: BackendTraceabilityLogV2DetailParameter
+): TraceabilityLogV2Parameter => ({
+  parameter: parameter.parameter ?? "-",
+  value: parameter.value,
+  status: parameter.status,
+});
 
 const normalizeOverallStatus = (value: boolean | string | null | undefined) => {
   if (typeof value === "boolean") {
@@ -415,6 +425,57 @@ export const mapTraceabilityLogV2Response = (log: BackendTraceabilityLogV2): Pro
       ]),
       ...mapV2DetailToProcessDetails(log.detail),
     ],
+  };
+};
+
+const mapTraceabilityLogListItem = (
+  log: BackendProcessLog | BackendProcessLogMock | BackendTraceabilityLogV2
+): TraceabilityLogItem => {
+  if (isTraceabilityLogV2(log)) {
+    return {
+      id: log.id,
+      serialNumberClinching: log.serialNumberClinching ?? "",
+      serialNumberMFan: log.serialNumberMFan,
+      serialNumberCode: log.serialNumberClinching ?? undefined,
+      status: log.status ?? false,
+      isFinish: log.isFinish ?? false,
+      issueNumbersClinching: log.issueNumbersClinching ?? [],
+      issueNumbersMfan: log.issueNumbersMfan ?? [],
+      createdAt: log.createdAt,
+      updatedAt: log.updatedAt ?? null,
+      detail: log.detail
+        ? {
+            clinching: (log.detail.clinching ?? []).map(mapTraceabilityV2Parameter),
+            mfan: (log.detail.mfan ?? []).map(mapTraceabilityV2Parameter),
+            ecm: (log.detail.ecm ?? []).map(mapTraceabilityV2Parameter),
+            final: (log.detail.final ?? []).map(mapTraceabilityV2Parameter),
+          }
+        : null,
+    };
+  }
+
+  const processLog = isMockProcessLog(log)
+    ? mapMockProcessLog(log)
+    : mapProcessLogResponse(log);
+
+  return {
+    id: processLog.id,
+    serialNumberClinching: processLog.serialNumberClinching ?? processLog.serialNumberCode ?? "",
+    serialNumberMFan: processLog.serialNumberMFan ?? null,
+    serialNumberCode: processLog.serialNumberCode,
+    status: processLog.status ?? false,
+    isFinish: processLog.isFinished ?? false,
+    issueNumbersClinching: processLog.issues
+      .filter((issue) => issue.issueType !== "M-Fan")
+      .map((issue) => issue.issueNumber)
+      .filter((issueNumber): issueNumber is string => Boolean(issueNumber)),
+    issueNumbersMfan: processLog.issues
+      .filter((issue) => issue.issueType === "M-Fan")
+      .map((issue) => issue.issueNumber)
+      .filter((issueNumber): issueNumber is string => Boolean(issueNumber)),
+    createdAt: processLog.createdAt,
+    updatedAt: processLog.updatedAt ?? null,
+    detail: null,
   };
 };
 
@@ -723,13 +784,7 @@ const TraceabilityLogService = {
 
     return {
       ...response.data,
-      data: response.data.data.map((log) =>
-        isMockProcessLog(log)
-          ? mapMockProcessLog(log)
-          : isTraceabilityLogV2(log)
-            ? mapTraceabilityLogV2Response(log)
-            : mapProcessLogResponse(log)
-      ),
+      data: response.data.data.map(mapTraceabilityLogListItem),
     };
   },
 

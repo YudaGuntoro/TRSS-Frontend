@@ -1,7 +1,7 @@
 export const ROLES = {
   SUPERADMIN: "superadmin",
   ADMIN: "admin",
-  USER: "user",
+  OPERATOR: "operator",
   GUEST: "guest",
 } as const;
 
@@ -11,28 +11,38 @@ export const PERMISSIONS = {
   ALL: "*",
   ADMIN_ACCESS: "admin.access",
   DASHBOARD_VIEW: "dashboard.view",
-  MASTER_DATA_MANAGE: "master-data.manage",
-  PARTS_MANAGE: "parts.manage",
+  PART_VIEW: "part.view",
+  PART_CREATE: "part.create",
+  PART_EDIT: "part.edit",
+  PART_DELETE: "part.delete",
+  PARAMETER_VIEW: "parameter.view",
+  PARAMETER_CREATE: "parameter.create",
+  PARAMETER_EDIT: "parameter.edit",
+  PARAMETER_DELETE: "parameter.delete",
+  PROCESS_VIEW: "process.view",
+  PROCESS_CREATE: "process.create",
+  PROCESS_EDIT: "process.edit",
+  PROCESS_DELETE: "process.delete",
   STOCK_IN_VIEW: "stock-in.view",
   STOCK_IN_CREATE: "stock-in.create",
   STOCK_IN_EDIT: "stock-in.edit",
   STOCK_IN_DELETE: "stock-in.delete",
   STOCK_IN_REWORK_VIEW: "stock-in-rework.view",
   STOCK_IN_REWORK_CREATE: "stock-in-rework.create",
-  STOCK_IN_REWORK_EDIT: "stock-in-rework.edit",
-  STOCK_IN_REWORK_DELETE: "stock-in-rework.delete",
+  STOCK_IN_REWORK_DISPOSITION: "stock-in-rework.disposition",
   TRACEABILITY_LOG_VIEW: "traceability-log.view",
   TRACEABILITY_LOG_DETAIL: "traceability-log.detail",
-  TRACEABILITY_LOG_EXPORT: "traceability-log.export",
   PROCESS_LOG_VIEW: "process-log.view",
   PROCESS_LOG_DETAIL: "process-log.detail",
-  PROCESS_LOG_EXPORT: "process-log.export",
   PRINT_HISTORY_VIEW: "print-history.view",
   PRINT_HISTORY_REPRINT: "print-history.reprint",
   USERS_VIEW: "users.view",
-  USERS_MANAGE: "users.manage",
-  APP_CONFIGURATION_MANAGE: "app-configuration.manage",
-  PROCESS_LOGS_VIEW: "process-logs.view",
+  USERS_CREATE: "users.create",
+  USERS_EDIT: "users.edit",
+  USERS_DELETE: "users.delete",
+  APP_CONFIGURATION_VIEW: "app-configuration.view",
+  APP_CONFIGURATION_EDIT: "app-configuration.edit",
+  APP_CONFIGURATION_DELETE: "app-configuration.delete",
   MQTT_LOGS_VIEW: "mqtt-logs.view",
   SYSTEM_LOGS_VIEW: "system-logs.view",
 } as const;
@@ -43,6 +53,90 @@ export type AuthUser = {
   username: string;
   role: UserRole;
 };
+
+export const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
+  { label: "Super Admin", value: ROLES.SUPERADMIN },
+  { label: "Admin", value: ROLES.ADMIN },
+  { label: "Operator", value: ROLES.OPERATOR },
+  { label: "Guest", value: ROLES.GUEST },
+];
+
+export const PERMISSION_LABELS: Record<Permission, string> = {
+  [PERMISSIONS.ALL]: "All Access",
+  [PERMISSIONS.ADMIN_ACCESS]: "Admin Access",
+  [PERMISSIONS.DASHBOARD_VIEW]: "Dashboard",
+  [PERMISSIONS.STOCK_IN_VIEW]: "Stock In View",
+  [PERMISSIONS.STOCK_IN_CREATE]: "Stock In Create",
+  [PERMISSIONS.STOCK_IN_EDIT]: "Stock In Edit",
+  [PERMISSIONS.STOCK_IN_DELETE]: "Stock In Delete",
+  [PERMISSIONS.PART_VIEW]: "Part View",
+  [PERMISSIONS.PART_CREATE]: "Part Create",
+  [PERMISSIONS.PART_EDIT]: "Part Edit",
+  [PERMISSIONS.PART_DELETE]: "Part Delete",
+  [PERMISSIONS.PARAMETER_VIEW]: "Parameter View",
+  [PERMISSIONS.PARAMETER_CREATE]: "Parameter Create",
+  [PERMISSIONS.PARAMETER_EDIT]: "Parameter Edit",
+  [PERMISSIONS.PARAMETER_DELETE]: "Parameter Delete",
+  [PERMISSIONS.PROCESS_VIEW]: "Process View",
+  [PERMISSIONS.PROCESS_CREATE]: "Process Create",
+  [PERMISSIONS.PROCESS_EDIT]: "Process Edit",
+  [PERMISSIONS.PROCESS_DELETE]: "Process Delete",
+  [PERMISSIONS.STOCK_IN_REWORK_VIEW]: "Stock In Rework View",
+  [PERMISSIONS.STOCK_IN_REWORK_CREATE]: "Stock In Rework Create",
+  [PERMISSIONS.STOCK_IN_REWORK_DISPOSITION]: "Stock In Rework Disposition",
+  [PERMISSIONS.TRACEABILITY_LOG_VIEW]: "Traceability Logs View",
+  [PERMISSIONS.TRACEABILITY_LOG_DETAIL]: "Traceability Logs Detail",
+  [PERMISSIONS.PROCESS_LOG_VIEW]: "Process Logs View",
+  [PERMISSIONS.PROCESS_LOG_DETAIL]: "Process Logs Detail",
+  [PERMISSIONS.PRINT_HISTORY_VIEW]: "Print History List",
+  [PERMISSIONS.PRINT_HISTORY_REPRINT]: "Print History Re Print",
+  [PERMISSIONS.USERS_VIEW]: "User Lists",
+  [PERMISSIONS.USERS_CREATE]: "User Create",
+  [PERMISSIONS.USERS_EDIT]: "User Edit",
+  [PERMISSIONS.USERS_DELETE]: "User Delete",
+  [PERMISSIONS.APP_CONFIGURATION_VIEW]: "App Configuration View",
+  [PERMISSIONS.APP_CONFIGURATION_EDIT]: "App Configuration Edit",
+  [PERMISSIONS.APP_CONFIGURATION_DELETE]: "App Configuration Delete",
+  [PERMISSIONS.MQTT_LOGS_VIEW]: "MQTT Log View",
+  [PERMISSIONS.SYSTEM_LOGS_VIEW]: "Log View",
+};
+
+export const ALL_ROLE_PERMISSIONS: Permission[] = [
+  PERMISSIONS.DASHBOARD_VIEW,
+  PERMISSIONS.STOCK_IN_VIEW,
+  PERMISSIONS.STOCK_IN_CREATE,
+  PERMISSIONS.STOCK_IN_EDIT,
+  PERMISSIONS.STOCK_IN_DELETE,
+  PERMISSIONS.PART_VIEW,
+  PERMISSIONS.PART_CREATE,
+  PERMISSIONS.PART_EDIT,
+  PERMISSIONS.PART_DELETE,
+  PERMISSIONS.PARAMETER_VIEW,
+  PERMISSIONS.PARAMETER_CREATE,
+  PERMISSIONS.PARAMETER_EDIT,
+  PERMISSIONS.PARAMETER_DELETE,
+  PERMISSIONS.PROCESS_VIEW,
+  PERMISSIONS.PROCESS_CREATE,
+  PERMISSIONS.PROCESS_EDIT,
+  PERMISSIONS.PROCESS_DELETE,
+  PERMISSIONS.STOCK_IN_REWORK_VIEW,
+  PERMISSIONS.STOCK_IN_REWORK_CREATE,
+  PERMISSIONS.STOCK_IN_REWORK_DISPOSITION,
+  PERMISSIONS.TRACEABILITY_LOG_VIEW,
+  PERMISSIONS.TRACEABILITY_LOG_DETAIL,
+  PERMISSIONS.PROCESS_LOG_VIEW,
+  PERMISSIONS.PROCESS_LOG_DETAIL,
+  PERMISSIONS.PRINT_HISTORY_VIEW,
+  PERMISSIONS.PRINT_HISTORY_REPRINT,
+  PERMISSIONS.USERS_VIEW,
+  PERMISSIONS.USERS_CREATE,
+  PERMISSIONS.USERS_EDIT,
+  PERMISSIONS.USERS_DELETE,
+  PERMISSIONS.SYSTEM_LOGS_VIEW,
+  PERMISSIONS.APP_CONFIGURATION_VIEW,
+  PERMISSIONS.APP_CONFIGURATION_EDIT,
+  PERMISSIONS.APP_CONFIGURATION_DELETE,
+];
 
 const AUTH_COOKIE_NAMES = ["token", "accessToken", "authToken"];
 const AUTH_STORAGE_KEYS = ["token", "accessToken", "authToken", "jwt"];
@@ -62,8 +156,7 @@ const ROLE_CLAIM_KEYS = [
 
 const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
   [ROLES.SUPERADMIN]: new Set([PERMISSIONS.ALL]),
-  [ROLES.ADMIN]: new Set([PERMISSIONS.ALL]),
-  [ROLES.USER]: new Set([
+  [ROLES.ADMIN]: new Set([
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.STOCK_IN_VIEW,
     PERMISSIONS.STOCK_IN_CREATE,
@@ -71,27 +164,81 @@ const ROLE_PERMISSIONS: Record<UserRole, ReadonlySet<Permission>> = {
     PERMISSIONS.STOCK_IN_DELETE,
     PERMISSIONS.STOCK_IN_REWORK_VIEW,
     PERMISSIONS.STOCK_IN_REWORK_CREATE,
-    PERMISSIONS.STOCK_IN_REWORK_EDIT,
-    PERMISSIONS.STOCK_IN_REWORK_DELETE,
+    PERMISSIONS.STOCK_IN_REWORK_DISPOSITION,
     PERMISSIONS.TRACEABILITY_LOG_VIEW,
     PERMISSIONS.TRACEABILITY_LOG_DETAIL,
-    PERMISSIONS.TRACEABILITY_LOG_EXPORT,
     PERMISSIONS.PROCESS_LOG_VIEW,
     PERMISSIONS.PROCESS_LOG_DETAIL,
-    PERMISSIONS.PROCESS_LOG_EXPORT,
     PERMISSIONS.PRINT_HISTORY_VIEW,
     PERMISSIONS.PRINT_HISTORY_REPRINT,
     PERMISSIONS.USERS_VIEW,
-    PERMISSIONS.USERS_MANAGE,
+    PERMISSIONS.USERS_CREATE,
+    PERMISSIONS.USERS_EDIT,
+    PERMISSIONS.USERS_DELETE,
+    PERMISSIONS.PART_VIEW,
+  ]),
+  [ROLES.OPERATOR]: new Set([
+    PERMISSIONS.DASHBOARD_VIEW,
+    PERMISSIONS.STOCK_IN_CREATE,
+    PERMISSIONS.STOCK_IN_VIEW,
+    PERMISSIONS.STOCK_IN_REWORK_VIEW,
+    PERMISSIONS.TRACEABILITY_LOG_VIEW,
+    PERMISSIONS.TRACEABILITY_LOG_DETAIL,
+    PERMISSIONS.PROCESS_LOG_VIEW,
+    PERMISSIONS.PROCESS_LOG_DETAIL,
   ]),
   [ROLES.GUEST]: new Set([
     PERMISSIONS.DASHBOARD_VIEW,
     PERMISSIONS.STOCK_IN_VIEW,
     PERMISSIONS.STOCK_IN_REWORK_VIEW,
     PERMISSIONS.TRACEABILITY_LOG_VIEW,
+    PERMISSIONS.TRACEABILITY_LOG_DETAIL,
     PERMISSIONS.PROCESS_LOG_VIEW,
+    PERMISSIONS.PROCESS_LOG_DETAIL,
   ]),
 };
+
+export const getRolePermissions = (role: UserRole | string | null | undefined) => {
+  const normalizedRole =
+    typeof role === "string" ? normalizeRole(role) : role ?? null;
+  const effectiveRole = getEffectiveRole(normalizedRole);
+  const permissions = ROLE_PERMISSIONS[effectiveRole];
+
+  if (permissions.has(PERMISSIONS.ALL)) {
+    return ALL_ROLE_PERMISSIONS;
+  }
+
+  return ALL_ROLE_PERMISSIONS.filter((permission) =>
+    permissions.has(permission)
+  );
+};
+
+const LEGACY_ROLE_ALIASES: Record<string, UserRole> = {
+  user: ROLES.OPERATOR,
+};
+
+export const normalizeRole = (role: string) => {
+  const normalizedRole = role.toLowerCase();
+
+  if (isUserRole(normalizedRole)) {
+    return normalizedRole;
+  }
+
+  return LEGACY_ROLE_ALIASES[normalizedRole] ?? null;
+};
+
+export const AUTH_OPTIONAL_PERMISSIONS = new Set<Permission>([
+  PERMISSIONS.DASHBOARD_VIEW,
+  PERMISSIONS.STOCK_IN_VIEW,
+  PERMISSIONS.STOCK_IN_REWORK_VIEW,
+  PERMISSIONS.TRACEABILITY_LOG_VIEW,
+  PERMISSIONS.TRACEABILITY_LOG_DETAIL,
+  PERMISSIONS.PROCESS_LOG_VIEW,
+  PERMISSIONS.PROCESS_LOG_DETAIL,
+]);
+
+export const getEffectiveRole = (role: UserRole | null | undefined) =>
+  role ?? ROLES.GUEST;
 
 const isUserRole = (role: string): role is UserRole =>
   Object.values(ROLES).includes(role as UserRole);
@@ -190,9 +337,9 @@ export const getAuthUserFromToken = (token: string | null): AuthUser | null => {
     return null;
   }
 
-  const role = getStringClaim(claims, ROLE_CLAIM_KEYS).toLowerCase();
+  const role = normalizeRole(getStringClaim(claims, ROLE_CLAIM_KEYS));
 
-  if (!isUserRole(role)) {
+  if (!role) {
     return null;
   }
 
@@ -215,11 +362,9 @@ export const hasPermission = (
   role: UserRole | null | undefined,
   permission: Permission
 ) => {
-  if (!role) {
-    return false;
-  }
+  const effectiveRole = getEffectiveRole(role);
+  const permissions = ROLE_PERMISSIONS[effectiveRole];
 
-  const permissions = ROLE_PERMISSIONS[role];
   return Boolean(
     permissions?.has(PERMISSIONS.ALL) || permissions?.has(permission)
   );
@@ -265,11 +410,13 @@ export const getRequiredPermission = (pathname: string): Permission => {
     pathname.startsWith("/parameter") ||
     pathname.startsWith("/master-process")
   ) {
-    return PERMISSIONS.MASTER_DATA_MANAGE;
+    return pathname.startsWith("/parameter")
+      ? PERMISSIONS.PARAMETER_VIEW
+      : PERMISSIONS.PROCESS_VIEW;
   }
 
   if (pathname.startsWith("/master-part")) {
-    return PERMISSIONS.PARTS_MANAGE;
+    return PERMISSIONS.PART_VIEW;
   }
 
   if (pathname.startsWith("/stock-in")) {
@@ -279,11 +426,11 @@ export const getRequiredPermission = (pathname: string): Permission => {
   }
 
   if (pathname.startsWith("/user")) {
-    return PERMISSIONS.USERS_MANAGE;
+    return PERMISSIONS.USERS_VIEW;
   }
 
   if (pathname.startsWith("/app-configuration")) {
-    return PERMISSIONS.APP_CONFIGURATION_MANAGE;
+    return PERMISSIONS.APP_CONFIGURATION_VIEW;
   }
 
   if (

@@ -45,17 +45,17 @@ export const navItems: NavItem[] = [
       {
         name: "Parameter",
         path: "/parameter",
-        permission: PERMISSIONS.MASTER_DATA_MANAGE,
+        permission: PERMISSIONS.PARAMETER_VIEW,
       },
       {
         name: "Part",
         path: "/master-part",
-        permission: PERMISSIONS.PARTS_MANAGE,
+        permission: PERMISSIONS.PART_VIEW,
       },
       {
         name: "Process",
         path: "/master-process",
-        permission: PERMISSIONS.MASTER_DATA_MANAGE,
+        permission: PERMISSIONS.PROCESS_VIEW,
       },
     ],
   },
@@ -116,13 +116,13 @@ export const navItems: NavItem[] = [
     iconClassName: "text-rose-500 dark:text-rose-400",
     name: "User",
     path: "/user",
-    permission: PERMISSIONS.USERS_MANAGE,
+    permission: PERMISSIONS.USERS_VIEW,
   },
   {
     icon: <PlugInIcon />,
     iconClassName: "text-purple-500 dark:text-purple-400",
     name: "App Configuration",
     path: "/app-configuration",
-    permission: PERMISSIONS.APP_CONFIGURATION_MANAGE,
+    permission: PERMISSIONS.APP_CONFIGURATION_VIEW,
   },
 ];

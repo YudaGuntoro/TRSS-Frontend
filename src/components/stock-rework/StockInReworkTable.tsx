@@ -66,8 +66,8 @@ const isFinalDisposition = (
 export default function StockInReworkTable() {
   const toast = useToast();
   const { can } = useAuth();
-  const canCreate = can(PERMISSIONS.STOCK_IN_CREATE);
-  const canUpdate = can(PERMISSIONS.STOCK_IN_EDIT);
+  const canCreate = can(PERMISSIONS.STOCK_IN_REWORK_CREATE);
+  const canUpdate = can(PERMISSIONS.STOCK_IN_REWORK_DISPOSITION);
   const lastErrorRef = useRef<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDispositions, setSelectedDispositions] = useState<

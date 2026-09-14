@@ -10,6 +10,8 @@ import { useToast } from "@/context/ToastContext";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import ParameterModal from "./ParameterModal";
 import { ConfirmModal } from "@/components/ui/modal";
+import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS } from "@/utils/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -79,6 +81,10 @@ const baseColumns: DataTableColumn<Parameter>[] = [
 
 export default function ParameterTable() {
   const toast = useToast();
+  const { can } = useAuth();
+  const canCreate = can(PERMISSIONS.PARAMETER_CREATE);
+  const canEdit = can(PERMISSIONS.PARAMETER_EDIT);
+  const canDelete = can(PERMISSIONS.PARAMETER_DELETE);
   const lastErrorRef = useRef<string | null>(null);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -156,30 +162,40 @@ export default function ParameterTable() {
 
   const columns = useMemo<DataTableColumn<Parameter>[]>(() => [
     ...baseColumns,
-    {
-      key: "action",
-      header: "Action",
-      align: "center",
-      render: (_, row) => (
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={() => handleUpdate(row)}
-            className="text-warning-500 hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500 transition-colors"
-            title="Edit"
-          >
-            <PencilIcon className="w-5 h-5 fill-current" />
-          </button>
-          <button
-            onClick={() => handleDeleteClick(row)}
-            className="text-error-500 hover:text-error-600 dark:text-error-400 dark:hover:text-error-500 transition-colors"
-            title="Delete"
-          >
-            <TrashBinIcon className="w-5 h-5 fill-current" />
-          </button>
-        </div>
-      ),
-    },
-  ], []);
+    ...(canEdit || canDelete
+      ? [
+          {
+            key: "action",
+            header: "Action",
+            align: "center" as const,
+            render: (_: unknown, row: Parameter) => (
+              <div className="flex items-center justify-center gap-3">
+                {canEdit && (
+                  <button
+                    onClick={() => handleUpdate(row)}
+                    className="text-warning-500 hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500 transition-colors"
+                    title="Edit"
+                    type="button"
+                  >
+                    <PencilIcon className="w-5 h-5 fill-current" />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={() => handleDeleteClick(row)}
+                    className="text-error-500 hover:text-error-600 dark:text-error-400 dark:hover:text-error-500 transition-colors"
+                    title="Delete"
+                    type="button"
+                  >
+                    <TrashBinIcon className="w-5 h-5 fill-current" />
+                  </button>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ], [canDelete, canEdit]);
 
   return (
     <>
@@ -203,7 +219,7 @@ export default function ParameterTable() {
               <option value="false">Inactive</option>
             </select>
             
-            <CreateButton onClick={handleCreate} />
+            {canCreate && <CreateButton onClick={handleCreate} />}
           </div>
         }
         columns={columns}
@@ -221,23 +237,27 @@ export default function ParameterTable() {
         searchValue={query.search}
       />
 
-      <ParameterModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={refetch}
-        parameter={selectedParameter}
-      />
+      {(canCreate || canEdit) && (
+        <ParameterModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={refetch}
+          parameter={selectedParameter}
+        />
+      )}
 
-      <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
-        title="Delete Parameter"
-        message={`Are you sure you want to delete parameter "${parameterToDelete?.name}"?`}
-        confirmText="Delete"
-        isDestructive={true}
-        isLoading={isDeleting}
-      />
+      {canDelete && (
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete Parameter"
+          message={`Are you sure you want to delete parameter "${parameterToDelete?.name}"?`}
+          confirmText="Delete"
+          isDestructive={true}
+          isLoading={isDeleting}
+        />
+      )}
     </>
   );
 }

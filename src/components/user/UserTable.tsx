@@ -10,12 +10,8 @@ import { PencilIcon, TrashBinIcon } from "@/icons";
 import { useUsers } from "@/hooks/useUsers";
 import UserService, { User } from "@/services/UserService";
 import UserModal from "./UserModal";
-
-const roleOptions = [
-  { label: "Admin", value: "admin" },
-  { label: "User", value: "user" },
-  { label: "Guest", value: "guest" },
-];
+import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS, ROLE_OPTIONS } from "@/utils/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -50,7 +46,7 @@ const getInitials = (name: string) => {
 };
 
 const formatRole = (role: string) => {
-  const option = roleOptions.find((item) => item.value === role);
+  const option = ROLE_OPTIONS.find((item) => item.value === role);
 
   if (option) {
     return option.label;
@@ -108,6 +104,10 @@ const baseColumns: DataTableColumn<User>[] = [
 
 export default function UserTable() {
   const toast = useToast();
+  const { can } = useAuth();
+  const canCreate = can(PERMISSIONS.USERS_CREATE);
+  const canEdit = can(PERMISSIONS.USERS_EDIT);
+  const canDelete = can(PERMISSIONS.USERS_DELETE);
   const lastErrorRef = useRef<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -192,33 +192,41 @@ export default function UserTable() {
   const columns = useMemo<DataTableColumn<User>[]>(
     () => [
       ...baseColumns,
-      {
-        key: "action",
-        header: "Action",
-        align: "center",
-        render: (_, row) => (
-          <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={() => handleUpdate(row)}
-              className="text-warning-500 transition-colors hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500"
-              title="Edit"
-              type="button"
-            >
-              <PencilIcon className="h-5 w-5 fill-current" />
-            </button>
-            <button
-              onClick={() => handleDeleteClick(row)}
-              className="text-error-500 transition-colors hover:text-error-600 dark:text-error-400 dark:hover:text-error-500"
-              title="Delete"
-              type="button"
-            >
-              <TrashBinIcon className="h-5 w-5 fill-current" />
-            </button>
-          </div>
-        ),
-      },
+      ...(canEdit || canDelete
+        ? [
+            {
+              key: "action",
+              header: "Action",
+              align: "center" as const,
+              render: (_: unknown, row: User) => (
+                <div className="flex items-center justify-center gap-3">
+                  {canEdit && (
+                    <button
+                      onClick={() => handleUpdate(row)}
+                      className="text-warning-500 transition-colors hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500"
+                      title="Edit"
+                      type="button"
+                    >
+                      <PencilIcon className="h-5 w-5 fill-current" />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteClick(row)}
+                      className="text-error-500 transition-colors hover:text-error-600 dark:text-error-400 dark:hover:text-error-500"
+                      title="Delete"
+                      type="button"
+                    >
+                      <TrashBinIcon className="h-5 w-5 fill-current" />
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]
+        : []),
     ],
-    [handleDeleteClick, handleUpdate]
+    [canDelete, canEdit, handleDeleteClick, handleUpdate]
   );
 
   return (
@@ -243,7 +251,9 @@ export default function UserTable() {
               <option value="false">Inactive</option>
             </select>
 
-            <CreateButton onClick={handleCreate}>Create User</CreateButton>
+            {canCreate && (
+              <CreateButton onClick={handleCreate}>Create User</CreateButton>
+            )}
           </div>
         }
         columns={columns}
@@ -261,23 +271,27 @@ export default function UserTable() {
         searchValue={query.search}
       />
 
-      <UserModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={refetch}
-        user={selectedUser}
-      />
+      {(canCreate || canEdit) && (
+        <UserModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={refetch}
+          user={selectedUser}
+        />
+      )}
 
-      <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
-        title="Delete User"
-        message={`Are you sure you want to delete user "${userToDelete?.name}"?`}
-        confirmText="Delete"
-        isDestructive={true}
-        isLoading={isDeleting}
-      />
+      {canDelete && (
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={closeDeleteModal}
+          onConfirm={confirmDelete}
+          title="Delete User"
+          message={`Are you sure you want to delete user "${userToDelete?.name}"?`}
+          confirmText="Delete"
+          isDestructive={true}
+          isLoading={isDeleting}
+        />
+      )}
     </>
   );
 }

@@ -56,7 +56,7 @@ const SerialNumberService = {
     serialNumberCode: string,
     options?: ApiRequestOptions
   ) => {
-    const response = await api.get<ApiDataResponse<SerialNumber>>(
+    const response = await api.get<ApiDataResponse<SerialNumber | null>>(
       `/api/serial-numbers/${encodeURIComponent(serialNumberCode)}`,
       options
     );

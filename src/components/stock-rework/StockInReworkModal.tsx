@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -30,6 +30,12 @@ const inputClassName =
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
+
+const getSerialNumberCodeFromInput = (value: string) => {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+
+  return parts[parts.length - 1] ?? "";
+};
 
 const mapIssueRows = (issues: SerialNumberIssue[]): IssueFormRow[] =>
   issues.map((issue, index) => ({
@@ -137,6 +143,16 @@ function SerialNumberSearchSelect({
     setIsDropdownOpen(false);
   };
 
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const rawValue = event.target.value;
+    const serialNumberCode = getSerialNumberCodeFromInput(rawValue);
+    const hasScannedPayload = /\s/.test(rawValue.trim());
+
+    setSearch(hasScannedPayload ? serialNumberCode : rawValue);
+    onSelect(hasScannedPayload ? serialNumberCode : "");
+    setIsDropdownOpen(true);
+  };
+
   return (
     <div ref={wrapperRef} className="relative">
       <input
@@ -147,11 +163,7 @@ function SerialNumberSearchSelect({
         autoFocus
         className={inputClassName}
         disabled={disabled}
-        onChange={(event) => {
-          setSearch(event.target.value);
-          onSelect("");
-          setIsDropdownOpen(true);
-        }}
+        onChange={handleInputChange}
         onFocus={() => setIsDropdownOpen(true)}
         placeholder="Search serial number"
         ref={inputRef}
@@ -243,7 +255,8 @@ export default function StockInReworkModal({
   }, [isOpen]);
 
   useEffect(() => {
-    const normalizedSerialNumberCode = serialNumberCode.trim();
+    const normalizedSerialNumberCode =
+      getSerialNumberCodeFromInput(serialNumberCode);
 
     if (!isOpen || !normalizedSerialNumberCode) {
       setSelectedSerialNumber(null);
@@ -263,6 +276,15 @@ export default function StockInReworkModal({
       signal: controller.signal,
     })
       .then((result) => {
+        if (!result.data) {
+          setSelectedSerialNumber(null);
+          setIssueRows([]);
+          setIssueLoadError(
+            `Serial number ${normalizedSerialNumberCode} tidak ditemukan.`
+          );
+          return;
+        }
+
         setSelectedSerialNumber(result.data);
         setIssueRows(mapIssueRows(result.data.issues ?? []));
       })

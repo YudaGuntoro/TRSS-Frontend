@@ -1,6 +1,5 @@
 "use client";
 
-import CreateButton from "@/components/common/CreateButton";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import { ConfirmModal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
@@ -17,6 +16,8 @@ import {
   useState,
 } from "react";
 import AppConfigModal from "./AppConfigModal";
+import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS } from "@/utils/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -83,6 +84,9 @@ const baseColumns: DataTableColumn<AppConfig>[] = [
 
 export default function AppConfigTable() {
   const toast = useToast();
+  const { can } = useAuth();
+  const canEdit = can(PERMISSIONS.APP_CONFIGURATION_EDIT);
+  const canDelete = can(PERMISSIONS.APP_CONFIGURATION_DELETE);
   const lastErrorRef = useRef<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedConfig, setSelectedConfig] = useState<AppConfig | null>(null);
@@ -116,11 +120,6 @@ export default function AppConfigTable() {
       message: error,
     });
   }, [error, toast]);
-
-  const handleCreate = () => {
-    setSelectedConfig(null);
-    setIsModalOpen(true);
-  };
 
   const handleUpdate = useCallback((appConfig: AppConfig) => {
     setSelectedConfig(appConfig);
@@ -164,44 +163,47 @@ export default function AppConfigTable() {
   const columns = useMemo<DataTableColumn<AppConfig>[]>(
     () => [
       ...baseColumns,
-      {
-        key: "action",
-        header: "Action",
-        align: "center",
-        className: "min-w-28",
-        render: (_, row) => (
-          <div className="flex items-center justify-center gap-3">
-            <button
-              className="text-warning-500 transition-colors hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500"
-              onClick={() => handleUpdate(row)}
-              title="Edit configuration"
-              type="button"
-            >
-              <PencilIcon className="size-5 fill-current" />
-            </button>
-            <button
-              className="text-error-500 transition-colors hover:text-error-600 dark:text-error-400 dark:hover:text-error-500"
-              onClick={() => handleDelete(row)}
-              title="Delete configuration"
-              type="button"
-            >
-              <TrashBinIcon className="size-5 fill-current" />
-            </button>
-          </div>
-        ),
-      },
+      ...(canEdit || canDelete
+        ? [
+            {
+              key: "action",
+              header: "Action",
+              align: "center" as const,
+              className: "min-w-28",
+              render: (_: unknown, row: AppConfig) => (
+                <div className="flex items-center justify-center gap-3">
+                  {canEdit && (
+                    <button
+                      className="text-warning-500 transition-colors hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500"
+                      onClick={() => handleUpdate(row)}
+                      title="Edit configuration"
+                      type="button"
+                    >
+                      <PencilIcon className="size-5 fill-current" />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      className="text-error-500 transition-colors hover:text-error-600 dark:text-error-400 dark:hover:text-error-500"
+                      onClick={() => handleDelete(row)}
+                      title="Delete configuration"
+                      type="button"
+                    >
+                      <TrashBinIcon className="size-5 fill-current" />
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]
+        : []),
     ],
-    [handleDelete, handleUpdate]
+    [canDelete, canEdit, handleDelete, handleUpdate]
   );
 
   return (
     <>
       <DataTable
-        actions={
-          <CreateButton onClick={handleCreate}>
-            Create Configuration
-          </CreateButton>
-        }
         columns={columns}
         data={data}
         emptyMessage="No app configurations found"
@@ -217,23 +219,27 @@ export default function AppConfigTable() {
         searchValue={query.search}
       />
 
-      <AppConfigModal
-        appConfig={selectedConfig}
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={refetch}
-      />
+      {canEdit && (
+        <AppConfigModal
+          appConfig={selectedConfig}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={refetch}
+        />
+      )}
 
-      <ConfirmModal
-        confirmText="Delete"
-        isDestructive
-        isLoading={isDeleting}
-        isOpen={isDeleteModalOpen}
-        message={`Are you sure you want to delete configuration "${configToDelete?.key}"?`}
-        onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
-        title="Delete App Configuration"
-      />
+      {canDelete && (
+        <ConfirmModal
+          confirmText="Delete"
+          isDestructive
+          isLoading={isDeleting}
+          isOpen={isDeleteModalOpen}
+          message={`Are you sure you want to delete configuration "${configToDelete?.key}"?`}
+          onClose={() => !isDeleting && setIsDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+          title="Delete App Configuration"
+        />
+      )}
     </>
   );
 }

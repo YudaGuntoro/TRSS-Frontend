@@ -3,19 +3,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiListResponse } from "@/services/ParameterService";
 import TraceabilityLogService, {
-  ProcessLog,
-  ProcessLogQuery,
+  TraceabilityLogItem,
+  TraceabilityLogQuery,
 } from "@/services/TraceabilityLogService";
 
-type UseTraceabilityLogsOptions = ProcessLogQuery & {
+type UseTraceabilityLogsOptions = TraceabilityLogQuery & {
   enabled?: boolean;
 };
 
 export type TraceabilityLogQueryState = {
   page: number;
   limit: number;
-  serialNumberCode: string;
+  search: string;
+  serialNumberCode?: string;
   isActive?: boolean | null;
+  status?: boolean | null;
+  isFinish?: boolean | null;
   startDate?: string;
   endDate?: string;
 };
@@ -25,7 +28,9 @@ const getInitialQuery = (
 ): TraceabilityLogQueryState => ({
   page: options.page ?? 1,
   limit: options.limit ?? 10,
-  serialNumberCode: options.serialNumberCode ?? options.issueNo ?? "",
+  search: options.search ?? options.serialNumberCode ?? options.issueNo ?? "",
+  status: options.status,
+  isFinish: options.isFinish,
   isActive: options.isActive,
   startDate: options.startDate,
   endDate: options.endDate,
@@ -37,7 +42,7 @@ export const useTraceabilityLogs = (options: UseTraceabilityLogsOptions = {}) =>
     getInitialQuery(options)
   );
   const [response, setResponse] =
-    useState<ApiListResponse<ProcessLog> | null>(null);
+    useState<ApiListResponse<TraceabilityLogItem> | null>(null);
   const [isLoading, setIsLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -46,18 +51,21 @@ export const useTraceabilityLogs = (options: UseTraceabilityLogsOptions = {}) =>
     () => ({
       page: query.page,
       limit: query.limit,
-      serialNumberCode: query.serialNumberCode,
-      isActive: query.isActive,
+      search: query.search || query.serialNumberCode,
+      status: query.status,
+      isFinish: query.isFinish,
       startDate: query.startDate,
       endDate: query.endDate,
     }),
     [
       query.endDate,
-      query.isActive,
+      query.isFinish,
       query.limit,
       query.page,
+      query.search,
       query.serialNumberCode,
       query.startDate,
+      query.status,
     ]
   );
 

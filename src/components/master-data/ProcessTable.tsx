@@ -13,6 +13,8 @@ import ProcessService, {
   ProcessParameter,
 } from "@/services/ProcessService";
 import ProcessModal from "./ProcessModal";
+import { useAuth } from "@/context/AuthContext";
+import { PERMISSIONS } from "@/utils/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
@@ -102,6 +104,10 @@ const baseColumns: DataTableColumn<Process>[] = [
 
 export default function ProcessTable() {
   const toast = useToast();
+  const { can } = useAuth();
+  const canCreate = can(PERMISSIONS.PROCESS_CREATE);
+  const canEdit = can(PERMISSIONS.PROCESS_EDIT);
+  const canDelete = can(PERMISSIONS.PROCESS_DELETE);
   const lastErrorRef = useRef<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
@@ -219,33 +225,41 @@ export default function ProcessTable() {
         render: (value) =>
           typeof value === "string" ? formatDate(value) : "-",
       },
-      {
-        key: "action",
-        header: "Action",
-        align: "center",
-        render: (_, row) => (
-          <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={() => handleUpdate(row)}
-              className="text-warning-500 transition-colors hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500"
-              title="Edit"
-              type="button"
-            >
-              <PencilIcon className="h-5 w-5 fill-current" />
-            </button>
-            <button
-              onClick={() => handleDeleteClick(row)}
-              className="text-error-500 transition-colors hover:text-error-600 dark:text-error-400 dark:hover:text-error-500"
-              title="Delete"
-              type="button"
-            >
-              <TrashBinIcon className="h-5 w-5 fill-current" />
-            </button>
-          </div>
-        ),
-      },
+      ...(canEdit || canDelete
+        ? [
+            {
+              key: "action",
+              header: "Action",
+              align: "center" as const,
+              render: (_: unknown, row: Process) => (
+                <div className="flex items-center justify-center gap-3">
+                  {canEdit && (
+                    <button
+                      onClick={() => handleUpdate(row)}
+                      className="text-warning-500 transition-colors hover:text-warning-600 dark:text-warning-400 dark:hover:text-warning-500"
+                      title="Edit"
+                      type="button"
+                    >
+                      <PencilIcon className="h-5 w-5 fill-current" />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteClick(row)}
+                      className="text-error-500 transition-colors hover:text-error-600 dark:text-error-400 dark:hover:text-error-500"
+                      title="Delete"
+                      type="button"
+                    >
+                      <TrashBinIcon className="h-5 w-5 fill-current" />
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]
+        : []),
     ],
-    [handleDeleteClick, handleShowParameters, handleUpdate]
+    [canDelete, canEdit, handleDeleteClick, handleShowParameters, handleUpdate]
   );
 
   const selectedParameters = parameterProcess?.parameters ?? [];
@@ -272,7 +286,7 @@ export default function ProcessTable() {
               <option value="false">Inactive</option>
             </select>
 
-            <CreateButton onClick={handleCreate} />
+            {canCreate && <CreateButton onClick={handleCreate} />}
           </div>
         }
         columns={columns}
@@ -290,23 +304,27 @@ export default function ProcessTable() {
         searchValue={query.search}
       />
 
-      <ProcessModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={refetch}
-        process={selectedProcess}
-      />
+      {(canCreate || canEdit) && (
+        <ProcessModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={refetch}
+          process={selectedProcess}
+        />
+      )}
 
-      <ConfirmModal
-        isOpen={isDeleteModalOpen}
-        onClose={closeDeleteModal}
-        onConfirm={confirmDelete}
-        title="Delete Process"
-        message={`Are you sure you want to delete process "${processToDelete?.name}"?`}
-        confirmText="Delete"
-        isDestructive={true}
-        isLoading={isDeleting}
-      />
+      {canDelete && (
+        <ConfirmModal
+          isOpen={isDeleteModalOpen}
+          onClose={closeDeleteModal}
+          onConfirm={confirmDelete}
+          title="Delete Process"
+          message={`Are you sure you want to delete process "${processToDelete?.name}"?`}
+          confirmText="Delete"
+          isDestructive={true}
+          isLoading={isDeleting}
+        />
+      )}
 
       <Modal
         isOpen={Boolean(parameterProcess)}
