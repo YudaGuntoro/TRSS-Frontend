@@ -27,6 +27,9 @@ type IssueFormRow = {
 const inputClassName =
   "h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 
+const SERIAL_NUMBER_SCAN_DEBOUNCE_MS = 300;
+const REWORK_SOURCE_TRACEABILITY_STATUS = false;
+
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
@@ -43,7 +46,7 @@ const mapIssueRows = (issues: TraceabilityLogIssueItem[]): IssueFormRow[] =>
     partName: issue.partName ?? undefined,
     partNumber: issue.partNumber ?? undefined,
     note: "",
-    status: false,
+    status: true,
   }));
 
 export default function StockInReworkModal({
@@ -57,7 +60,7 @@ export default function StockInReworkModal({
     getSerialNumberCodeFromInput(serialNumberCode);
   const debouncedSerialNumberCode = useDebouncedValue(
     normalizedSerialNumberCode,
-    300
+    SERIAL_NUMBER_SCAN_DEBOUNCE_MS
   );
   const [loadedSerialNumberCode, setLoadedSerialNumberCode] = useState("");
   const [issueRows, setIssueRows] = useState<IssueFormRow[]>([]);
@@ -93,7 +96,7 @@ export default function StockInReworkModal({
 
     TraceabilityLogService.getTraceabilityLogIssuesBySerialNumber(
       debouncedSerialNumberCode,
-      false,
+      REWORK_SOURCE_TRACEABILITY_STATUS,
       {
         signal: controller.signal,
       }
@@ -109,6 +112,7 @@ export default function StockInReworkModal({
         }
 
         setLoadedSerialNumberCode(result.data.serialNumber);
+        setSerialNumberCode(debouncedSerialNumberCode);
         setIssueRows(mapIssueRows(result.data.issues));
       })
       .catch((error: unknown) => {
@@ -292,7 +296,7 @@ export default function StockInReworkModal({
             <div className="space-y-3">
               {issueRows.map((row, index) => (
                 <div
-                  className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 md:grid-cols-[1.2fr_1.2fr_120px_1fr]"
+                  className="grid gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 md:grid-cols-[1.2fr_1.2fr_150px_1fr]"
                   key={row.id}
                 >
                   <div>
@@ -319,8 +323,31 @@ export default function StockInReworkModal({
                     <label className="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
                       Status
                     </label>
-                    <div className="flex h-10 items-center rounded-lg border border-error-200 bg-error-50 px-3 text-sm font-semibold text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400">
-                      NG
+                    <div className="grid h-10 grid-cols-2 overflow-hidden rounded-lg border border-gray-300 bg-white text-sm font-semibold dark:border-gray-700 dark:bg-gray-900">
+                      <button
+                        className={`transition-colors ${
+                          row.status
+                            ? "bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400"
+                            : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                        }`}
+                        disabled={isSubmitting}
+                        onClick={() => handleIssueChange(row.id, "status", true)}
+                        type="button"
+                      >
+                        OK
+                      </button>
+                      <button
+                        className={`border-l border-gray-300 transition-colors dark:border-gray-700 ${
+                          !row.status
+                            ? "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400"
+                            : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                        }`}
+                        disabled={isSubmitting}
+                        onClick={() => handleIssueChange(row.id, "status", false)}
+                        type="button"
+                      >
+                        NG
+                      </button>
                     </div>
                   </div>
 

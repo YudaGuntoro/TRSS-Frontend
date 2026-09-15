@@ -373,7 +373,7 @@ function QualityDistributionChart({
       mode: chartTheme.mode,
     },
     tooltip: {
-      theme: chartTheme.tooltip,
+      enabled: false,
     },
   };
 
