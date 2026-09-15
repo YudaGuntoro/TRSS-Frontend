@@ -32,6 +32,7 @@ export default function ParameterModal({
     name: "",
     description: "",
     dataType: "text",
+    typeValue: "value",
     order: 0,
     isActive: true,
   });
@@ -45,6 +46,7 @@ export default function ParameterModal({
           name: parameter.name || "",
           description: parameter.description || "",
           dataType: normalizeDataType(parameter.dataType),
+          typeValue: parameter.typeValue || "value",
           order: parameter.order ?? 0,
           isActive: parameter.isActive ?? true,
         });
@@ -54,6 +56,7 @@ export default function ParameterModal({
           name: "",
           description: "",
           dataType: "text",
+          typeValue: "value",
           order: 0,
           isActive: true,
         });
@@ -176,7 +179,21 @@ export default function ParameterModal({
           >
             <option value="text">Text</option>
             <option value="number">Number</option>
-            <option value="boolean">Boolean</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Type Value
+          </label>
+          <select
+            name="typeValue"
+            value={formData.typeValue}
+            onChange={handleChange}
+            className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+          >
+            <option value="value">Value (Default)</option>
+            <option value="ok_ng">OK / NG</option>
           </select>
         </div>
 

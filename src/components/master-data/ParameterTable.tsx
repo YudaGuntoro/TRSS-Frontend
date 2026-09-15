@@ -48,6 +48,20 @@ const baseColumns: DataTableColumn<Parameter>[] = [
     ),
   },
   {
+    key: "typeValue",
+    header: "Type Value",
+    render: (value) => {
+      const valStr = typeof value === "string" ? value.toLowerCase() : "value";
+      return valStr === "ok_ng" ? (
+        <Badge color="primary" size="sm">
+          OK / NG
+        </Badge>
+      ) : (
+        <span className="text-gray-600 dark:text-gray-400 capitalize">Value</span>
+      );
+    },
+  },
+  {
     key: "isActive",
     header: "Status",
     render: (value) => (

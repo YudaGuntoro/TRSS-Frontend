@@ -45,23 +45,22 @@ const getBooleanValue = (value: unknown): boolean | null => {
   return null;
 };
 
+const isItemFailed = (value: unknown, status?: boolean | null): boolean => {
+  if (status === false) return true;
+  if (status === true) return false;
+  if (value === false) return true;
+  if (typeof value === "string") {
+    const s = value.trim().toLowerCase();
+    if (["ng", "false", "rejected", "error", "err", "fail", "failed"].includes(s)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const formatSingleValue = (value: unknown): string => {
   if (value === null || value === undefined || value === "") return "-";
-
-  const boolVal = getBooleanValue(value);
-  if (typeof boolVal === "boolean") {
-    if (typeof value === "string" && ["on", "off"].includes(value.trim().toLowerCase())) {
-      return value.toUpperCase();
-    }
-    return boolVal ? "OK" : "NG";
-  }
-
-  if (typeof value === "number") {
-    return new Intl.NumberFormat("en-US", {
-      maximumFractionDigits: 4,
-    }).format(value);
-  }
-
+  if (typeof value === "boolean") return value ? "true" : "false";
   return String(value);
 };
 
@@ -370,22 +369,22 @@ function ProcessSectionRow({
         <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
           {parameters.map((param, i) => {
             const isArray = Array.isArray(param.value);
-            const isFailed = param.status === false;
+            const isFailed = isItemFailed(param.value, param.status);
 
             return (
               <div
                 key={`${param.parameter}-${i}`}
-                className={`min-w-0 overflow-hidden rounded-lg border p-2.5 text-center transition-all ${
+                className={`min-w-0 overflow-hidden rounded-lg p-2.5 text-center transition-all ${
                   isFailed
-                    ? "border-rose-200 bg-rose-50/60 dark:border-rose-500/30 dark:bg-rose-500/10"
-                    : "border-gray-200 bg-white hover:border-brand-300 dark:border-gray-800 dark:bg-gray-900"
+                    ? "border-2 border-red-500 bg-red-50/70 shadow-sm shadow-red-500/10 dark:border-red-500/80 dark:bg-red-950/30"
+                    : "border border-gray-200 bg-white hover:border-brand-300 dark:border-gray-800 dark:bg-gray-900"
                 }`}
               >
                 <div className="flex min-h-9 items-start justify-center">
                   <span
                     className={`block max-h-9 max-w-full overflow-hidden break-words text-[10px] font-medium leading-[18px] ${
                       isFailed
-                        ? "text-rose-800 dark:text-rose-300"
+                        ? "text-red-800 dark:text-red-300"
                         : "text-gray-600 dark:text-gray-400"
                     }`}
                     title={param.parameterDesc || param.parameter}
@@ -401,7 +400,7 @@ function ProcessSectionRow({
                       className={`inline-flex h-7 min-w-0 max-w-full items-center justify-center gap-1.5 rounded-md border px-2 font-mono text-xs font-bold transition-all hover:scale-[1.02] ${
                         !isFailed
                           ? "border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-300"
-                          : "border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/20 dark:text-rose-300"
+                          : "border-2 border-red-500 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-500/80 dark:bg-red-900/40 dark:text-red-300"
                       }`}
                       type="button"
                     >
@@ -417,7 +416,7 @@ function ProcessSectionRow({
                     <span
                       className={`font-mono text-xs font-bold truncate ${
                         isFailed
-                          ? "text-rose-600 dark:text-rose-400"
+                          ? "text-red-600 dark:text-red-400"
                           : "text-gray-900 dark:text-white"
                       }`}
                       title={formatSingleValue(param.value)}
@@ -440,29 +439,6 @@ function ProcessSectionRow({
   );
 }
 
-const getCheckPointInfo = (
-  value: unknown
-): { label: string; isPassed: boolean; statusText: string } => {
-  const s = String(value ?? "").trim().toLowerCase();
-  if (s === "1" || s === "ok" || s === "true" || s === "1.0" || s === "1.00") {
-    return { label: "1", isPassed: true, statusText: "OK" };
-  }
-  if (s === "2" || s === "ng") {
-    return { label: "2", isPassed: false, statusText: "NG" };
-  }
-  if (
-    s === "0" ||
-    s === "error" ||
-    s === "err" ||
-    s === "fail" ||
-    s === "0.0" ||
-    s === "0.00"
-  ) {
-    return { label: "0", isPassed: false, statusText: "ERROR" };
-  }
-  return { label: String(value ?? "-"), isPassed: false, statusText: "NG" };
-};
-
 function ArrayPointsModal({
   data,
   onClose,
@@ -470,14 +446,8 @@ function ArrayPointsModal({
   data: ArrayPointModalState;
   onClose: () => void;
 }) {
-  const isCheckPoint =
-    data.parameter.toUpperCase().includes("CHECK_POINT") ||
-    (data.parameterDesc || "").toLowerCase().includes("check point");
-
   const points = data.values;
-  const passedCount = isCheckPoint
-    ? points.filter((p) => getCheckPointInfo(p).isPassed).length
-    : points.filter((p) => getBooleanValue(p) !== false).length;
+  const passedCount = points.filter((p) => !isItemFailed(p, data.status)).length;
   const rejectedCount = points.length - passedCount;
 
   return (
@@ -493,7 +463,7 @@ function ArrayPointsModal({
             className={`rounded-full border px-3 py-0.5 text-xs font-bold uppercase ${
               rejectedCount === 0
                 ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-300"
-                : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-300"
+                : "border-2 border-red-500 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-300"
             }`}
           >
             {points.length} Points ({passedCount} OK / {rejectedCount} NG)
@@ -504,27 +474,28 @@ function ArrayPointsModal({
       <div className="max-h-[65vh] overflow-y-auto bg-gray-50 p-6 dark:bg-gray-950">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {points.map((value, index) => {
-            const cpInfo = isCheckPoint ? getCheckPointInfo(value) : null;
-            const isPassed = cpInfo ? cpInfo.isPassed : getBooleanValue(value) !== false;
-            const displayLabel = cpInfo
-              ? `${cpInfo.label} (${cpInfo.statusText})`
-              : formatSingleValue(value);
+            const isFailed = isItemFailed(value, data.status);
+            const displayLabel = formatSingleValue(value);
 
             return (
               <div
                 key={index}
-                className={`rounded-lg border bg-white p-2.5 text-center transition-all dark:bg-gray-900 ${
-                  isPassed
-                    ? "border-gray-200 hover:border-brand-300 dark:border-gray-800"
-                    : "border-error-300 bg-error-50/50 dark:border-error-500/40 dark:bg-error-500/10"
+                className={`rounded-lg p-2.5 text-center transition-all ${
+                  !isFailed
+                    ? "border border-gray-200 bg-white hover:border-brand-300 dark:border-gray-800 dark:bg-gray-900"
+                    : "border-2 border-red-500 bg-red-50/80 shadow-sm shadow-red-500/10 dark:border-red-500 dark:bg-red-950/40"
                 }`}
               >
-                <span className="font-mono text-[10px] font-semibold text-gray-400 block">
+                <span
+                  className={`block font-mono text-[10px] font-semibold ${
+                    !isFailed ? "text-gray-400" : "text-red-400"
+                  }`}
+                >
                   P-{String(index + 1).padStart(2, "0")}
                 </span>
                 <p
                   className={`mt-1 font-mono text-xs font-bold ${
-                    isPassed ? "text-gray-900 dark:text-white" : "text-error-600 dark:text-error-400"
+                    !isFailed ? "text-gray-900 dark:text-white" : "text-red-600 dark:text-red-400"
                   }`}
                 >
                   {displayLabel}
