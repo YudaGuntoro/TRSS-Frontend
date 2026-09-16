@@ -1,6 +1,7 @@
 "use client";
 
 import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
+import CreateButton from "@/components/common/CreateButton";
 import DataTable, { DataTableColumn } from "@/components/common/DataTable";
 import { ConfirmModal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
@@ -70,6 +71,7 @@ const baseColumns: DataTableColumn<AppConfig>[] = [
 export default function AppConfigTable() {
   const toast = useToast();
   const { can } = useAuth();
+  const canCreate = can(PERMISSIONS.APP_CONFIGURATION_CREATE);
   const canEdit = can(PERMISSIONS.APP_CONFIGURATION_EDIT);
   const canDelete = can(PERMISSIONS.APP_CONFIGURATION_DELETE);
   const lastErrorRef = useRef<string | null>(null);
@@ -105,6 +107,11 @@ export default function AppConfigTable() {
       message: error,
     });
   }, [error, toast]);
+
+  const handleCreate = () => {
+    setSelectedConfig(null);
+    setIsModalOpen(true);
+  };
 
   const handleUpdate = useCallback((appConfig: AppConfig) => {
     setSelectedConfig(appConfig);
@@ -189,6 +196,13 @@ export default function AppConfigTable() {
   return (
     <>
       <DataTable
+        actions={
+          canCreate ? (
+            <CreateButton onClick={handleCreate}>
+              Add Configuration
+            </CreateButton>
+          ) : null
+        }
         columns={columns}
         data={data}
         emptyMessage="No app configurations found"
@@ -204,7 +218,7 @@ export default function AppConfigTable() {
         searchValue={query.search}
       />
 
-      {canEdit && (
+      {(canCreate || canEdit) && (
         <AppConfigModal
           appConfig={selectedConfig}
           isOpen={isModalOpen}

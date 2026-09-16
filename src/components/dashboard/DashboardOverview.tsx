@@ -243,6 +243,7 @@ function ProductionTrendChart({
       axisTicks: { color: chartTheme.grid },
       categories,
       labels: {
+        hideOverlappingLabels: true,
         style: { colors: chartTheme.text, fontSize: "12px" },
       },
     },
@@ -278,16 +279,15 @@ function ProductionTrendChart({
       {isLoading ? (
         <LoadingBlock className="h-[310px]" />
       ) : (
-        <div className="max-w-full overflow-x-auto">
-          <div className="min-w-[720px] xl:min-w-full">
-            <Chart
-              key={chartKey}
-              height={310}
-              options={options}
-              series={[{ data: seriesData, name: "Production" }]}
-              type="line"
-            />
-          </div>
+        <div className="w-full">
+          <Chart
+            key={chartKey}
+            height={310}
+            options={options}
+            series={[{ data: seriesData, name: "Production" }]}
+            type="line"
+            width="100%"
+          />
         </div>
       )}
     </div>
@@ -390,6 +390,10 @@ function QualityDistributionChart({
 
       {isLoading ? (
         <LoadingBlock className="mt-5 h-[260px]" />
+      ) : data.length === 0 || total === 0 ? (
+        <div className="mt-5 flex h-[260px] items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 dark:border-[#3a3d58] dark:bg-[#1b1d31] dark:text-[#8f93ad]">
+          No production data
+        </div>
       ) : (
         <Chart
           height={260}

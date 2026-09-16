@@ -41,6 +41,7 @@ export const PERMISSIONS = {
   USERS_EDIT: "users.edit",
   USERS_DELETE: "users.delete",
   APP_CONFIGURATION_VIEW: "app-configuration.view",
+  APP_CONFIGURATION_CREATE: "app-configuration.create",
   APP_CONFIGURATION_EDIT: "app-configuration.edit",
   APP_CONFIGURATION_DELETE: "app-configuration.delete",
   MQTT_LOGS_VIEW: "mqtt-logs.view",
@@ -95,6 +96,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [PERMISSIONS.USERS_EDIT]: "User Edit",
   [PERMISSIONS.USERS_DELETE]: "User Delete",
   [PERMISSIONS.APP_CONFIGURATION_VIEW]: "App Configuration View",
+  [PERMISSIONS.APP_CONFIGURATION_CREATE]: "App Configuration Create",
   [PERMISSIONS.APP_CONFIGURATION_EDIT]: "App Configuration Edit",
   [PERMISSIONS.APP_CONFIGURATION_DELETE]: "App Configuration Delete",
   [PERMISSIONS.MQTT_LOGS_VIEW]: "MQTT Log View",
@@ -134,6 +136,7 @@ export const ALL_ROLE_PERMISSIONS: Permission[] = [
   PERMISSIONS.USERS_DELETE,
   PERMISSIONS.SYSTEM_LOGS_VIEW,
   PERMISSIONS.APP_CONFIGURATION_VIEW,
+  PERMISSIONS.APP_CONFIGURATION_CREATE,
   PERMISSIONS.APP_CONFIGURATION_EDIT,
   PERMISSIONS.APP_CONFIGURATION_DELETE,
 ];

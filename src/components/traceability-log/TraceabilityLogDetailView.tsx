@@ -24,38 +24,88 @@ type ArrayPointModalState = {
 };
 
 
-const getBooleanValue = (value: unknown): boolean | null => {
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") {
-    if (value === 0) return false;
-    if (value > 0) return true;
-    return null;
+const isOkNgValue = (value: unknown): boolean => {
+  if (typeof value === "boolean") return true;
+  if (typeof value === "string") {
+    const s = value.trim().toLowerCase();
+    return [
+      "ok",
+      "ng",
+      "true",
+      "false",
+      "passed",
+      "rejected",
+      "error",
+      "err",
+      "fail",
+      "failed",
+    ].includes(s);
   }
-  if (typeof value !== "string") return null;
-
-  const normalized = value.trim().toLowerCase();
-  if (["false", "ng", "rejected", "0", "0.0", "0.00", "off"].includes(normalized)) return false;
-  if (["true", "ok", "passed", "1", "2", "1.0", "1.00", "on"].includes(normalized)) return true;
-
-  const num = Number(normalized);
-  if (!Number.isNaN(num)) {
-    return num !== 0;
-  }
-
-  return null;
+  return false;
 };
 
-const isItemFailed = (value: unknown, status?: boolean | null): boolean => {
-  if (status === false) return true;
-  if (status === true) return false;
+const isPointFailed = (value: unknown): boolean => {
   if (value === false) return true;
   if (typeof value === "string") {
     const s = value.trim().toLowerCase();
-    if (["ng", "false", "rejected", "error", "err", "fail", "failed"].includes(s)) {
-      return true;
-    }
+    return ["ng", "false", "rejected", "error", "err", "fail", "failed"].includes(s);
   }
   return false;
+};
+
+const isOkNgArray = (values: unknown[]): boolean => {
+  if (!values || values.length === 0) return false;
+  return values.every((p) => isOkNgValue(p));
+};
+
+const getArrayDisplayValue = (
+  values: unknown[]
+): { text: string; isOkNg: boolean; isFailed: boolean } => {
+  if (!values || values.length === 0) {
+    return { text: "-", isOkNg: false, isFailed: false };
+  }
+
+  const isOkNg = isOkNgArray(values);
+
+  if (isOkNg) {
+    const hasNg = values.some((p) => isPointFailed(p));
+    return {
+      text: hasNg ? "NG" : "OK",
+      isOkNg: true,
+      isFailed: hasNg,
+    };
+  }
+
+  const numericValues = values
+    .map((v) => {
+      if (typeof v === "number") return v;
+      if (typeof v === "string") {
+        const num = Number(v.replace(",", "."));
+        return Number.isNaN(num) ? null : num;
+      }
+      return null;
+    })
+    .filter((v): v is number => v !== null);
+
+  if (numericValues.length > 0) {
+    const sum = numericValues.reduce((acc, curr) => acc + curr, 0);
+    const avg = sum / numericValues.length;
+    const formattedAvg = Number.isInteger(avg)
+      ? avg.toString()
+      : parseFloat(avg.toFixed(2)).toString();
+
+    return {
+      text: formattedAvg,
+      isOkNg: false,
+      isFailed: false,
+    };
+  }
+
+  return {
+    text: `${values.length} Points`,
+    isOkNg: false,
+    isFailed: false,
+  };
 };
 
 const formatSingleValue = (value: unknown): string => {
@@ -338,11 +388,18 @@ function ProcessSectionRow({
   parameters: TraceabilityLogV2Parameter[];
   onOpenArrayPoints: (param: TraceabilityLogV2Parameter) => void;
 }) {
-  const isProcessFailed = parameters.some((p) => p.status === false);
+  const isProcessFailed = parameters.some((p) => {
+    const isArray = Array.isArray(p.value);
+    if (isArray) {
+      const arrayInfo = getArrayDisplayValue(p.value as unknown[]);
+      return arrayInfo.isOkNg && arrayInfo.isFailed;
+    }
+    return isOkNgValue(p.value) && isPointFailed(p.value);
+  });
 
   return (
     <div className="flex flex-col md:flex-row items-stretch border-b border-gray-200 dark:border-gray-800 last:border-b-0">
-      {/* Left Column: Process Label (Stretches full height, soft red if false/failed) */}
+      {/* Left Column: Process Label */}
       <div
         className={`flex flex-row md:flex-col items-center justify-center gap-1.5 md:gap-2 px-4 py-3 md:py-4 shrink-0 md:w-44 lg:w-48 text-center transition-colors border-b md:border-b-0 md:border-r ${
           isProcessFailed
@@ -369,7 +426,18 @@ function ProcessSectionRow({
         <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
           {parameters.map((param, i) => {
             const isArray = Array.isArray(param.value);
-            const isFailed = isItemFailed(param.value, param.status);
+            const arrayInfo = isArray
+              ? getArrayDisplayValue(param.value as unknown[])
+              : null;
+            const isOkNg = isArray
+              ? Boolean(arrayInfo?.isOkNg)
+              : isOkNgValue(param.value);
+
+            const isFailed = isOkNg
+              ? isArray
+                ? Boolean(arrayInfo?.isFailed)
+                : isPointFailed(param.value)
+              : false;
 
             return (
               <div
@@ -394,20 +462,26 @@ function ProcessSectionRow({
                 </div>
 
                 <div className="mt-2 flex min-w-0 items-center justify-center">
-                  {isArray ? (
+                  {isArray && arrayInfo ? (
                     <button
                       onClick={() => onOpenArrayPoints(param)}
-                      className={`inline-flex h-7 min-w-0 max-w-full items-center justify-center gap-1.5 rounded-md border px-2 font-mono text-xs font-bold transition-all hover:scale-[1.02] ${
-                        !isFailed
-                          ? "border-sky-300 bg-sky-50 text-sky-800 hover:bg-sky-100 dark:border-sky-500/40 dark:bg-sky-500/15 dark:text-sky-300"
-                          : "border-2 border-red-500 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-500/80 dark:bg-red-900/40 dark:text-red-300"
+                      className={`inline-flex h-7 min-w-0 max-w-full items-center justify-center gap-1.5 rounded-md border px-2.5 font-mono text-xs font-bold transition-all hover:scale-[1.02] ${
+                        isOkNg
+                          ? isFailed
+                            ? "border-2 border-red-500 bg-red-100 text-red-700 hover:bg-red-200 dark:border-red-500/80 dark:bg-red-900/40 dark:text-red-300"
+                            : "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300"
+                          : "border-gray-200 bg-gray-50 text-gray-800 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-200 dark:hover:bg-gray-800"
                       }`}
+                      title={`Click to view ${(param.value as unknown[]).length} points detail`}
                       type="button"
                     >
                       <span className="truncate">
-                        {(param.value as unknown[]).length} Points
+                        {arrayInfo.text}
                       </span>
-                      <svg className="size-3.5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                      <svg
+                        className="size-3.5 shrink-0 opacity-70 fill-none stroke-current stroke-2"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6Z" />
                         <circle cx="12" cy="12" r="2.5" />
                       </svg>
@@ -415,8 +489,10 @@ function ProcessSectionRow({
                   ) : (
                     <span
                       className={`font-mono text-xs font-bold truncate ${
-                        isFailed
-                          ? "text-red-600 dark:text-red-400"
+                        isOkNg
+                          ? isFailed
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-emerald-600 dark:text-emerald-400"
                           : "text-gray-900 dark:text-white"
                       }`}
                       title={formatSingleValue(param.value)}
@@ -439,6 +515,7 @@ function ProcessSectionRow({
   );
 }
 
+
 function ArrayPointsModal({
   data,
   onClose,
@@ -447,8 +524,13 @@ function ArrayPointsModal({
   onClose: () => void;
 }) {
   const points = data.values;
-  const passedCount = points.filter((p) => !isItemFailed(p, data.status)).length;
-  const rejectedCount = points.length - passedCount;
+  const isOkNgType = isOkNgArray(points);
+
+  const passedCount = isOkNgType
+    ? points.filter((p) => !isPointFailed(p)).length
+    : 0;
+  const rejectedCount = isOkNgType ? points.length - passedCount : 0;
+  const isFailedOverall = isOkNgType && rejectedCount > 0;
 
   return (
     <Modal className="mx-4 max-w-5xl overflow-hidden p-0" isOpen={true} onClose={onClose}>
@@ -461,12 +543,16 @@ function ArrayPointsModal({
           </div>
           <span
             className={`rounded-full border px-3 py-0.5 text-xs font-bold uppercase ${
-              rejectedCount === 0
-                ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-300"
-                : "border-2 border-red-500 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-300"
+              !isOkNgType
+                ? "border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                : !isFailedOverall
+                  ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-300"
+                  : "border-2 border-red-500 bg-red-50 text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-300"
             }`}
           >
-            {points.length} Points ({passedCount} OK / {rejectedCount} NG)
+            {isOkNgType
+              ? `${points.length} Points (${passedCount} OK / ${rejectedCount} NG)`
+              : `${points.length} Points`}
           </span>
         </div>
       </div>
@@ -474,28 +560,39 @@ function ArrayPointsModal({
       <div className="max-h-[65vh] overflow-y-auto bg-gray-50 p-6 dark:bg-gray-950">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {points.map((value, index) => {
-            const isFailed = isItemFailed(value, data.status);
+            const isFailed = isOkNgType && isPointFailed(value);
+            const isOk = isOkNgType && !isFailed;
             const displayLabel = formatSingleValue(value);
 
             return (
               <div
                 key={index}
                 className={`rounded-lg p-2.5 text-center transition-all ${
-                  !isFailed
-                    ? "border border-gray-200 bg-white hover:border-brand-300 dark:border-gray-800 dark:bg-gray-900"
-                    : "border-2 border-red-500 bg-red-50/80 shadow-sm shadow-red-500/10 dark:border-red-500 dark:bg-red-950/40"
+                  isOkNgType
+                    ? isFailed
+                      ? "border-2 border-red-500 bg-red-50/80 shadow-sm shadow-red-500/10 dark:border-red-500 dark:bg-red-950/40"
+                      : "border border-emerald-300 bg-emerald-50/60 dark:border-emerald-500/40 dark:bg-emerald-950/30"
+                    : "border border-gray-200 bg-white hover:border-brand-300 dark:border-gray-800 dark:bg-gray-900"
                 }`}
               >
                 <span
                   className={`block font-mono text-[10px] font-semibold ${
-                    !isFailed ? "text-gray-400" : "text-red-400"
+                    isOkNgType
+                      ? isFailed
+                        ? "text-red-500 dark:text-red-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                      : "text-gray-400 dark:text-gray-500"
                   }`}
                 >
                   P-{String(index + 1).padStart(2, "0")}
                 </span>
                 <p
                   className={`mt-1 font-mono text-xs font-bold ${
-                    !isFailed ? "text-gray-900 dark:text-white" : "text-red-600 dark:text-red-400"
+                    isOkNgType
+                      ? isFailed
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-emerald-700 dark:text-emerald-300"
+                      : "text-gray-900 dark:text-white"
                   }`}
                 >
                   {displayLabel}

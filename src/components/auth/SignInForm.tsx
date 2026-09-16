@@ -7,6 +7,7 @@ import { EyeCloseIcon, EyeIcon, LockIcon, UserIcon } from "@/icons";
 import AuthService from "@/services/AuthService";
 import { ApiError } from "@/utils/api";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -215,7 +216,7 @@ export default function SignInForm() {
                   </button>
                 </div>
               </div>
-              <div className="pt-1">
+              <div className="pt-1 space-y-3">
                 <button
                   className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-[#465FFF] px-4 text-sm font-semibold text-white shadow-theme-md transition-colors hover:bg-[#3641F5] focus:outline-none focus:ring-3 focus:ring-[#465FFF]/20 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isSubmitting}
@@ -223,6 +224,21 @@ export default function SignInForm() {
                 >
                   {isSubmitting ? "Memproses..." : "Login"}
                 </button>
+
+                <div className="text-center pt-2">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center justify-center gap-1.5 text-sm font-medium text-brand-500 hover:text-brand-600 hover:underline dark:text-brand-400 dark:hover:text-brand-300 transition-colors"
+                  >
+                    Without Login
+                    <svg
+                      className="size-4 stroke-current fill-none stroke-2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
               </div>
             </div>
           </form>
