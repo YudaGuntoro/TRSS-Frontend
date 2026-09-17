@@ -561,7 +561,6 @@ function ArrayPointsModal({
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {points.map((value, index) => {
             const isFailed = isOkNgType && isPointFailed(value);
-            const isOk = isOkNgType && !isFailed;
             const displayLabel = formatSingleValue(value);
 
             return (

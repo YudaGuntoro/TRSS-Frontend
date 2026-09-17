@@ -8,7 +8,6 @@ import UserService, {
   UserCreatePayload,
   UserUpdatePayload,
 } from "@/services/UserService";
-import { CheckCircleIcon } from "@/icons";
 import {
   getRolePermissions,
   normalizeRole,
@@ -247,12 +246,11 @@ export default function UserModal({
             {selectedRolePermissions.map((permission) => (
               <div
                 key={permission}
-                className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
+                className="min-w-0 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
               >
-                <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-400">
-                  <CheckCircleIcon className="size-3 fill-current" />
+                <span className="min-w-0 truncate">
+                  {PERMISSION_LABELS[permission]}
                 </span>
-                <span>{PERMISSION_LABELS[permission]}</span>
               </div>
             ))}
           </div>

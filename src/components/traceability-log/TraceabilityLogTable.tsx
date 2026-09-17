@@ -11,11 +11,17 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useTraceabilityLogs } from "@/hooks/useTraceabilityLogs";
+import { TraceabilityLogItem } from "@/services/TraceabilityLogService";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type StatusFilter = "" | "ok" | "ng";
 
+type IssueModalData = {
+  title: string;
+  serialNumber: string;
+  issues: string[];
+};
 
 const toDateFilterValue = (date: Date) => date.toISOString().split("T")[0];
 
@@ -34,11 +40,7 @@ const getPageNumbers = (currentPage: number, totalPage: number) => {
 export default function TraceabilityLogTable() {
   const toast = useToast();
   const router = useRouter();
-  const [issueModal, setIssueModal] = useState<{
-    title: string;
-    serialNumber: string;
-    issues: string[];
-  } | null>(null);
+  const [issueModal, setIssueModal] = useState<IssueModalData | null>(null);
   const lastErrorRef = useRef<string | null>(null);
 
   const [search, setSearch] = useState("");
@@ -119,16 +121,24 @@ export default function TraceabilityLogTable() {
     return <PageLoader />;
   }
 
+  const openDetail = (log: TraceabilityLogItem) => {
+    router.push(
+      `/traceability-log/${encodeURIComponent(
+        log.serialNumberClinching || String(log.id)
+      )}`
+    );
+  };
+
   return (
-    <div className="mx-4 my-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs dark:border-white/[0.05] dark:bg-white/[0.03]">
+    <div className="mx-3 my-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs dark:border-white/[0.05] dark:bg-white/[0.03] sm:mx-4">
       {/* Filter / Controls Header */}
-      <div className="border-b border-gray-100 px-5 py-4 dark:border-white/[0.05]">
+      <div className="border-b border-gray-100 px-4 py-4 dark:border-white/[0.05] sm:px-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              Show
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+            <label className="flex min-w-0 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <span className="shrink-0">Show</span>
               <select
-                className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                className="h-10 min-w-0 flex-1 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:flex-none"
                 onChange={(event) => setLimit(Number(event.target.value))}
                 value={query.limit}
               >
@@ -138,11 +148,11 @@ export default function TraceabilityLogTable() {
                   </option>
                 ))}
               </select>
-              entries
+              <span className="shrink-0">entries</span>
             </label>
 
             <select
-              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm font-medium text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm font-medium text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-auto"
               onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
               value={statusFilter}
             >
@@ -151,7 +161,7 @@ export default function TraceabilityLogTable() {
               <option value="ng">Status NG</option>
             </select>
 
-            <div className="w-[230px]">
+            <div className="min-w-0 sm:col-span-2 lg:w-[230px]">
               <DatePicker
                 className="h-10 px-3 py-2"
                 defaultDate={startDate && endDate ? [startDate, endDate] : startDate}
@@ -180,35 +190,37 @@ export default function TraceabilityLogTable() {
               />
             </div>
 
-            <button
-              aria-label="Refresh traceability logs"
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-              onClick={refetch}
-              title="Refresh"
-              type="button"
-            >
-              <span className="inline-flex size-[18px] items-center justify-center leading-none">
-                <RefreshActionIcon />
-              </span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                aria-label="Refresh traceability logs"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                onClick={refetch}
+                title="Refresh"
+                type="button"
+              >
+                <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                  <RefreshActionIcon />
+                </span>
+              </button>
 
-            <button
-              aria-label="Reset traceability log filters"
-              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-              onClick={resetFilters}
-              title="Reset filters"
-              type="button"
-            >
-              <span className="inline-flex size-[18px] items-center justify-center leading-none">
-                <ResetActionIcon />
-              </span>
-            </button>
+              <button
+                aria-label="Reset traceability log filters"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                onClick={resetFilters}
+                title="Reset filters"
+                type="button"
+              >
+                <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                  <ResetActionIcon />
+                </span>
+              </button>
+            </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            Search
+          <label className="flex min-w-0 flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300 sm:flex-row sm:items-center sm:gap-2">
+            <span className="shrink-0">Search</span>
             <input
-              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-64"
+              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 lg:w-72"
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search serial number"
               value={search}
@@ -217,9 +229,27 @@ export default function TraceabilityLogTable() {
         </div>
       </div>
 
+      <div className="space-y-3 p-3 md:hidden">
+        {data.map((log, index) => (
+          <TraceabilityLogMobileCard
+            index={(currentPage - 1) * currentLimit + index + 1}
+            key={log.id}
+            log={log}
+            onOpenDetail={() => openDetail(log)}
+            onOpenIssues={setIssueModal}
+          />
+        ))}
+
+        {data.length === 0 && (
+          <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-10 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900/50 dark:text-gray-400">
+            {error ?? "No traceability logs found."}
+          </div>
+        )}
+      </div>
+
       {/* Simple Clean Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+      <div className="hidden overflow-x-auto md:block">
+        <table className="min-w-[1120px] w-full text-left text-xs">
           <thead className="bg-[#6D8AF3] text-[11px] font-semibold uppercase text-white">
             <tr>
               <th className="w-12 px-3 py-3 text-center">No</th>
@@ -260,108 +290,43 @@ export default function TraceabilityLogTable() {
                 </td>
 
                 <td className="whitespace-nowrap px-4 py-3">
-                  {(() => {
-                    const issues = log.issueNumbersClinching;
-                    if (!issues || issues.length === 0) {
-                      return <span className="text-gray-400 italic font-normal">-</span>;
+                  <IssuePreview
+                    issues={log.issueNumbersClinching}
+                    onOpen={() =>
+                      setIssueModal({
+                        title: "Clinching Issue Numbers",
+                        serialNumber: log.serialNumberClinching || "-",
+                        issues: log.issueNumbersClinching,
+                      })
                     }
-                    return (
-                      <div className="flex items-center gap-1 whitespace-nowrap">
-                        <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                          {issues[0]}
-                        </span>
-                        {issues.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setIssueModal({
-                                title: "Clinching Issue Numbers",
-                                serialNumber: log.serialNumberClinching || "-",
-                                issues,
-                              })
-                            }
-                            className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-700 hover:bg-brand-100 hover:scale-105 active:scale-95 transition-all cursor-pointer dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
-                            title="Click to view all issues"
-                          >
-                            +{issues.length - 1}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  />
                 </td>
 
                 <td className="whitespace-nowrap px-4 py-3">
-                  {(() => {
-                    const issues = log.issueNumbersMfan;
-                    if (!issues || issues.length === 0) {
-                      return <span className="text-gray-400 italic font-normal">-</span>;
+                  <IssuePreview
+                    issues={log.issueNumbersMfan}
+                    onOpen={() =>
+                      setIssueModal({
+                        title: "M-Fan Issue Numbers",
+                        serialNumber: log.serialNumberMFan || "-",
+                        issues: log.issueNumbersMfan,
+                      })
                     }
-                    return (
-                      <div className="flex items-center gap-1 whitespace-nowrap">
-                        <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                          {issues[0]}
-                        </span>
-                        {issues.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setIssueModal({
-                                title: "M-Fan Issue Numbers",
-                                serialNumber: log.serialNumberMFan || "-",
-                                issues,
-                              })
-                            }
-                            className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-700 hover:bg-brand-100 hover:scale-105 active:scale-95 transition-all cursor-pointer dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
-                            title="Click to view all issues"
-                          >
-                            +{issues.length - 1}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  />
                 </td>
 
                 <td className="px-4 py-3 text-center">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                      log.isFinish
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"
-                        : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"
-                    }`}
-                  >
-                    <span
-                      className={`size-1.5 rounded-full ${
-                        log.isFinish ? "bg-emerald-500" : "bg-amber-500"
-                      }`}
-                    />
-                    {log.isFinish ? "Finished" : "In Progress"}
-                  </span>
+                  <ProgressBadge isFinish={log.isFinish} />
                 </td>
 
                 <td className="px-4 py-3 text-center">
-                  <span
-                    className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                      log.status
-                        ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-400"
-                        : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-400"
-                    }`}
-                  >
-                    {log.status ? "OK" : "NG"}
-                  </span>
+                  <StatusBadge status={log.status} />
                 </td>
 
                 <td className="px-4 py-3 text-center">
                   <button
                     className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-brand-600 shadow-xs transition-colors hover:bg-brand-50 hover:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
-                    onClick={() =>
-                      router.push(
-                        `/traceability-log/${encodeURIComponent(
-                          log.serialNumberClinching || String(log.id)
-                        )}`
-                      )
-                    }
+                    onClick={() => openDetail(log)}
                     type="button"
                   >
                     <svg
@@ -389,13 +354,13 @@ export default function TraceabilityLogTable() {
       </div>
 
       {/* Pagination Footer */}
-      <footer className="flex flex-col gap-3 border-t border-gray-100 px-5 py-4 text-sm text-gray-500 dark:border-white/[0.05] dark:text-gray-400 sm:flex-row sm:items-center sm:justify-between">
-        <span>
+      <footer className="flex flex-col gap-3 border-t border-gray-100 px-4 py-4 text-sm text-gray-500 dark:border-white/[0.05] dark:text-gray-400 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+        <span className="text-center sm:text-left">
           Showing {firstItem} to {lastItem} of {total} entries
         </span>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
           <button
-            className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+            className="h-10 rounded-lg border border-gray-300 px-3 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
             disabled={currentPage <= 1 || isLoading}
             onClick={() => setPage(currentPage - 1)}
             type="button"
@@ -418,7 +383,7 @@ export default function TraceabilityLogTable() {
             </button>
           ))}
           <button
-            className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+            className="h-10 rounded-lg border border-gray-300 px-3 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
             disabled={currentPage >= totalPage || isLoading}
             onClick={() => setPage(currentPage + 1)}
             type="button"
@@ -426,7 +391,7 @@ export default function TraceabilityLogTable() {
             Next
           </button>
           <button
-            className="rounded-lg border border-gray-300 px-3 py-2 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
+            className="hidden h-10 rounded-lg border border-gray-300 px-3 font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 sm:inline-flex sm:items-center"
             disabled={currentPage >= totalPage || isLoading}
             onClick={() => setPage(totalPage)}
             type="button"
@@ -446,11 +411,161 @@ export default function TraceabilityLogTable() {
   );
 }
 
+function TraceabilityLogMobileCard({
+  index,
+  log,
+  onOpenDetail,
+  onOpenIssues,
+}: {
+  index: number;
+  log: TraceabilityLogItem;
+  onOpenDetail: () => void;
+  onOpenIssues: (data: IssueModalData) => void;
+}) {
+  return (
+    <article
+      className={`rounded-lg border p-3.5 shadow-xs ${
+        log.status
+          ? "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950"
+          : "border-error-200 bg-error-50/40 dark:border-error-500/30 dark:bg-error-500/[0.06]"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+              #{index}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {formatDate(log.createdAt)}
+            </span>
+          </div>
+          <p className="mt-2 truncate font-mono text-sm font-bold text-brand-600 dark:text-brand-300">
+            {log.serialNumberClinching || "-"}
+          </p>
+          <p className="mt-0.5 truncate font-mono text-xs text-gray-600 dark:text-gray-300">
+            {log.serialNumberMFan || "M-Fan: -"}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <StatusBadge status={log.status} />
+          <ProgressBadge isFinish={log.isFinish} />
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 rounded-lg border border-gray-100 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-900/50">
+        <div className="min-w-0">
+          <p className="mb-1 text-[11px] font-semibold uppercase text-gray-400">
+            Issue Clinching
+          </p>
+          <IssuePreview
+            issues={log.issueNumbersClinching}
+            onOpen={() =>
+              onOpenIssues({
+                title: "Clinching Issue Numbers",
+                serialNumber: log.serialNumberClinching || "-",
+                issues: log.issueNumbersClinching,
+              })
+            }
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="mb-1 text-[11px] font-semibold uppercase text-gray-400">
+            Issue M-Fan
+          </p>
+          <IssuePreview
+            issues={log.issueNumbersMfan}
+            onOpen={() =>
+              onOpenIssues({
+                title: "M-Fan Issue Numbers",
+                serialNumber: log.serialNumberMFan || "-",
+                issues: log.issueNumbersMfan,
+              })
+            }
+          />
+        </div>
+      </div>
+
+      <button
+        className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-3 text-xs font-semibold text-brand-600 shadow-xs transition-colors hover:border-brand-300 hover:bg-brand-50 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-300 dark:hover:bg-brand-500/10"
+        onClick={onOpenDetail}
+        type="button"
+      >
+        Detail
+      </button>
+    </article>
+  );
+}
+
+function IssuePreview({
+  issues,
+  onOpen,
+}: {
+  issues: string[];
+  onOpen: () => void;
+}) {
+  if (!issues || issues.length === 0) {
+    return <span className="text-gray-400 italic font-normal">-</span>;
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-1 whitespace-nowrap">
+      <span className="inline-flex min-w-0 max-w-full items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+        <span className="truncate">{issues[0]}</span>
+      </span>
+      {issues.length > 1 && (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex shrink-0 items-center rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-700 transition-all hover:scale-105 hover:bg-brand-100 active:scale-95 dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
+          title="Click to view all issues"
+        >
+          +{issues.length - 1}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ProgressBadge({ isFinish }: { isFinish: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+        isFinish
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"
+          : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"
+      }`}
+    >
+      <span
+        className={`size-1.5 rounded-full ${
+          isFinish ? "bg-emerald-500" : "bg-amber-500"
+        }`}
+      />
+      {isFinish ? "Finished" : "In Progress"}
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status: boolean }) {
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+        status
+          ? "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/15 dark:text-success-400"
+          : "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/15 dark:text-error-400"
+      }`}
+    >
+      {status ? "OK" : "NG"}
+    </span>
+  );
+}
+
 function IssueListModal({
   data,
   onClose,
 }: {
-  data: { title: string; serialNumber: string; issues: string[] };
+  data: IssueModalData;
   onClose: () => void;
 }) {
   return (

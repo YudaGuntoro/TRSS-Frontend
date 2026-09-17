@@ -15,7 +15,7 @@ export default function CreateButton({
   return (
     <button
       className={twMerge(
-        "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#6D8AF3] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#5f7eea] focus:outline-none focus:ring-3 focus:ring-[#6D8AF3]/25 disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#6D8AF3] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#5f7eea] focus:outline-none focus:ring-3 focus:ring-[#6D8AF3]/25 disabled:cursor-not-allowed disabled:opacity-60",
         className
       )}
       type={type}
@@ -24,7 +24,7 @@ export default function CreateButton({
       <span className="inline-flex size-4 shrink-0 items-center justify-center leading-none">
         <PlusIcon className="block size-4" />
       </span>
-      <span className="leading-none">{children}</span>
+      <span className="whitespace-nowrap leading-none">{children}</span>
     </button>
   );
 }

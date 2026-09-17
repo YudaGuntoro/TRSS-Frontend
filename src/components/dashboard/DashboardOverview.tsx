@@ -497,12 +497,12 @@ function TotalQualityPanel({
   summary?: DashboardPeriodSummary;
 }) {
   return (
-    <div className="grid h-full grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className={`${dashboardPanel} ${overviewBorder.teal} p-5`}>
-        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#008a3d]/10 text-[#008a3d] ring-1 ring-[#008a3d]/25 dark:text-[#22c55e] dark:ring-[#22c55e]/25">
+    <div className="grid h-full grid-cols-2 gap-3 sm:gap-4">
+      <div className={`${dashboardPanel} ${overviewBorder.teal} p-4 sm:p-5`}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#008a3d]/10 text-[#008a3d] ring-1 ring-[#008a3d]/25 dark:text-[#22c55e] dark:ring-[#22c55e]/25 sm:h-11 sm:w-11">
           <svg
             aria-hidden="true"
-            className="block size-5"
+            className="block size-4 sm:size-5"
             fill="none"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -523,17 +523,17 @@ function TotalQualityPanel({
             />
           </svg>
         </div>
-        <p className={`mt-5 text-sm font-semibold ${okText}`}>Total OK</p>
-        <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
+        <p className={`mt-4 text-xs font-semibold sm:text-sm ${okText}`}>Total OK</p>
+        <h3 className="mt-1.5 text-2xl font-semibold text-gray-900 dark:text-white sm:text-3xl">
           {isLoading ? "-" : formatNumber(summary?.okCount)}
         </h3>
       </div>
 
-      <div className={`${dashboardPanel} ${overviewBorder.pink} p-5`}>
-        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#d00000]/10 text-[#d00000] ring-1 ring-[#d00000]/25 dark:text-[#ff3b30] dark:ring-[#ff3b30]/25">
+      <div className={`${dashboardPanel} ${overviewBorder.pink} p-4 sm:p-5`}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#d00000]/10 text-[#d00000] ring-1 ring-[#d00000]/25 dark:text-[#ff3b30] dark:ring-[#ff3b30]/25 sm:h-11 sm:w-11">
           <svg
             aria-hidden="true"
-            className="block size-5"
+            className="block size-4 sm:size-5"
             fill="none"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -561,23 +561,23 @@ function TotalQualityPanel({
             />
           </svg>
         </div>
-        <p className={`mt-5 text-sm font-semibold ${ngText}`}>Total NG</p>
-        <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
+        <p className={`mt-4 text-xs font-semibold sm:text-sm ${ngText}`}>Total NG</p>
+        <h3 className="mt-1.5 text-2xl font-semibold text-gray-900 dark:text-white sm:text-3xl">
           {isLoading ? "-" : formatNumber(summary?.ngCount)}
         </h3>
       </div>
 
-      <div className={`${dashboardPanel} ${overviewBorder.blue} p-5 sm:col-span-2`}>
+      <div className={`${dashboardPanel} ${overviewBorder.blue} col-span-2 p-4 sm:p-5`}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#0868c7] dark:text-[#8bc9ff]">
               Overall Yield Rate
             </p>
-            <h3 className="mt-2 text-4xl font-semibold text-gray-900 dark:text-white">
+            <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white sm:text-4xl">
               {isLoading ? "-" : formatPercent(summary?.yieldRate)}
             </h3>
           </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#1488ff]/10 text-[#1488ff] ring-1 ring-[#1488ff]/20 dark:bg-[#1488ff]/12 dark:text-[#60b8ff] dark:ring-[#1488ff]/25">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#1488ff]/10 text-[#1488ff] ring-1 ring-[#1488ff]/20 dark:bg-[#1488ff]/12 dark:text-[#60b8ff] dark:ring-[#1488ff]/25 sm:h-11 sm:w-11">
             <svg
               aria-hidden="true"
               className="block size-5"
@@ -609,7 +609,7 @@ function TotalQualityPanel({
             </svg>
           </div>
         </div>
-        <div className="mt-6 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-[#171829]">
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-[#171829]">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#1488ff] via-[#4ceac6] to-[#ffb31a]"
             style={{ width: `${Math.min(100, summary?.yieldRate ?? 0)}%` }}
@@ -656,21 +656,37 @@ function RecentLogsTable({
     <div
       className={`${dashboardPanel} ${overviewBorder.blue} overflow-hidden px-4 pb-4 pt-5 sm:px-5`}
     >
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">
             Recent Traceability Logs
           </h3>
-          <p className={`mt-1 text-sm ${mutedText}`}>
+          <p className={`mt-1 text-xs sm:text-sm ${mutedText}`}>
             Latest traceability log activity
           </p>
         </div>
-        <span className="inline-flex w-fit items-center rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-3 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]">
+        <span className="inline-flex shrink-0 items-center rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-2.5 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff] sm:px-3">
           {data.length} logs
         </span>
       </div>
 
-      <div className="max-w-full overflow-x-auto rounded-md border border-gray-200 bg-white dark:border-[#34374f] dark:bg-[#1b1d31]">
+      <div className="space-y-3 md:hidden">
+        {isLoading &&
+          Array.from({ length: 3 }).map((_, index) => (
+            <LoadingBlock className="h-28" key={index} />
+          ))}
+
+        {!isLoading &&
+          data.map((log) => <RecentLogMobileCard key={log.id} log={log} />)}
+
+        {!isLoading && data.length === 0 && (
+          <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500 dark:border-[#3a3d58] dark:bg-[#1b1d31] dark:text-[#8f93ad]">
+            No recent traceability logs found
+          </div>
+        )}
+      </div>
+
+      <div className="hidden max-w-full overflow-x-auto rounded-md border border-gray-200 bg-white dark:border-[#34374f] dark:bg-[#1b1d31] md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -815,6 +831,86 @@ function RecentLogsTable({
               ))}
           </TableBody>
         </Table>
+      </div>
+    </div>
+  );
+}
+
+function RecentLogMobileCard({ log }: { log: DashboardRecentLog }) {
+  const clinchingIssues = getLogIssueNumbers(log, "Clinching");
+  const mfanIssues = getLogIssueNumbers(log, "M-Fan");
+  const status = getLogStatus(log);
+
+  return (
+    <article className="rounded-md border border-gray-200 bg-white p-3 dark:border-[#34374f] dark:bg-[#1b1d31]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-mono text-sm font-semibold text-gray-900 dark:text-white">
+            {log.serialNumberClinching ?? log.serialNumberCode ?? "-"}
+          </p>
+          <p className="mt-0.5 truncate font-mono text-xs text-gray-500 dark:text-[#8f93ad]">
+            M-Fan: {log.serialNumberMFan ?? "-"}
+          </p>
+        </div>
+        <span
+          className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+            status === "OK" || status === "Active"
+              ? "bg-[#008a3d]/10 text-[#008a3d] dark:text-[#22c55e]"
+              : "bg-[#d00000]/10 text-[#d00000] dark:text-[#ff3b30]"
+          }`}
+        >
+          {status}
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 rounded-md bg-gray-50 p-3 dark:bg-[#22243a]">
+        <IssueSummary label="Issue Clinching" issues={clinchingIssues} tone="blue" />
+        <IssueSummary label="Issue M-Fan" issues={mfanIssues} tone="teal" />
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-[10px] font-semibold uppercase text-gray-400">
+            Created
+          </span>
+          <span className="truncate font-mono text-xs font-semibold text-gray-800 dark:text-[#c7cceb]">
+            {formatDate(log.createdAt)}
+          </span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function IssueSummary({
+  issues,
+  label,
+  tone,
+}: {
+  issues: string[];
+  label: string;
+  tone: "blue" | "teal";
+}) {
+  const chipClass =
+    tone === "blue"
+      ? "border-[#1488ff]/25 bg-[#1488ff]/10 text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]"
+      : "border-[#4ceac6]/25 bg-[#4ceac6]/10 text-[#087866] dark:border-[#4ceac6]/30 dark:text-[#8ff5df]";
+
+  return (
+    <div className="min-w-0">
+      <p className="mb-1 text-[10px] font-semibold uppercase text-gray-400">
+        {label}
+      </p>
+      <div className="flex min-w-0 flex-wrap gap-1">
+        {issues.length > 0 ? (
+          issues.map((issue) => (
+            <span
+              className={`inline-flex max-w-full rounded-full border px-2 py-0.5 font-mono text-[11px] font-semibold ${chipClass}`}
+              key={issue}
+            >
+              <span className="truncate">{issue}</span>
+            </span>
+          ))
+        ) : (
+          <span className="text-xs text-gray-500 dark:text-[#8f93ad]">-</span>
+        )}
       </div>
     </div>
   );

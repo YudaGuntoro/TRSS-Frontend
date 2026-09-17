@@ -50,16 +50,19 @@ function HeaderMqttStatus() {
 
   return (
     <div
-      className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
+      className="flex h-9 min-w-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-2.5 text-[11px] font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400 sm:h-10 sm:px-3 sm:text-xs"
       title={`MQTT: ${mqttStatus.status} (${brokerLabel})`}
     >
       <span className={`size-2 shrink-0 rounded-full ${dotClasses}`} />
       <span className="sr-only">{label}</span>
-      <span className="whitespace-nowrap">
+      <span className="whitespace-nowrap xl:hidden">
+        API/MQTT {formatTime(mqttStatus.mqttUpdatedAt)}
+      </span>
+      <span className="hidden whitespace-nowrap xl:inline">
         API {formatTime(mqttStatus.apiUpdatedAt)}
       </span>
-      <span className="text-gray-300 dark:text-gray-700">|</span>
-      <span className="whitespace-nowrap">
+      <span className="hidden text-gray-300 dark:text-gray-700 xl:inline">|</span>
+      <span className="hidden whitespace-nowrap xl:inline">
         MQTT {formatTime(mqttStatus.mqttUpdatedAt)}
       </span>
     </div>
@@ -122,17 +125,18 @@ function HeaderPrinterStatus() {
 
   return (
     <div
-      className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 text-[11px] font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400 xl:gap-2 xl:px-3 xl:text-xs"
+      className="flex h-9 min-w-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 text-[11px] font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400 sm:h-10 xl:gap-2 xl:px-3 xl:text-xs"
       title={`Printer: ${printerSummary}`}
     >
       <span
         className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold xl:text-xs ${statusClasses}`}
       >
         <span className={`h-2 w-2 rounded-full ${dotClasses}`} />
-        Printer {label}
+        <span className="xl:hidden">Printer {onlineCount}/{totalCount || 0}</span>
+        <span className="hidden xl:inline">Printer {label}</span>
       </span>
-      <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
-      <div className="grid shrink-0 grid-cols-3 gap-1.5 xl:gap-2">
+      <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 2xl:block" />
+      <div className="hidden shrink-0 grid-cols-3 gap-1.5 2xl:grid 2xl:gap-2">
         {orderedPrinters.map((printer) => (
           <span
             className="inline-flex min-w-[64px] items-center gap-1.5 whitespace-nowrap xl:min-w-[76px]"
@@ -160,7 +164,7 @@ function HeaderPrinterStatus() {
           </span>
         ))}
       </div>
-      <span className="hidden whitespace-nowrap text-gray-400 dark:text-gray-500 xl:inline">
+      <span className="hidden whitespace-nowrap text-gray-400 dark:text-gray-500 2xl:inline">
         {formatTime(apiUpdatedAt)}
       </span>
     </div>
@@ -270,14 +274,16 @@ const AppHeader: React.FC = () => {
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          } items-center justify-between w-full gap-3 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          <div className="flex min-w-0 flex-1 items-center justify-start gap-2 overflow-visible 2xl:justify-end">
-            <HeaderMqttStatus />
-            <HeaderPrinterStatus />
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 lg:justify-end">
+              <HeaderMqttStatus />
+              <HeaderPrinterStatus />
+            </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 2xsm:gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
