@@ -57,11 +57,11 @@ const statsPeriodOptions: Array<{
   label: string;
   value: DashboardStatsPeriod;
 }> = [
-  { label: "Day", value: "day" },
-  { label: "Week", value: "week" },
-  { label: "Month", value: "month" },
-  { label: "Year", value: "year" },
-];
+    { label: "Day", value: "day" },
+    { label: "Week", value: "week" },
+    { label: "Month", value: "month" },
+    { label: "Year", value: "year" },
+  ];
 
 const getTotal = (items: DashboardChartItem[]) =>
   items.reduce((total, item) => total + item.value, 0);
@@ -236,35 +236,35 @@ function ProductionTrendChart({
     dataLabels: { enabled: false },
     fill: isArea
       ? {
-          type: "gradient",
-          gradient: {
-            shadeIntensity: 1,
-            opacityFrom: 0.35,
-            opacityTo: 0.05,
-            stops: [0, 95, 100],
-          },
-        }
-      : {
-          opacity: 1,
+        type: "gradient",
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.35,
+          opacityTo: 0.05,
+          stops: [0, 95, 100],
         },
+      }
+      : {
+        opacity: 1,
+      },
     stroke: isArea
       ? {
-          curve: "smooth",
-          width: 2.5,
-        }
+        curve: "smooth",
+        width: 2.5,
+      }
       : {
-          show: true,
-          width: 2,
-          colors: ["transparent"],
-        },
+        show: true,
+        width: 2,
+        colors: ["transparent"],
+      },
     markers: isArea
       ? {
-          size: 3.5,
-          hover: { size: 6 },
-        }
+        size: 3.5,
+        hover: { size: 6 },
+      }
       : {
-          size: 0,
-        },
+        size: 0,
+      },
     legend: {
       show: true,
       position: "top",
@@ -337,11 +337,10 @@ function ProductionTrendChart({
               <button
                 type="button"
                 onClick={() => setChartType("bar")}
-                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-all ${
-                  chartType === "bar"
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-all ${chartType === "bar"
                     ? "bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-white"
                     : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                }`}
+                  }`}
                 title="Bar Chart View"
               >
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,11 +351,10 @@ function ProductionTrendChart({
               <button
                 type="button"
                 onClick={() => setChartType("area")}
-                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-all ${
-                  chartType === "area"
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-all ${chartType === "area"
                     ? "bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-white"
                     : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-                }`}
+                  }`}
                 title="Line / Area Chart View"
               >
                 <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -626,12 +624,12 @@ function TotalQualityPanel({
   summary?: DashboardPeriodSummary;
 }) {
   return (
-    <div className="grid h-full grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className={`${dashboardPanel} ${overviewBorder.teal} p-5`}>
-        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#008a3d]/10 text-[#008a3d] ring-1 ring-[#008a3d]/25 dark:text-[#22c55e] dark:ring-[#22c55e]/25">
+    <div className="grid h-full grid-cols-2 gap-3 sm:gap-4">
+      <div className={`${dashboardPanel} ${overviewBorder.teal} p-4 sm:p-5`}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#008a3d]/10 text-[#008a3d] ring-1 ring-[#008a3d]/25 dark:text-[#22c55e] dark:ring-[#22c55e]/25 sm:h-11 sm:w-11">
           <svg
             aria-hidden="true"
-            className="block size-5"
+            className="block size-4 sm:size-5"
             fill="none"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -660,11 +658,11 @@ function TotalQualityPanel({
         </h3>
       </div>
 
-      <div className={`${dashboardPanel} ${overviewBorder.pink} p-5`}>
-        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#d00000]/10 text-[#d00000] ring-1 ring-[#d00000]/25 dark:text-[#ff3b30] dark:ring-[#ff3b30]/25">
+      <div className={`${dashboardPanel} ${overviewBorder.pink} p-4 sm:p-5`}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#d00000]/10 text-[#d00000] ring-1 ring-[#d00000]/25 dark:text-[#ff3b30] dark:ring-[#ff3b30]/25 sm:h-11 sm:w-11">
           <svg
             aria-hidden="true"
-            className="block size-5"
+            className="block size-4 sm:size-5"
             fill="none"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
@@ -700,17 +698,17 @@ function TotalQualityPanel({
         </h3>
       </div>
 
-      <div className={`${dashboardPanel} ${overviewBorder.blue} p-5 sm:col-span-2`}>
+      <div className={`${dashboardPanel} ${overviewBorder.blue} col-span-2 p-4 sm:p-5`}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#0868c7] dark:text-[#8bc9ff]">
               Overall Yield Rate ({periodLabel})
             </p>
-            <h3 className="mt-2 text-4xl font-semibold text-gray-900 dark:text-white">
+            <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white sm:text-4xl">
               {isLoading ? "-" : formatPercent(summary?.yieldRate)}
             </h3>
           </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#1488ff]/10 text-[#1488ff] ring-1 ring-[#1488ff]/20 dark:bg-[#1488ff]/12 dark:text-[#60b8ff] dark:ring-[#1488ff]/25">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#1488ff]/10 text-[#1488ff] ring-1 ring-[#1488ff]/20 dark:bg-[#1488ff]/12 dark:text-[#60b8ff] dark:ring-[#1488ff]/25 sm:h-11 sm:w-11">
             <svg
               aria-hidden="true"
               className="block size-5"
@@ -742,7 +740,7 @@ function TotalQualityPanel({
             </svg>
           </div>
         </div>
-        <div className="mt-6 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-[#171829]">
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-[#171829]">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#1488ff] via-[#4ceac6] to-[#ffb31a]"
             style={{ width: `${Math.min(100, summary?.yieldRate ?? 0)}%` }}
@@ -972,27 +970,24 @@ function RecentLogsTable({
                     </TableCell>
                     <TableCell className="whitespace-nowrap px-4 py-4 text-center">
                       <span
-                        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                          log.isFinished
+                        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${log.isFinished
                             ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"
                             : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"
-                        }`}
+                          }`}
                       >
                         <span
-                          className={`size-1.5 rounded-full ${
-                            log.isFinished ? "bg-emerald-500" : "bg-amber-500"
-                          }`}
+                          className={`size-1.5 rounded-full ${log.isFinished ? "bg-emerald-500" : "bg-amber-500"
+                            }`}
                         />
                         {log.isFinished ? "Finished" : "In Progress"}
                       </span>
                     </TableCell>
                     <TableCell className="whitespace-nowrap px-4 py-4 text-center">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
                             ? "bg-[#008a3d]/10 text-[#008a3d] dark:text-[#22c55e]"
                             : "bg-[#d00000]/10 text-[#d00000] dark:text-[#ff3b30]"
-                        }`}
+                          }`}
                       >
                         {getLogStatus(log)}
                       </span>
@@ -1105,11 +1100,10 @@ export default function DashboardOverview() {
             <div className="inline-flex h-10 overflow-hidden rounded-md border border-gray-200 bg-white p-1 dark:border-[#35384f] dark:bg-[#22243a]">
               {statsPeriodOptions.map((option) => (
                 <button
-                  className={`rounded px-3 text-sm font-semibold transition-colors ${
-                    statsPeriod === option.value
+                  className={`rounded px-3 text-sm font-semibold transition-colors ${statsPeriod === option.value
                       ? "bg-[#1488ff]/12 text-[#0868c7] dark:bg-[#1488ff]/16 dark:text-[#8bc9ff]"
                       : "text-[#0868c7] hover:bg-[#1488ff]/8 hover:text-[#0759aa] dark:text-[#8bc9ff] dark:hover:bg-[#1488ff]/12 dark:hover:text-white"
-                  }`}
+                    }`}
                   disabled={isLoading && statsPeriod === option.value}
                   key={option.value}
                   onClick={() => setStatsPeriod(option.value)}

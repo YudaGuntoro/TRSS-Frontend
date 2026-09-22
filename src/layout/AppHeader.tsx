@@ -101,11 +101,11 @@ function HeaderPrinterStatus() {
   const printerSummary =
     printers.length > 0
       ? printers
-          .map(
-            (printer) =>
-              `${printer.name}: ${printer.isOnline ? "Online" : "Offline"}`
-          )
-          .join(", ")
+        .map(
+          (printer) =>
+            `${printer.name}: ${printer.isOnline ? "Online" : "Offline"}`
+        )
+        .join(", ")
       : "No printer status yet";
   const orderedPrinters = printerColumns.map((column) => {
     const printer = printers.find((item) => {
@@ -150,23 +150,20 @@ function HeaderPrinterStatus() {
           <span
             className="inline-flex items-center justify-center sm:justify-start gap-1.5 whitespace-nowrap rounded-lg bg-gray-50 px-2 py-1 dark:bg-gray-800/60 sm:bg-transparent sm:px-0 sm:py-0 sm:dark:bg-transparent min-w-0"
             key={printer.label}
-            title={`${printer.label}: ${printer.status}${
-              printer.printerName ? ` (${printer.printerName})` : ""
-            }${printer.errorMessage ? ` - ${printer.errorMessage}` : ""}`}
+            title={`${printer.label}: ${printer.status}${printer.printerName ? ` (${printer.printerName})` : ""
+              }${printer.errorMessage ? ` - ${printer.errorMessage}` : ""}`}
           >
             <span
-              className={`size-2 shrink-0 rounded-full ${
-                printer.isOnline
+              className={`size-2 shrink-0 rounded-full ${printer.isOnline
                   ? "bg-emerald-500 dark:bg-emerald-400"
                   : "bg-red-500 dark:bg-red-400"
-              }`}
+                }`}
             />
             <span
-              className={`truncate text-[11px] ${
-                printer.isOnline
+              className={`truncate text-[11px] ${printer.isOnline
                   ? "text-emerald-700 dark:text-emerald-300"
                   : "text-red-600 dark:text-red-300"
-              }`}
+                }`}
             >
               {printer.label}
             </span>
@@ -262,11 +259,10 @@ const AppHeader: React.FC = () => {
             <UserDropdown />
             <button
               onClick={toggleApplicationMenu}
-              className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
-                isApplicationMenuOpen
+              className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${isApplicationMenuOpen
                   ? "bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
                   : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-              }`}
+                }`}
               aria-label="Toggle Status Menu"
               title="System & Printer Status"
             >
@@ -290,9 +286,8 @@ const AppHeader: React.FC = () => {
 
         {/* Collapsible Status Menu on Mobile / Normal Header on Desktop */}
         <div
-          className={`${
-            isApplicationMenuOpen ? "flex" : "hidden"
-          } w-full flex-col gap-2.5 border-b border-gray-200 bg-gray-100/70 p-3 dark:border-gray-800 dark:bg-gray-950/80 lg:flex lg:w-auto lg:flex-row lg:items-center lg:justify-end lg:border-b-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
+          className={`${isApplicationMenuOpen ? "flex" : "hidden"
+            } w-full flex-col gap-2.5 border-b border-gray-200 bg-gray-100/70 p-3 dark:border-gray-800 dark:bg-gray-950/80 lg:flex lg:w-auto lg:flex-row lg:items-center lg:justify-end lg:border-b-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
         >
           <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center 2xl:justify-end">
             <HeaderMqttStatus />
