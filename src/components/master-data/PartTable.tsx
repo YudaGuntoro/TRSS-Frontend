@@ -17,48 +17,17 @@ import { PERMISSIONS } from "@/utils/auth";
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
-const baseColumns: DataTableColumn<Part>[] = [
-  {
-    key: "number",
-    header: "Number",
-    sortable: true,
-  },
-  {
-    key: "name",
-    header: "Name",
-    sortable: true,
-  },
-  {
-    key: "specialCharacter",
-    header: "SpecialChar",
-    render: (value) => (typeof value === "string" && value ? value : "-"),
-  },
-  {
-    key: "qtyStandart",
-    header: "Qty Standart",
-    sortable: true,
-    render: (value) => (typeof value === "number" ? value.toLocaleString() : "0"),
-  },
-  {
-    key: "description",
-    header: "Description",
-    className: "min-w-72",
-  },
-  {
-    key: "isActive",
-    header: "Status",
-    render: (value) => (
-      <Badge color={value ? "success" : "error"} size="sm">
-        {value ? "Active" : "Inactive"}
-      </Badge>
-    ),
-  },
-  {
-    key: "createdAt",
-    header: "Created At",
-    render: (value) => (typeof value === "string" ? formatDate(value) : "-"),
-  },
-];
+const getPageNumbers = (currentPage: number, totalPage: number) => {
+  const pageNumbers: number[] = [];
+  const start = Math.max(1, currentPage - 1);
+  const end = Math.min(totalPage, currentPage + 1);
+
+  for (let page = start; page <= end; page += 1) {
+    pageNumbers.push(page);
+  }
+
+  return pageNumbers;
+};
 
 export default function PartTable() {
   const toast = useToast();
