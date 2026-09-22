@@ -16,7 +16,7 @@ import MqttLogService, { MQTT_LOG_STATUSES, MqttLog, MqttLogQuery } from "@/serv
 import { ApiListResponse } from "@/services/ParameterService";
 
 const initialQuery: MqttLogQuery = {
-  page: 1, limit: 10, status: "", isOk: "", date: "", startDate: "", endDate: "",
+  page: 1, limit: 10, status: "", date: "", startDate: "", endDate: "",
 };
 const inputClass = "mt-1 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 const datePickerClass = "mt-1 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 pr-10 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
@@ -60,10 +60,10 @@ function MqttLogDetail({ id }: { id: number }) {
   const fields = [
     ["ID", String(log.id)], ["Message ID", log.messageId],
     ["Date/Time (Received)", formatDate(log.receivedAt)], ["Status", log.status],
-    ["isOk", log.isOk == null ? "-" : String(log.isOk)], ["Topic", log.topic],
-    ["Process Name", log.processName], ["Operator Username", log.operatorUsername],
-    ["Processed At", formatDate(log.processedAt)], ["Created At", formatDate(log.createdAt)],
-    ["Updated At", formatDate(log.updatedAt)], ["Error Message", log.errorMessage],
+    ["Topic", log.topic], ["Process Name", log.processName],
+    ["Operator Username", log.operatorUsername], ["Processed At", formatDate(log.processedAt)],
+    ["Created At", formatDate(log.createdAt)], ["Updated At", formatDate(log.updatedAt)],
+    ["Error Message", log.errorMessage],
   ];
   const payload = formatPayload(log.payload);
   return (
@@ -143,7 +143,6 @@ export default function MqttLogTable() {
     { key: "status", header: "Status", render: (_, row) => (
       <Badge color={row.status === "SUCCESS" ? "success" : row.status === "FAILED" ? "error" : row.status === "PROCESSING" ? "warning" : "info"}>{row.status || "-"}</Badge>
     ) },
-    { key: "isOk", header: "isOk", render: (_, row) => row.isOk == null ? "-" : String(row.isOk) },
     { key: "topic", header: "Topic", className: "max-w-xs break-words" },
     { key: "processName", header: "Process" },
     { key: "operatorUsername", header: "Operator" },
@@ -154,21 +153,17 @@ export default function MqttLogTable() {
 
   return (
     <>
-      <div className="mx-4 overflow-x-auto rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="flex min-w-max items-end gap-4">
-          <label className={`${filterFieldClass} w-[180px]`}>Status
+      <div className="mx-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:flex md:flex-wrap md:items-end">
+          <label className="col-span-1 block text-sm text-gray-700 dark:text-gray-300 md:w-[180px]">
+            <span className="font-medium">Status</span>
             <select className={inputClass} value={query.status} onChange={(event) => updateFilters({ status: event.target.value as MqttLogQuery["status"] })}>
               <option value="">All</option>
               {MQTT_LOG_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
           </label>
-          <label className={`${filterFieldClass} w-[160px]`}>isOk
-            <select className={inputClass} value={query.isOk} onChange={(event) => updateFilters({ isOk: event.target.value as MqttLogQuery["isOk"] })}>
-              <option value="">All</option><option value="true">True</option><option value="false">False</option>
-            </select>
-          </label>
-          <div className={`${filterFieldClass} w-[250px]`}>
-            <span>Date</span>
+          <div className="col-span-1 text-sm text-gray-700 dark:text-gray-300 md:w-[250px]">
+            <span className="font-medium">Date</span>
             <DatePicker
               id="mqtt-date-filter"
               className={datePickerClass}
@@ -188,29 +183,31 @@ export default function MqttLogTable() {
               placeholder="Select date or range"
             />
           </div>
-          <button
-            aria-label="Reset filters"
-            className={`${iconButtonClass} bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300`}
-            onClick={() => updateFilters(initialQuery)}
-            title="Reset filters"
-            type="button"
-          >
-            <span className="inline-flex size-[18px] items-center justify-center leading-none">
-              <ResetActionIcon />
-            </span>
-          </button>
-          <button
-            aria-label={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
-            className={`${iconButtonClass} bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600`}
-            disabled={Boolean(validationError)}
-            onClick={() => setRetry((value) => value + 1)}
-            title={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
-            type="button"
-          >
-            <span className="inline-flex size-[18px] items-center justify-center leading-none">
-              <RefreshActionIcon />
-            </span>
-          </button>
+          <div className="col-span-1 flex items-end justify-start gap-2">
+            <button
+              aria-label="Reset filters"
+              className={`${iconButtonClass} flex-1 sm:flex-none bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300`}
+              onClick={() => updateFilters(initialQuery)}
+              title="Reset filters"
+              type="button"
+            >
+              <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                <ResetActionIcon />
+              </span>
+            </button>
+            <button
+              aria-label={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
+              className={`${iconButtonClass} flex-1 sm:flex-none bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600`}
+              disabled={Boolean(validationError)}
+              onClick={() => setRetry((value) => value + 1)}
+              title={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
+              type="button"
+            >
+              <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                <RefreshActionIcon />
+              </span>
+            </button>
+          </div>
         </div>
       </div>
       <DataTable

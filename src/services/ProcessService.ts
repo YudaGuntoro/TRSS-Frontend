@@ -120,6 +120,36 @@ const ProcessService = {
 
     return response.data;
   },
+
+  assignParameters: async (
+    id: number,
+    parameterIds: number[],
+    options?: ApiRequestOptions
+  ) => {
+    const response = await api.post<{ success: boolean; message: string }>(
+      `/api/processes/${id}/parameters`,
+      { parameterIds },
+      options
+    );
+
+    return response.data;
+  },
+
+  removeParameters: async (
+    id: number,
+    parameterIds: number[],
+    options?: ApiRequestOptions
+  ) => {
+    const response = await api.delete<{ success: boolean; message: string }>(
+      `/api/processes/${id}/parameters`,
+      {
+        ...options,
+        body: { parameterIds },
+      }
+    );
+
+    return response.data;
+  },
 };
 
 export default ProcessService;

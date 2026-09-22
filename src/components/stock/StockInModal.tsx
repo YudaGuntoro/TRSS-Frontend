@@ -212,7 +212,10 @@ export default function StockInModal({
     
     setFormData((prev) => ({
       ...prev,
-      [name]: type === "number" ? Number(value) : value,
+      [name]:
+        type === "number" || name === "supplyQty" || name === "receiptQty"
+          ? Number(value)
+          : value,
     }));
   };
 
@@ -270,12 +273,14 @@ export default function StockInModal({
           <PartSearchSelect
             fallbackPart={stockIn?.part ?? null}
             isLoading={isLoadingParts}
-            onChange={(partId) =>
+            onChange={(partId) => {
+              const selected = parts.find((p) => p.id === partId);
               setFormData((prev) => ({
                 ...prev,
                 partId,
-              }))
-            }
+                receiptQty: !isEditing ? (selected?.qtyStandart ?? 0) : prev.receiptQty,
+              }));
+            }}
             parts={parts}
             value={formData.partId}
           />
@@ -287,7 +292,7 @@ export default function StockInModal({
               Supply Quantity
             </label>
             <input
-              type="text"
+              type="number"
               name="supplyQty"
               value={formData.supplyQty}
               onChange={handleChange}
@@ -301,7 +306,7 @@ export default function StockInModal({
               Receipt Quantity
             </label>
             <input
-              type="text"
+              type="number"
               name="receiptQty"
               value={formData.receiptQty}
               onChange={handleChange}

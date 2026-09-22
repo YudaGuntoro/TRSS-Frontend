@@ -216,7 +216,6 @@ export default function SystemLogTable() {
     { key: "environment", header: "Environment", width: "130px" },
     { key: "category", header: "Category", className: "max-w-[180px] break-words" },
     { key: "message", header: "Message", className: "max-w-md truncate" },
-    { key: "sourceFile", header: "Source File", className: "max-w-[180px] break-words" },
     {
       key: "action",
       header: "Action",
@@ -231,10 +230,10 @@ export default function SystemLogTable() {
 
   return (
     <>
-      <div className="mx-4 overflow-x-auto rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="flex min-w-max items-end gap-4">
-          <label className={`${filterFieldClass} w-[130px]`}>
-            Level
+      <div className="mx-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:flex md:flex-wrap md:items-end">
+          <label className="col-span-1 block text-sm text-gray-700 dark:text-gray-300 md:w-[150px]">
+            <span className="font-medium">Level</span>
             <select
               className={inputClass}
               value={query.level}
@@ -248,8 +247,8 @@ export default function SystemLogTable() {
               ))}
             </select>
           </label>
-          <div className={`${filterFieldClass} w-[250px]`}>
-            <span>Date</span>
+          <div className="col-span-1 text-sm text-gray-700 dark:text-gray-300 md:w-[250px]">
+            <span className="font-medium">Date</span>
             <DatePicker
               id="system-date-filter"
               className={datePickerClass}
@@ -269,70 +268,31 @@ export default function SystemLogTable() {
               placeholder="Select date or range"
             />
           </div>
-          <label className={`${filterFieldClass} w-[210px]`}>
-            Service
-            <input
-              className={inputClass}
-              placeholder="API, Worker, Backup"
-              value={query.service}
-              onChange={(event) => updateFilters({ service: event.target.value })}
-            />
-          </label>
-          <label className={`${filterFieldClass} w-[180px]`}>
-            Category
-            <input
-              className={inputClass}
-              placeholder="Category"
-              value={query.category}
-              onChange={(event) => updateFilters({ category: event.target.value })}
-            />
-          </label>
-          <label className={`${filterFieldClass} w-[220px]`}>
-            Search
-            <input
-              className={inputClass}
-              placeholder="Message, request, user"
-              value={query.search}
-              onChange={(event) => updateFilters({ search: event.target.value })}
-            />
-          </label>
-          <label className={`${filterFieldClass} w-[130px]`}>
-            Sort
-            <select
-              className={inputClass}
-              value={query.sortOrder}
-              onChange={(event) => updateFilters({ sortOrder: event.target.value as SystemLogQuery["sortOrder"] })}
+          <div className="col-span-2 flex items-center justify-end gap-2 pt-1 md:col-auto md:items-end md:justify-start md:pt-0">
+            <button
+              aria-label="Reset filters"
+              className={`${iconButtonClass} flex-1 sm:flex-none bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300`}
+              onClick={() => updateFilters(initialQuery)}
+              title="Reset filters"
+              type="button"
             >
-              {SYSTEM_LOG_SORT_ORDERS.map((sortOrder) => (
-                <option key={sortOrder} value={sortOrder}>
-                  {sortOrder.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            aria-label="Reset filters"
-            className={`${iconButtonClass} bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300`}
-            onClick={() => updateFilters(initialQuery)}
-            title="Reset filters"
-            type="button"
-          >
-            <span className="inline-flex size-[18px] items-center justify-center leading-none">
-              <ResetActionIcon />
-            </span>
-          </button>
-          <button
-            aria-label={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
-            className={`${iconButtonClass} bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600`}
-            disabled={Boolean(validationError)}
-            onClick={() => setRetry((value) => value + 1)}
-            title={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
-            type="button"
-          >
-            <span className="inline-flex size-[18px] items-center justify-center leading-none">
-              <RefreshActionIcon />
-            </span>
-          </button>
+              <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                <ResetActionIcon />
+              </span>
+            </button>
+            <button
+              aria-label={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
+              className={`${iconButtonClass} flex-1 sm:flex-none bg-brand-500 text-white shadow-theme-xs hover:bg-brand-600`}
+              disabled={Boolean(validationError)}
+              onClick={() => setRetry((value) => value + 1)}
+              title={currentResult?.error && !validationError ? "Retry" : "Refresh logs"}
+              type="button"
+            >
+              <span className="inline-flex size-[18px] items-center justify-center leading-none">
+                <RefreshActionIcon />
+              </span>
+            </button>
+          </div>
         </div>
       </div>
       <DataTable

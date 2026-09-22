@@ -36,7 +36,10 @@ export const useDashboard = (
     const controller = new AbortController();
 
     Promise.all([
-      DashboardService.getSummary({ signal: controller.signal }),
+      DashboardService.getSummary(
+        { period: statsPeriod },
+        { signal: controller.signal }
+      ),
       DashboardService.getStats(
         { period: statsPeriod },
         { signal: controller.signal }

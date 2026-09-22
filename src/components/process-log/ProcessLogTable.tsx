@@ -339,7 +339,7 @@ export default function ProcessLogTable() {
                   <th className="w-16 px-4 py-3 text-center">No</th>
                   <th className="px-4 py-3">Serial Number</th>
                   <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3 text-center">Progress</th>
+                  <th className="px-4 py-3 text-center whitespace-nowrap">Progress</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="w-28 px-4 py-3 text-center">Detail</th>
                 </tr>
@@ -361,7 +361,7 @@ export default function ProcessLogTable() {
                         {formatType(log.type)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="whitespace-nowrap px-4 py-3 text-center">
                       <ProgressPill finished={log.isFinished} />
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -474,7 +474,7 @@ function StatusPill({ passed }: { passed: boolean }) {
 function ProgressPill({ finished }: { finished: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
         finished
           ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"
           : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"

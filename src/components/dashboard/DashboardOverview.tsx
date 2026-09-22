@@ -12,11 +12,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RefreshActionIcon } from "@/components/ui/icons/ActionIcons";
+import { Modal } from "@/components/ui/modal";
 import { useTheme } from "@/context/ThemeContext";
 import { useDashboard } from "@/hooks/useDashboard";
 import {
   DashboardChartItem,
   DashboardPeriodSummary,
+  DashboardProductionTrendItem,
   DashboardRecentLog,
   DashboardStatsPeriod,
 } from "@/services/DashboardService";
@@ -193,49 +195,103 @@ function ProductionTrendChart({
   isLoading,
   periodLabel,
 }: {
-  data: DashboardChartItem[];
+  data: DashboardProductionTrendItem[];
   isDark: boolean;
   isLoading: boolean;
   periodLabel: string;
 }) {
-  const total = getTotal(data);
-  const chartTheme = getChartTheme(isDark);
+  const [chartType, setChartType] = useState<"bar" | "area">("bar");
+  const isArea = chartType === "area";
+
   const categories = data.map((item) => item.label);
-  const seriesData = data.map((item) => item.value);
-  const chartKey = `${categories.join("|")}:${seriesData.join("|")}`;
+  const okData = data.map((item) => item.ok ?? item.value ?? 0);
+  const ngData = data.map((item) => item.ng ?? 0);
+  const totalOk = okData.reduce((acc, curr) => acc + curr, 0);
+  const totalNg = ngData.reduce((acc, curr) => acc + curr, 0);
+  const total = data.reduce(
+    (acc, curr) => acc + (curr.total ?? curr.value ?? 0),
+    0
+  );
+
+  const chartTheme = getChartTheme(isDark);
+  const chartKey = `${chartType}:${categories.join("|")}:${okData.join("|")}:${ngData.join("|")}`;
+
   const options: ApexOptions = {
     chart: {
       background: "transparent",
       fontFamily: "Outfit, sans-serif",
       foreColor: chartTheme.text,
       toolbar: { show: false },
-      type: "line",
+      type: chartType,
     },
-    colors: ["#4CEAC6"],
+    colors: ["#10B981", "#EF4444"], // OK: Emerald Green, NG: Red
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: "50%",
+        borderRadius: 4,
+        borderRadiusApplication: "end",
+      },
+    },
     dataLabels: { enabled: false },
+    fill: isArea
+      ? {
+          type: "gradient",
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.35,
+            opacityTo: 0.05,
+            stops: [0, 95, 100],
+          },
+        }
+      : {
+          opacity: 1,
+        },
+    stroke: isArea
+      ? {
+          curve: "smooth",
+          width: 2.5,
+        }
+      : {
+          show: true,
+          width: 2,
+          colors: ["transparent"],
+        },
+    markers: isArea
+      ? {
+          size: 3.5,
+          hover: { size: 6 },
+        }
+      : {
+          size: 0,
+        },
+    legend: {
+      show: true,
+      position: "top",
+      horizontalAlign: "right",
+      labels: {
+        colors: chartTheme.text,
+      },
+      markers: {
+        size: 5,
+        shape: "circle",
+      },
+    },
     grid: {
       borderColor: chartTheme.grid,
       strokeDashArray: 0,
       xaxis: { lines: { show: false } },
       yaxis: { lines: { show: true } },
     },
-    markers: {
-      colors: ["#4CEAC6"],
-      size: 3,
-      strokeColors: chartTheme.panel,
-      strokeWidth: 2,
-    },
-    stroke: {
-      curve: "smooth",
-      width: 3,
-    },
     theme: {
       mode: chartTheme.mode,
     },
     tooltip: {
       theme: chartTheme.tooltip,
+      shared: true,
+      intersect: false,
       y: {
-        formatter: (value: number) => `${value} units`,
+        formatter: (value: number) => `${Math.round(value)} units`,
       },
     },
     xaxis: {
@@ -248,31 +304,95 @@ function ProductionTrendChart({
       },
     },
     yaxis: {
+      min: 0,
+      max: Math.max(...okData, ...ngData, 0) < 4 ? 4 : undefined,
+      tickAmount: Math.max(...okData, ...ngData, 0) < 4 ? 4 : undefined,
+      forceNiceScale: true,
+      decimalsInFloat: 0,
       labels: {
+        formatter: (value: number) => {
+          if (!Number.isInteger(value)) return "";
+          return `${value}`;
+        },
         style: { colors: [chartTheme.text], fontSize: "12px" },
       },
-      min: 0,
     },
   };
 
+  const series = [
+    { name: "OK", data: okData },
+    { name: "NG", data: ngData },
+  ];
+
   return (
     <div className={`${dashboardPanel} ${overviewBorder.teal} p-5`}>
-      <div className="mb-4 flex items-start justify-between gap-4">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Production Trend
-          </h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Production Trend
+            </h3>
+            {/* View Mode Toggle: Bar vs Line */}
+            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-100 p-0.5 dark:border-gray-700 dark:bg-gray-800">
+              <button
+                type="button"
+                onClick={() => setChartType("bar")}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-all ${
+                  chartType === "bar"
+                    ? "bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-white"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                }`}
+                title="Bar Chart View"
+              >
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Bar
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartType("area")}
+                className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium transition-all ${
+                  chartType === "area"
+                    ? "bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-white"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                }`}
+                title="Line / Area Chart View"
+              >
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Line
+              </button>
+            </div>
+          </div>
           <p className={`mt-1 text-sm ${mutedText}`}>
-            {periodLabel} production volume
+            {periodLabel} production volume (OK vs NG)
           </p>
         </div>
-        <div className="text-right">
-          <p className={mutedText + " text-xs font-medium uppercase"}>
-            Total
-          </p>
-          <p className="mt-1 text-xl font-semibold text-[#4ceac6]">
-            {isLoading ? "-" : formatNumber(total)}
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className={mutedText + " text-xs font-medium uppercase"}>Total</p>
+            <p className="mt-0.5 text-lg font-semibold text-gray-900 dark:text-white">
+              {isLoading ? "-" : formatNumber(total)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase text-emerald-600 dark:text-emerald-400">
+              OK
+            </p>
+            <p className="mt-0.5 text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+              {isLoading ? "-" : formatNumber(totalOk)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase text-red-600 dark:text-red-400">
+              NG
+            </p>
+            <p className="mt-0.5 text-lg font-semibold text-red-600 dark:text-red-400">
+              {isLoading ? "-" : formatNumber(totalNg)}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -284,8 +404,8 @@ function ProductionTrendChart({
             key={chartKey}
             height={310}
             options={options}
-            series={[{ data: seriesData, name: "Production" }]}
-            type="line"
+            series={series}
+            type={chartType}
             width="100%"
           />
         </div>
@@ -451,7 +571,14 @@ function TopPartsChart({
     },
     xaxis: {
       categories: data.map((item) => item.label),
+      min: 0,
+      decimalsInFloat: 0,
       labels: {
+        formatter: (value: string) => {
+          const num = Number(value);
+          if (isNaN(num)) return value;
+          return Number.isInteger(num) ? String(num) : "";
+        },
         style: { colors: chartTheme.text, fontSize: "12px" },
       },
     },
@@ -491,9 +618,11 @@ function TopPartsChart({
 
 function TotalQualityPanel({
   isLoading,
+  periodLabel,
   summary,
 }: {
   isLoading: boolean;
+  periodLabel: string;
   summary?: DashboardPeriodSummary;
 }) {
   return (
@@ -523,7 +652,9 @@ function TotalQualityPanel({
             />
           </svg>
         </div>
-        <p className={`mt-5 text-sm font-semibold ${okText}`}>Total OK</p>
+        <p className={`mt-5 text-sm font-semibold ${okText}`}>
+          Total OK ({periodLabel})
+        </p>
         <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
           {isLoading ? "-" : formatNumber(summary?.okCount)}
         </h3>
@@ -561,7 +692,9 @@ function TotalQualityPanel({
             />
           </svg>
         </div>
-        <p className={`mt-5 text-sm font-semibold ${ngText}`}>Total NG</p>
+        <p className={`mt-5 text-sm font-semibold ${ngText}`}>
+          Total NG ({periodLabel})
+        </p>
         <h3 className="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
           {isLoading ? "-" : formatNumber(summary?.ngCount)}
         </h3>
@@ -571,7 +704,7 @@ function TotalQualityPanel({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#0868c7] dark:text-[#8bc9ff]">
-              Overall Yield Rate
+              Overall Yield Rate ({periodLabel})
             </p>
             <h3 className="mt-2 text-4xl font-semibold text-gray-900 dark:text-white">
               {isLoading ? "-" : formatPercent(summary?.yieldRate)}
@@ -652,171 +785,293 @@ function RecentLogsTable({
   data: DashboardRecentLog[];
   isLoading: boolean;
 }) {
+  const [issueModal, setIssueModal] = useState<{
+    title: string;
+    serialNumber: string;
+    issues: string[];
+  } | null>(null);
+
   return (
-    <div
-      className={`${dashboardPanel} ${overviewBorder.blue} overflow-hidden px-4 pb-4 pt-5 sm:px-5`}
-    >
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Recent Traceability Logs
-          </h3>
-          <p className={`mt-1 text-sm ${mutedText}`}>
-            Latest traceability log activity
-          </p>
+    <>
+      <div
+        className={`${dashboardPanel} ${overviewBorder.blue} overflow-hidden px-4 pb-4 pt-5 sm:px-5`}
+      >
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Recent Traceability Logs
+            </h3>
+            <p className={`mt-1 text-sm ${mutedText}`}>
+              Latest traceability log activity
+            </p>
+          </div>
+          <span className="inline-flex w-fit items-center rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-3 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]">
+            {data.length} logs
+          </span>
         </div>
-        <span className="inline-flex w-fit items-center rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-3 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]">
-          {data.length} logs
-        </span>
-      </div>
 
-      <div className="max-w-full overflow-x-auto rounded-md border border-gray-200 bg-white dark:border-[#34374f] dark:bg-[#1b1d31]">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableCell
-                isHeader
-                className="min-w-48 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
-              >
-                Serial Clinching
-              </TableCell>
-              <TableCell
-                isHeader
-                className="min-w-48 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
-              >
-                Serial M-Fan
-              </TableCell>
-              <TableCell
-                isHeader
-                className="min-w-64 px-4 py-3 text-center text-theme-xs font-semibold uppercase text-white"
-              >
-                Issue Clinching
-              </TableCell>
-              <TableCell
-                isHeader
-                className="min-w-64 px-4 py-3 text-center text-theme-xs font-semibold uppercase text-white"
-              >
-                Issue M-Fan
-              </TableCell>
-              <TableCell
-                isHeader
-                className="min-w-28 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
-              >
-                Status
-              </TableCell>
-              <TableCell
-                isHeader
-                className="min-w-40 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white"
-              >
-                Created At
-              </TableCell>
-            </TableRow>
-          </TableHeader>
-
-          <TableBody className="divide-y divide-gray-100 dark:divide-[#34374f]">
-            {isLoading &&
-              Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
-                  {Array.from({ length: 6 }).map((__, cellIndex) => (
-                    <TableCell key={cellIndex} className="px-4 py-4">
-                      <LoadingBlock className="h-4 w-full" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-
-            {!isLoading && data.length === 0 && (
+        <div className="max-w-full overflow-x-auto rounded-md border border-gray-200 bg-white dark:border-[#34374f] dark:bg-[#1b1d31]">
+          <Table>
+            <TableHeader>
               <TableRow>
                 <TableCell
-                  className="px-4 py-8 text-center text-sm text-gray-500 dark:text-[#8f93ad]"
-                  colSpan={6}
+                  isHeader
+                  className="min-w-44 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white whitespace-nowrap"
                 >
-                  No recent traceability logs found
+                  Serial Clinching
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="min-w-44 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white whitespace-nowrap"
+                >
+                  Serial M-Fan
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="min-w-44 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white whitespace-nowrap"
+                >
+                  Issue Clinching
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="min-w-44 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white whitespace-nowrap"
+                >
+                  Issue M-Fan
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="min-w-32 px-4 py-3 text-center text-theme-xs font-semibold uppercase text-white whitespace-nowrap"
+                >
+                  Progress
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="min-w-24 px-4 py-3 text-center text-theme-xs font-semibold uppercase text-white whitespace-nowrap"
+                >
+                  Status
+                </TableCell>
+                <TableCell
+                  isHeader
+                  className="min-w-40 px-4 py-3 text-start text-theme-xs font-semibold uppercase text-white whitespace-nowrap"
+                >
+                  Created At
                 </TableCell>
               </TableRow>
-            )}
+            </TableHeader>
 
-            {!isLoading &&
-              data.map((log, index) => (
-                <TableRow
-                  className={
-                    index % 2 === 0
-                      ? "bg-white dark:bg-[#22243a]"
-                      : "bg-gray-50 dark:bg-[#1d1f33]"
-                  }
-                  key={log.id}
-                >
-                  <TableCell className="px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
-                    <p
-                      className="max-w-[260px] truncate"
-                      title={log.serialNumberClinching ?? log.serialNumberCode ?? "-"}
-                    >
-                      {log.serialNumberClinching ?? log.serialNumberCode ?? "-"}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
-                    <p
-                      className="max-w-[260px] truncate"
-                      title={log.serialNumberMFan ?? "-"}
-                    >
-                      {log.serialNumberMFan ?? "-"}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      {getLogIssueNumbers(log, "Clinching").length > 0 ? (
-                        getLogIssueNumbers(log, "Clinching").map((issueNumber) => (
-                          <span
-                            className="inline-flex rounded-full border border-[#1488ff]/25 bg-[#1488ff]/10 px-2.5 py-1 text-xs font-semibold text-[#0868c7] dark:border-[#1488ff]/30 dark:text-[#8bc9ff]"
-                            key={issueNumber}
-                          >
-                            {issueNumber}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-theme-sm text-gray-500 dark:text-[#8f93ad]">
-                          -
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      {getLogIssueNumbers(log, "M-Fan").length > 0 ? (
-                        getLogIssueNumbers(log, "M-Fan").map((issueNumber) => (
-                          <span
-                            className="inline-flex rounded-full border border-[#4ceac6]/25 bg-[#4ceac6]/10 px-2.5 py-1 text-xs font-semibold text-[#087866] dark:border-[#4ceac6]/30 dark:text-[#8ff5df]"
-                            key={issueNumber}
-                          >
-                            {issueNumber}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-theme-sm text-gray-500 dark:text-[#8f93ad]">
-                          -
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-4">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
-                          ? "bg-[#008a3d]/10 text-[#008a3d] dark:text-[#22c55e]"
-                          : "bg-[#d00000]/10 text-[#d00000] dark:text-[#ff3b30]"
-                        }`}
-                    >
-                      {getLogStatus(log)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="px-4 py-4 text-theme-sm text-gray-700 dark:text-[#c7cceb]">
-                    {formatDate(log.createdAt)}
+            <TableBody className="divide-y divide-gray-100 dark:divide-[#34374f]">
+              {isLoading &&
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    {Array.from({ length: 7 }).map((__, cellIndex) => (
+                      <TableCell key={cellIndex} className="px-4 py-4">
+                        <LoadingBlock className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+
+              {!isLoading && data.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    className="px-4 py-8 text-center text-sm text-gray-500 dark:text-[#8f93ad]"
+                    colSpan={7}
+                  >
+                    No recent traceability logs found
                   </TableCell>
                 </TableRow>
-              ))}
-          </TableBody>
-        </Table>
+              )}
+
+              {!isLoading &&
+                data.map((log, index) => (
+                  <TableRow
+                    className={
+                      index % 2 === 0
+                        ? "bg-white dark:bg-[#22243a]"
+                        : "bg-gray-50 dark:bg-[#1d1f33]"
+                    }
+                    key={log.id}
+                  >
+                    <TableCell className="whitespace-nowrap px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
+                      <p
+                        className="max-w-[260px] truncate"
+                        title={log.serialNumberClinching ?? log.serialNumberCode ?? "-"}
+                      >
+                        {log.serialNumberClinching ?? log.serialNumberCode ?? "-"}
+                      </p>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-4 text-theme-sm font-semibold text-gray-900 dark:text-white">
+                      <p
+                        className="max-w-[260px] truncate"
+                        title={log.serialNumberMFan ?? "-"}
+                      >
+                        {log.serialNumberMFan ?? "-"}
+                      </p>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-4">
+                      {(() => {
+                        const issues = getLogIssueNumbers(log, "Clinching");
+                        if (!issues || issues.length === 0) {
+                          return <span className="text-gray-400 italic font-normal text-xs">-</span>;
+                        }
+                        return (
+                          <div className="flex items-center gap-1 whitespace-nowrap">
+                            <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                              {issues[0]}
+                            </span>
+                            {issues.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setIssueModal({
+                                    title: "Clinching Issue Numbers",
+                                    serialNumber: log.serialNumberClinching ?? log.serialNumberCode ?? "-",
+                                    issues,
+                                  })
+                                }
+                                className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-700 hover:bg-brand-100 hover:scale-105 active:scale-95 transition-all cursor-pointer dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
+                                title="Click to view all issues"
+                              >
+                                +{issues.length - 1}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-4">
+                      {(() => {
+                        const issues = getLogIssueNumbers(log, "M-Fan");
+                        if (!issues || issues.length === 0) {
+                          return <span className="text-gray-400 italic font-normal text-xs">-</span>;
+                        }
+                        return (
+                          <div className="flex items-center gap-1 whitespace-nowrap">
+                            <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                              {issues[0]}
+                            </span>
+                            {issues.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setIssueModal({
+                                    title: "M-Fan Issue Numbers",
+                                    serialNumber: log.serialNumberMFan ?? "-",
+                                    issues,
+                                  })
+                                }
+                                className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand-700 hover:bg-brand-100 hover:scale-105 active:scale-95 transition-all cursor-pointer dark:border-brand-500/30 dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25"
+                                title="Click to view all issues"
+                              >
+                                +{issues.length - 1}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                          log.isFinished
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"
+                            : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"
+                        }`}
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            log.isFinished ? "bg-emerald-500" : "bg-amber-500"
+                          }`}
+                        />
+                        {log.isFinished ? "Finished" : "In Progress"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-4 text-center">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          getLogStatus(log) === "OK" || getLogStatus(log) === "Active"
+                            ? "bg-[#008a3d]/10 text-[#008a3d] dark:text-[#22c55e]"
+                            : "bg-[#d00000]/10 text-[#d00000] dark:text-[#ff3b30]"
+                        }`}
+                      >
+                        {getLogStatus(log)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-4 py-4 text-theme-sm text-gray-700 dark:text-[#c7cceb]">
+                      {formatDate(log.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+
+      {issueModal && (
+        <IssueListModal
+          data={issueModal}
+          onClose={() => setIssueModal(null)}
+        />
+      )}
+    </>
+  );
+}
+
+function IssueListModal({
+  data,
+  onClose,
+}: {
+  data: { title: string; serialNumber: string; issues: string[] };
+  onClose: () => void;
+}) {
+  return (
+    <Modal className="mx-4 max-w-md overflow-hidden p-0" isOpen={true} onClose={onClose}>
+      <div className="border-b border-gray-200 bg-white px-6 py-4 pr-16 dark:border-gray-800 dark:bg-gray-950 sm:pr-20">
+        <div className="flex items-start">
+          <div className="min-w-0">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+              {data.title}
+            </h3>
+            <p className="font-mono text-xs text-gray-500 dark:text-gray-400">
+              Serial: {data.serialNumber}
+            </p>
+            <p className="mt-1 text-xs font-semibold text-brand-600 dark:text-brand-300">
+              {data.issues.length} Issues
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-h-[50vh] overflow-y-auto bg-gray-50 p-6 dark:bg-gray-900">
+        <div className="grid grid-cols-1 gap-2">
+          {data.issues.map((issue, idx) => (
+            <div
+              key={idx}
+              className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3.5 py-2 dark:border-gray-800 dark:bg-gray-950"
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-medium text-gray-400">
+                  #{idx + 1}
+                </span>
+                <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">
+                  {issue}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end border-t border-gray-200 bg-white px-6 py-3 dark:border-gray-800 dark:bg-gray-950">
+        <button
+          className="h-8 rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white hover:bg-brand-600 transition-colors"
+          onClick={onClose}
+          type="button"
+        >
+          Close
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -934,7 +1189,8 @@ export default function DashboardOverview() {
           <div className="col-span-12 xl:col-span-8">
             <TotalQualityPanel
               isLoading={isLoading}
-              summary={summary?.total}
+              periodLabel={statsPeriodLabel}
+              summary={stats?.summary ?? summary?.filtered ?? summary?.total}
             />
           </div>
           <div className="col-span-12">

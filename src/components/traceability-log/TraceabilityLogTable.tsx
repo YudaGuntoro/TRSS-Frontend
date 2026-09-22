@@ -228,7 +228,7 @@ export default function TraceabilityLogTable() {
               <th className="px-4 py-3">Serial M-Fan</th>
               <th className="px-4 py-3">Issue Clinching</th>
               <th className="px-4 py-3">Issue M-Fan</th>
-              <th className="w-28 px-4 py-3 text-center">Progress</th>
+              <th className="px-4 py-3 text-center whitespace-nowrap">Progress</th>
               <th className="w-24 px-4 py-3 text-center">Status</th>
               <th className="w-24 px-4 py-3 text-center">Action</th>
             </tr>
@@ -323,9 +323,9 @@ export default function TraceabilityLogTable() {
                   })()}
                 </td>
 
-                <td className="px-4 py-3 text-center">
+                <td className="whitespace-nowrap px-4 py-3 text-center">
                   <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                    className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                       log.isFinish
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-400"
                         : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-400"

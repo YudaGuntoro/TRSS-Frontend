@@ -50,18 +50,24 @@ function HeaderMqttStatus() {
 
   return (
     <div
-      className="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 text-xs font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400"
+      className="flex w-full lg:w-auto lg:shrink-0 h-auto sm:h-10 items-center justify-between sm:justify-start gap-2 rounded-xl border border-gray-200 bg-white sm:bg-gray-50 px-3 py-2 sm:py-0 text-xs font-medium text-gray-600 dark:border-gray-800 dark:bg-gray-900 sm:dark:bg-gray-950/40 dark:text-gray-400 shadow-sm sm:shadow-none"
       title={`MQTT: ${mqttStatus.status} (${brokerLabel})`}
     >
-      <span className={`size-2 shrink-0 rounded-full ${dotClasses}`} />
-      <span className="sr-only">{label}</span>
-      <span className="whitespace-nowrap">
-        API {formatTime(mqttStatus.apiUpdatedAt)}
-      </span>
-      <span className="text-gray-300 dark:text-gray-700">|</span>
-      <span className="whitespace-nowrap">
-        MQTT {formatTime(mqttStatus.mqttUpdatedAt)}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className={`size-2.5 sm:size-2 shrink-0 rounded-full ${dotClasses}`} />
+        <span className="font-semibold sm:font-medium text-gray-700 dark:text-gray-300 sm:text-gray-500 sm:dark:text-gray-400">
+          MQTT: {label}
+        </span>
+      </div>
+      <div className="flex items-center gap-2 text-[11px] sm:text-xs">
+        <span className="whitespace-nowrap text-gray-500 dark:text-gray-400">
+          API {formatTime(mqttStatus.apiUpdatedAt)}
+        </span>
+        <span className="text-gray-300 dark:text-gray-700">|</span>
+        <span className="whitespace-nowrap text-gray-500 dark:text-gray-400">
+          MQTT {formatTime(mqttStatus.mqttUpdatedAt)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -122,44 +128,52 @@ function HeaderPrinterStatus() {
 
   return (
     <div
-      className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 text-[11px] font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400 xl:gap-2 xl:px-3 xl:text-xs"
+      className="flex w-full lg:w-auto lg:shrink-0 flex-col sm:flex-row sm:h-10 items-stretch sm:items-center gap-2 sm:gap-1.5 rounded-xl border border-gray-200 bg-white sm:bg-gray-50 p-2.5 sm:px-2.5 sm:py-0 text-[11px] font-medium text-gray-500 dark:border-gray-800 dark:bg-gray-900 sm:dark:bg-gray-950/40 dark:text-gray-400 shadow-sm sm:shadow-none xl:gap-2 xl:px-3 xl:text-xs"
       title={`Printer: ${printerSummary}`}
     >
-      <span
-        className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold xl:text-xs ${statusClasses}`}
-      >
-        <span className={`h-2 w-2 rounded-full ${dotClasses}`} />
-        Printer {label}
-      </span>
+      <div className="flex items-center justify-between sm:justify-start gap-2">
+        <span
+          className={`inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold xl:text-xs ${statusClasses}`}
+        >
+          <span className={`h-2 w-2 rounded-full ${dotClasses}`} />
+          Printer {label}
+        </span>
+        <span className="text-[11px] text-gray-400 sm:hidden">
+          {formatTime(apiUpdatedAt)}
+        </span>
+      </div>
+
       <span className="hidden h-4 w-px bg-gray-300 dark:bg-gray-700 sm:block" />
-      <div className="grid shrink-0 grid-cols-3 gap-1.5 xl:gap-2">
+
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full sm:w-auto pt-1 sm:pt-0 border-t border-gray-100 dark:border-gray-800 sm:border-t-0">
         {orderedPrinters.map((printer) => (
           <span
-            className="inline-flex min-w-[64px] items-center gap-1.5 whitespace-nowrap xl:min-w-[76px]"
+            className="inline-flex items-center justify-center sm:justify-start gap-1.5 whitespace-nowrap rounded-lg bg-gray-50 px-2 py-1 dark:bg-gray-800/60 sm:bg-transparent sm:px-0 sm:py-0 sm:dark:bg-transparent min-w-0"
             key={printer.label}
             title={`${printer.label}: ${printer.status}${
               printer.printerName ? ` (${printer.printerName})` : ""
             }${printer.errorMessage ? ` - ${printer.errorMessage}` : ""}`}
           >
             <span
-              className={`size-2 rounded-full ${
+              className={`size-2 shrink-0 rounded-full ${
                 printer.isOnline
                   ? "bg-emerald-500 dark:bg-emerald-400"
                   : "bg-red-500 dark:bg-red-400"
               }`}
             />
             <span
-              className={
+              className={`truncate text-[11px] ${
                 printer.isOnline
                   ? "text-emerald-700 dark:text-emerald-300"
                   : "text-red-600 dark:text-red-300"
-              }
+              }`}
             >
               {printer.label}
             </span>
           </span>
         ))}
       </div>
+
       <span className="hidden whitespace-nowrap text-gray-400 dark:text-gray-500 xl:inline">
         {formatTime(apiUpdatedAt)}
       </span>
@@ -183,7 +197,6 @@ const AppHeader: React.FC = () => {
   const toggleApplicationMenu = () => {
     setApplicationMenuOpen(!isApplicationMenuOpen);
   };
-
 
   return (
     <header className="sticky top-0 flex w-full bg-white border-gray-200 z-99999 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
@@ -225,7 +238,6 @@ const AppHeader: React.FC = () => {
                 />
               </svg>
             )}
-            {/* Cross Icon */}
           </button>
 
           <Link href="/" className="lg:hidden">
@@ -245,48 +257,56 @@ const AppHeader: React.FC = () => {
             />
           </Link>
 
-          <button
-            onClick={toggleApplicationMenu}
-            className="flex items-center justify-center w-10 h-10 text-gray-700 rounded-lg z-99999 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
-          >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden">
+            <ThemeToggleButton />
+            <UserDropdown />
+            <button
+              onClick={toggleApplicationMenu}
+              className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                isApplicationMenuOpen
+                  ? "bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
+                  : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              }`}
+              aria-label="Toggle Status Menu"
+              title="System & Printer Status"
             >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M5.99902 10.4951C6.82745 10.4951 7.49902 11.1667 7.49902 11.9951V12.0051C7.49902 12.8335 6.82745 13.5051 5.99902 13.5051C5.1706 13.5051 4.49902 12.8335 4.49902 12.0051V11.9951C4.49902 11.1667 5.1706 10.4951 5.99902 10.4951ZM17.999 10.4951C18.8275 10.4951 19.499 11.1667 19.499 11.9951V12.0051C19.499 12.8335 18.8275 13.5051 17.999 13.5051C17.1706 13.5051 16.499 12.8335 16.499 12.0051V11.9951C16.499 11.1667 17.1706 10.4951 17.999 10.4951ZM13.499 11.9951C13.499 11.1667 12.8275 10.4951 11.999 10.4951C11.1706 10.4951 10.499 11.1667 10.499 11.9951V12.0051C10.499 12.8335 11.1706 13.5051 11.999 13.5051C12.8275 13.5051 13.499 12.8335 13.499 12.0051V11.9951Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
-
-
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M5.99902 10.4951C6.82745 10.4951 7.49902 11.1667 7.49902 11.9951V12.0051C7.49902 12.8335 6.82745 13.5051 5.99902 13.5051C5.1706 13.5051 4.49902 12.8335 4.49902 12.0051V11.9951C4.49902 11.1667 5.1706 10.4951 5.99902 10.4951ZM17.999 10.4951C18.8275 10.4951 19.499 11.1667 19.499 11.9951V12.0051C19.499 12.8335 18.8275 13.5051 17.999 13.5051C17.1706 13.5051 16.499 12.8335 16.499 12.0051V11.9951C16.499 11.1667 17.1706 10.4951 17.999 10.4951ZM13.499 11.9951C13.499 11.1667 12.8275 10.4951 11.999 10.4951C11.1706 10.4951 10.499 11.1667 10.499 11.9951V12.0051C10.499 12.8335 11.1706 13.5051 11.999 13.5051C12.8275 13.5051 13.499 12.8335 13.499 12.0051V11.9951Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Collapsible Status Menu on Mobile / Normal Header on Desktop */}
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          } w-full flex-col gap-2.5 border-b border-gray-200 bg-gray-100/70 p-3 dark:border-gray-800 dark:bg-gray-950/80 lg:flex lg:w-auto lg:flex-row lg:items-center lg:justify-end lg:border-b-0 lg:bg-transparent lg:p-0 lg:shadow-none`}
         >
-          <div className="flex min-w-0 flex-1 items-center justify-start gap-2 overflow-visible 2xl:justify-end">
+          <div className="flex w-full flex-col gap-2 lg:w-auto lg:flex-row lg:items-center 2xl:justify-end">
             <HeaderMqttStatus />
             <HeaderPrinterStatus />
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 2xsm:gap-3">
+          <div className="hidden shrink-0 items-center gap-2 lg:flex 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
             {/* <!-- Dark Mode Toggler --> */}
 
-            {/* <!-- Notification Menu Area --> */}
             {/* <!-- User Area --> */}
             <UserDropdown />
           </div>
-    
         </div>
       </div>
     </header>

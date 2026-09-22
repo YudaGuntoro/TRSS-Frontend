@@ -17,6 +17,8 @@ const initialFormData: PartPayload = {
   name: "",
   description: "",
   specialCharacter: "",
+  categoryProcess: "",
+  qtyStandart: 0,
   isActive: true,
 };
 
@@ -44,6 +46,8 @@ export default function PartModal({
         name: part.name || "",
         description: part.description || "",
         specialCharacter: part.specialCharacter || "",
+        categoryProcess: part.categoryProcess || "",
+        qtyStandart: part.qtyStandart ?? 0,
         isActive: part.isActive ?? true,
       });
       return;
@@ -62,7 +66,12 @@ export default function PartModal({
 
     setFormData((current) => ({
       ...current,
-      [name]: type === "checkbox" ? checked : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "number"
+          ? Number(value)
+          : value,
     }));
   };
 
@@ -149,6 +158,21 @@ export default function PartModal({
             maxLength={50}
             className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
             placeholder="Enter special character"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Qty Standart
+          </label>
+          <input
+            type="number"
+            name="qtyStandart"
+            min={0}
+            value={formData.qtyStandart ?? 0}
+            onChange={handleChange}
+            className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none placeholder:text-gray-400 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            placeholder="0"
           />
         </div>
 

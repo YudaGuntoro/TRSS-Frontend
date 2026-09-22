@@ -23,7 +23,7 @@ export type MqttLogQuery = {
   page: number;
   limit: number;
   status: typeof MQTT_LOG_STATUSES[number] | "";
-  isOk: "" | "true" | "false";
+  isOk?: "" | "true" | "false";
   date: string;
   startDate: string;
   endDate: string;
@@ -37,7 +37,7 @@ export const getMqttLogParams = (query: MqttLogQuery) => {
     page: query.page,
     limit: query.limit,
     status: query.status || undefined,
-    isOk: query.isOk === "" ? undefined : query.isOk === "true",
+    isOk: query.isOk ? query.isOk === "true" : undefined,
     startDate: startDate ? `${startDate}T00:00:00` : undefined,
     endDate: endDate ? `${endDate}T23:59:59.999999` : undefined,
   };

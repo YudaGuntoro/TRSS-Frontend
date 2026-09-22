@@ -18,6 +18,7 @@ export type DashboardSummary = {
   today: DashboardPeriodSummary;
   thisMonth: DashboardPeriodSummary;
   total: DashboardPeriodSummary;
+  filtered?: DashboardPeriodSummary;
 };
 
 export type DashboardChartItem = {
@@ -25,10 +26,19 @@ export type DashboardChartItem = {
   value: number;
 };
 
+export type DashboardProductionTrendItem = {
+  label: string;
+  value: number;
+  ok?: number;
+  ng?: number;
+  total?: number;
+};
+
 export type DashboardStats = {
+  summary?: DashboardPeriodSummary;
   qualityDistribution: DashboardChartItem[];
   topPartsProduction: DashboardChartItem[];
-  productionTrend: DashboardChartItem[];
+  productionTrend: DashboardProductionTrendItem[];
 };
 
 export type DashboardStatsPeriod = "day" | "week" | "month" | "year";
@@ -52,10 +62,19 @@ type ApiDataResponse<T> = {
 };
 
 const DashboardService = {
-  getSummary: async (options?: ApiRequestOptions) => {
+  getSummary: async (
+    query?: { period?: DashboardStatsPeriod },
+    options?: ApiRequestOptions
+  ) => {
     const response = await api.get<ApiDataResponse<DashboardSummary>>(
       "/api/dashboard/summary",
-      options
+      {
+        ...options,
+        params: {
+          ...options?.params,
+          ...query,
+        },
+      }
     );
 
     return response.data;

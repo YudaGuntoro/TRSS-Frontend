@@ -35,6 +35,12 @@ const baseColumns: DataTableColumn<Part>[] = [
     render: (value) => (typeof value === "string" && value ? value : "-"),
   },
   {
+    key: "qtyStandart",
+    header: "Qty Standart",
+    sortable: true,
+    render: (value) => (typeof value === "number" ? value.toLocaleString() : "0"),
+  },
+  {
     key: "description",
     header: "Description",
     className: "min-w-72",

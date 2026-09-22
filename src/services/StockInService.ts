@@ -13,6 +13,7 @@ export type StockInPart = {
   number: string;
   name: string;
   description: string;
+  qtyStandart?: number;
   isActive: boolean;
   createdAt: string;
 };

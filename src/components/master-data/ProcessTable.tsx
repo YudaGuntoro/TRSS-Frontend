@@ -315,15 +315,30 @@ export default function ProcessTable() {
         onClose={() => setParameterProcess(null)}
         className="max-w-[640px] p-6"
       >
-        <div className="pr-12">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-            Process Parameters
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {parameterProcess
-              ? `${parameterProcess.code} - ${parameterProcess.name}`
-              : ""}
-          </p>
+        <div className="flex items-start justify-between pr-8">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white/90">
+              Process Parameters
+            </h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {parameterProcess
+                ? `${parameterProcess.code} - ${parameterProcess.name}`
+                : ""}
+            </p>
+          </div>
+          {canEdit && parameterProcess && (
+            <button
+              type="button"
+              onClick={() => {
+                const proc = parameterProcess;
+                setParameterProcess(null);
+                handleUpdate(proc);
+              }}
+              className="rounded-lg bg-brand-500 px-3.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none"
+            >
+              Adjust Parameters
+            </button>
+          )}
         </div>
 
         <div className="mt-6 max-h-[60vh] overflow-y-auto pr-1">
