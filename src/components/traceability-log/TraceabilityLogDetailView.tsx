@@ -24,7 +24,28 @@ type ArrayPointModalState = {
 };
 
 
-const isOkNgValue = (value: unknown): boolean => {
+const isEndPlateWidthParameter = (
+  parameter?: string | null,
+  parameterDesc?: string | null
+): boolean => {
+  const text = `${parameter ?? ""} ${parameterDesc ?? ""}`
+    .trim()
+    .toLowerCase();
+
+  return text.includes("end_plate_width") || text.includes("end plate width");
+};
+
+const isNumericOkNgValue = (value: unknown): boolean => {
+  if (typeof value === "number") return value === 1 || value === 2;
+  if (typeof value === "string") {
+    const s = value.trim();
+    return s === "1" || s === "2";
+  }
+  return false;
+};
+
+const isOkNgValue = (value: unknown, numericOkNg = false): boolean => {
+  if (numericOkNg && isNumericOkNgValue(value)) return true;
   if (typeof value === "boolean") return true;
   if (typeof value === "string") {
     const s = value.trim().toLowerCase();
@@ -44,7 +65,11 @@ const isOkNgValue = (value: unknown): boolean => {
   return false;
 };
 
-const isPointFailed = (value: unknown): boolean => {
+const isPointFailed = (value: unknown, numericOkNg = false): boolean => {
+  if (numericOkNg) {
+    if (typeof value === "number") return value === 2;
+    if (typeof value === "string") return value.trim() === "2";
+  }
   if (value === false) return true;
   if (typeof value === "string") {
     const s = value.trim().toLowerCase();
@@ -53,22 +78,31 @@ const isPointFailed = (value: unknown): boolean => {
   return false;
 };
 
-const isOkNgArray = (values: unknown[]): boolean => {
+const isOkNgArray = (values: unknown[], numericOkNg = false): boolean => {
   if (!values || values.length === 0) return false;
-  return values.every((p) => isOkNgValue(p));
+  return values.every((p) => isOkNgValue(p, numericOkNg));
+};
+
+const formatOkNgValue = (value: unknown, numericOkNg = false): string => {
+  if (numericOkNg && isNumericOkNgValue(value)) {
+    return isPointFailed(value, true) ? "NG" : "OK";
+  }
+
+  return formatSingleValue(value);
 };
 
 const getArrayDisplayValue = (
-  values: unknown[]
+  values: unknown[],
+  numericOkNg = false
 ): { text: string; isOkNg: boolean; isFailed: boolean } => {
   if (!values || values.length === 0) {
     return { text: "-", isOkNg: false, isFailed: false };
   }
 
-  const isOkNg = isOkNgArray(values);
+  const isOkNg = isOkNgArray(values, numericOkNg);
 
   if (isOkNg) {
-    const hasNg = values.some((p) => isPointFailed(p));
+    const hasNg = values.some((p) => isPointFailed(p, numericOkNg));
     return {
       text: hasNg ? "NG" : "OK",
       isOkNg: true,
@@ -390,11 +424,15 @@ function ProcessSectionRow({
 }) {
   const isProcessFailed = parameters.some((p) => {
     const isArray = Array.isArray(p.value);
+    const numericOkNg = isEndPlateWidthParameter(p.parameter, p.parameterDesc);
     if (isArray) {
-      const arrayInfo = getArrayDisplayValue(p.value as unknown[]);
+      const arrayInfo = getArrayDisplayValue(p.value as unknown[], numericOkNg);
       return arrayInfo.isOkNg && arrayInfo.isFailed;
     }
-    return isOkNgValue(p.value) && isPointFailed(p.value);
+    return (
+      isOkNgValue(p.value, numericOkNg) &&
+      isPointFailed(p.value, numericOkNg)
+    );
   });
 
   return (
@@ -426,17 +464,21 @@ function ProcessSectionRow({
         <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
           {parameters.map((param, i) => {
             const isArray = Array.isArray(param.value);
+            const numericOkNg = isEndPlateWidthParameter(
+              param.parameter,
+              param.parameterDesc
+            );
             const arrayInfo = isArray
-              ? getArrayDisplayValue(param.value as unknown[])
+              ? getArrayDisplayValue(param.value as unknown[], numericOkNg)
               : null;
             const isOkNg = isArray
               ? Boolean(arrayInfo?.isOkNg)
-              : isOkNgValue(param.value);
+              : isOkNgValue(param.value, numericOkNg);
 
             const isFailed = isOkNg
               ? isArray
                 ? Boolean(arrayInfo?.isFailed)
-                : isPointFailed(param.value)
+                : isPointFailed(param.value, numericOkNg)
               : false;
 
             return (
@@ -497,7 +539,7 @@ function ProcessSectionRow({
                       }`}
                       title={formatSingleValue(param.value)}
                     >
-                      {formatSingleValue(param.value)}
+                      {formatOkNgValue(param.value, numericOkNg)}
                     </span>
                   )}
                 </div>
@@ -524,10 +566,11 @@ function ArrayPointsModal({
   onClose: () => void;
 }) {
   const points = data.values;
-  const isOkNgType = isOkNgArray(points);
+  const numericOkNg = isEndPlateWidthParameter(data.parameter, data.parameterDesc);
+  const isOkNgType = isOkNgArray(points, numericOkNg);
 
   const passedCount = isOkNgType
-    ? points.filter((p) => !isPointFailed(p)).length
+    ? points.filter((p) => !isPointFailed(p, numericOkNg)).length
     : 0;
   const rejectedCount = isOkNgType ? points.length - passedCount : 0;
   const isFailedOverall = isOkNgType && rejectedCount > 0;
@@ -560,8 +603,8 @@ function ArrayPointsModal({
       <div className="max-h-[65vh] overflow-y-auto bg-gray-50 p-6 dark:bg-gray-950">
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {points.map((value, index) => {
-            const isFailed = isOkNgType && isPointFailed(value);
-            const displayLabel = formatSingleValue(value);
+            const isFailed = isOkNgType && isPointFailed(value, numericOkNg);
+            const displayLabel = formatOkNgValue(value, numericOkNg);
 
             return (
               <div
