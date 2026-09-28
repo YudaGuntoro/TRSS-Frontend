@@ -256,6 +256,7 @@ export default function StockInTable() {
                 <th className="px-5 py-3">Part Name</th>
                 <th className="px-5 py-3 text-right">Supply Qty</th>
                 <th className="px-5 py-3 text-right">Receipt Qty</th>
+                <th className="px-5 py-3 text-right">Balance Qty</th>
                 <th className="px-5 py-3 whitespace-nowrap">Supply Date</th>
                 <th className="px-5 py-3 whitespace-nowrap">Receipt Date</th>
                 {(canEdit || canDelete) && (
@@ -268,7 +269,7 @@ export default function StockInTable() {
                 data.length === 0 &&
                 Array.from({ length: currentLimit }).map((_, rowIndex) => (
                   <tr key={`loading-${rowIndex}`}>
-                    {Array.from({ length: canEdit || canDelete ? 8 : 7 }).map(
+                    {Array.from({ length: canEdit || canDelete ? 9 : 8 }).map(
                       (_, cellIndex) => (
                         <td className="px-5 py-4" key={cellIndex}>
                           <div className="h-4 w-full animate-pulse rounded bg-gray-100 dark:bg-white/[0.05]" />
@@ -282,7 +283,7 @@ export default function StockInTable() {
                 <tr>
                   <td
                     className="px-5 py-8 text-center text-sm text-error-600 dark:text-error-400"
-                    colSpan={canEdit || canDelete ? 8 : 7}
+                    colSpan={canEdit || canDelete ? 9 : 8}
                   >
                     {error}
                   </td>
@@ -293,7 +294,7 @@ export default function StockInTable() {
                 <tr>
                   <td
                     className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
-                    colSpan={canEdit || canDelete ? 8 : 7}
+                    colSpan={canEdit || canDelete ? 9 : 8}
                   >
                     No stock in records found
                   </td>
@@ -321,6 +322,9 @@ export default function StockInTable() {
                     </td>
                     <td className="px-5 py-4 text-right font-mono text-gray-700 dark:text-gray-300">
                       {stockIn.receiptQty}
+                    </td>
+                    <td className="px-5 py-4 text-right font-mono font-medium text-gray-700 dark:text-gray-300">
+                      {stockIn.remainingQty ?? "-"}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-gray-700 dark:text-gray-300">
                       {formatDate(stockIn.supplyDate)}
@@ -457,11 +461,14 @@ function StockInMobileCard({
         )}
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-gray-100 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-900/50">
+      <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg border border-gray-100 bg-gray-50/70 p-3 dark:border-gray-800 dark:bg-gray-900/50">
         <Metric label="Supply Qty" value={stockIn.supplyQty} />
         <Metric label="Receipt Qty" value={stockIn.receiptQty} />
-        <Metric label="Supply Date" value={formatDate(stockIn.supplyDate)} wide />
-        <Metric label="Receipt Date" value={formatDate(stockIn.receiptDate)} wide />
+        <Metric label="Balance Qty" value={stockIn.remainingQty ?? "-"} />
+        <div className="col-span-3 grid grid-cols-2 gap-2 border-t border-gray-200/60 pt-2 dark:border-gray-700/60">
+          <Metric label="Supply Date" value={formatDate(stockIn.supplyDate)} />
+          <Metric label="Receipt Date" value={formatDate(stockIn.receiptDate)} />
+        </div>
       </div>
     </article>
   );
