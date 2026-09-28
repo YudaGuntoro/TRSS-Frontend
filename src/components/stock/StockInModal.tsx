@@ -180,6 +180,7 @@ export default function StockInModal({
     supplyDate: new Date().toISOString(),
     receiptQty: 0,
     receiptDate: new Date().toISOString(),
+    seriesAmount: 1,
   });
 
   useEffect(() => {
@@ -191,6 +192,7 @@ export default function StockInModal({
           supplyDate: stockIn.supplyDate,
           receiptQty: stockIn.receiptQty,
           receiptDate: stockIn.receiptDate,
+          seriesAmount: 1,
         });
       } else {
         setFormData({
@@ -199,6 +201,7 @@ export default function StockInModal({
           supplyDate: new Date().toISOString(),
           receiptQty: 0,
           receiptDate: new Date().toISOString(),
+          seriesAmount: 1,
         });
       }
     }
@@ -213,7 +216,7 @@ export default function StockInModal({
     setFormData((prev) => ({
       ...prev,
       [name]:
-        type === "number" || name === "supplyQty" || name === "receiptQty"
+        type === "number" || name === "supplyQty" || name === "receiptQty" || name === "seriesAmount"
           ? Number(value)
           : value,
     }));
@@ -318,6 +321,24 @@ export default function StockInModal({
             />
           </div>
         </div>
+
+        {!isEditing && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Series Amount
+            </label>
+            <input
+              type="number"
+              name="seriesAmount"
+              value={formData.seriesAmount}
+              onChange={handleChange}
+              required
+              min={1}
+              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+              placeholder="e.g. 1"
+            />
+          </div>
+        )}
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">

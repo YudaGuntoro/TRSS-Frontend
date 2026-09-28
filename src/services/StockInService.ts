@@ -28,6 +28,7 @@ export type StockIn = {
   receiptQty: number;
   receiptDate: string;
   remainingQty?: number;
+  seriesAmount?: number;
   createdAt: string;
   issues: Issue[];
 };
