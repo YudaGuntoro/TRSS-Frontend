@@ -312,6 +312,7 @@ export default function TraceabilityLogDetailView({
   }
 
   const clinchingParams = groupProcessParameters(log.detail?.clinching ?? []);
+  const heLeakParams = groupProcessParameters(log.detail?.heLeak ?? []);
   const mfanParams = groupProcessParameters(log.detail?.mfan ?? []);
   const ecmParams = groupProcessParameters(log.detail?.ecm ?? []);
   const finalParams = groupProcessParameters(log.detail?.final ?? []);
@@ -426,7 +427,7 @@ export default function TraceabilityLogDetailView({
           </div>
         </div>
 
-        {/* 4 PROCESS ROWS INSIDE THE SAME CARD */}
+        {/* 5 PROCESS ROWS INSIDE THE SAME CARD */}
         <div className="divide-y divide-gray-200 dark:divide-gray-800">
           {/* BARIS 1: CLINCHING */}
           <ProcessSectionRow
@@ -443,7 +444,22 @@ export default function TraceabilityLogDetailView({
             }
           />
 
-          {/* BARIS 2: M-FAN */}
+          {/* BARIS 2: HE LEAK */}
+          <ProcessSectionRow
+            title="HE LEAK PROCESS"
+            parameters={heLeakParams}
+            onOpenArrayPoints={(item) =>
+              setModalData({
+                parameter: item.parameter,
+                parameterDesc: item.parameterDesc,
+                values: Array.isArray(item.value) ? (item.value as Array<string | number | boolean>) : [],
+                points: item.points,
+                status: item.status,
+              })
+            }
+          />
+
+          {/* BARIS 3: M-FAN */}
           <ProcessSectionRow
             title="M-FAN ASSEMBLY & INSPECTION PROCESS"
             parameters={mfanParams}
@@ -458,7 +474,7 @@ export default function TraceabilityLogDetailView({
             }
           />
 
-          {/* BARIS 3: ECM */}
+          {/* BARIS 4: ECM */}
           <ProcessSectionRow
             title="ECM ASSEMBLY PROCESS"
             parameters={ecmParams}
@@ -473,7 +489,7 @@ export default function TraceabilityLogDetailView({
             }
           />
 
-          {/* BARIS 4: FINAL INSPECTION */}
+          {/* BARIS 5: FINAL INSPECTION */}
           <ProcessSectionRow
             title="FINAL INSPECTION PROCESS"
             parameters={finalParams}

@@ -82,6 +82,7 @@ export type TraceabilityLogV2Parameter = {
 
 export type TraceabilityLogV2DetailGroup = {
   clinching: TraceabilityLogV2Parameter[];
+  heLeak?: TraceabilityLogV2Parameter[];
   mfan: TraceabilityLogV2Parameter[];
   ecm: TraceabilityLogV2Parameter[];
   final: TraceabilityLogV2Parameter[];
