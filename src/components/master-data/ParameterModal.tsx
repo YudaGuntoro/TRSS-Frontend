@@ -34,6 +34,7 @@ export default function ParameterModal({
     dataType: "text",
     typeValue: "value",
     order: 0,
+    showInDisplay: true,
     isActive: true,
   });
 
@@ -48,6 +49,7 @@ export default function ParameterModal({
           dataType: normalizeDataType(parameter.dataType),
           typeValue: parameter.typeValue || "value",
           order: parameter.order ?? 0,
+          showInDisplay: parameter.showInDisplay ?? true,
           isActive: parameter.isActive ?? true,
         });
       } else {
@@ -58,6 +60,7 @@ export default function ParameterModal({
           dataType: "text",
           typeValue: "value",
           order: 0,
+          showInDisplay: true,
           isActive: true,
         });
       }
@@ -179,6 +182,7 @@ export default function ParameterModal({
           >
             <option value="text">Text</option>
             <option value="number">Number</option>
+            <option value="boolean">Boolean</option>
           </select>
         </div>
 
@@ -213,18 +217,34 @@ export default function ParameterModal({
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="isActive"
-            name="isActive"
-            checked={formData.isActive}
-            onChange={handleChange}
-            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-          />
-          <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Active
-          </label>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showInDisplay"
+              name="showInDisplay"
+              checked={formData.showInDisplay}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+            />
+            <label htmlFor="showInDisplay" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+              Show in Display
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              name="isActive"
+              checked={formData.isActive}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+            />
+            <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+              Active
+            </label>
+          </div>
         </div>
 
         <div className="mt-4 flex justify-end gap-3">

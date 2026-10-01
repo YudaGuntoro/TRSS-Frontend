@@ -23,26 +23,35 @@ const baseColumns: DataTableColumn<Parameter>[] = [
     key: "code",
     header: "Code",
     sortable: true,
+    className: "whitespace-nowrap font-mono text-xs",
+    headerClassName: "whitespace-nowrap",
   },
   {
     key: "name",
     header: "Name",
     sortable: true,
+    className: "whitespace-nowrap",
+    headerClassName: "whitespace-nowrap",
   },
   {
     key: "order",
     header: "Order",
     align: "right",
     sortable: true,
+    className: "whitespace-nowrap",
+    headerClassName: "whitespace-nowrap",
   },
   {
     key: "description",
     header: "Description",
-    className: "min-w-72",
+    className: "whitespace-nowrap min-w-72",
+    headerClassName: "whitespace-nowrap",
   },
   {
     key: "dataType",
     header: "Data Type",
+    className: "whitespace-nowrap",
+    headerClassName: "whitespace-nowrap",
     render: (value) => (
       <span className="capitalize">{typeof value === "string" ? value : "-"}</span>
     ),
@@ -50,6 +59,8 @@ const baseColumns: DataTableColumn<Parameter>[] = [
   {
     key: "typeValue",
     header: "Type Value",
+    className: "whitespace-nowrap",
+    headerClassName: "whitespace-nowrap",
     render: (value) => {
       const valStr = typeof value === "string" ? value.toLowerCase() : "value";
       return valStr === "ok_ng" ? (
@@ -62,8 +73,23 @@ const baseColumns: DataTableColumn<Parameter>[] = [
     },
   },
   {
+    key: "showInDisplay",
+    header: "Show in Display",
+    align: "center",
+    className: "whitespace-nowrap text-center",
+    headerClassName: "whitespace-nowrap text-center",
+    render: (value) => (
+      <Badge color={value !== false ? "success" : "light"} size="sm">
+        {value !== false ? "Yes" : "No"}
+      </Badge>
+    ),
+  },
+  {
     key: "isActive",
     header: "Status",
+    align: "center",
+    className: "whitespace-nowrap text-center",
+    headerClassName: "whitespace-nowrap text-center",
     render: (value) => (
       <Badge color={value ? "success" : "error"} size="sm">
         {value ? "Active" : "Inactive"}
@@ -73,6 +99,8 @@ const baseColumns: DataTableColumn<Parameter>[] = [
   {
     key: "createdAt",
     header: "Created At",
+    className: "whitespace-nowrap",
+    headerClassName: "whitespace-nowrap",
     render: (value) => (typeof value === "string" ? formatDate(value) : "-"),
   },
 ];
@@ -225,7 +253,7 @@ export default function ParameterTable() {
         emptyMessage="No parameters found"
         error={error}
         isLoading={isLoading}
-        minWidth="1040px"
+        minWidth="1200px"
         onLimitChange={setLimit}
         onPageChange={setPage}
         onSearchChange={setSearch}

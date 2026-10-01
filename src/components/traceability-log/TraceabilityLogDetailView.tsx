@@ -16,11 +16,102 @@ type TraceabilityLogDetailViewProps = {
   identifier: string;
 };
 
+type ArrayPointItem = {
+  label: string;
+  value: string | number | boolean;
+  status?: boolean | null;
+};
+
 type ArrayPointModalState = {
   parameter: string;
   parameterDesc?: string | null;
   values: Array<string | number | boolean>;
+  points?: ArrayPointItem[];
   status?: boolean | null;
+};
+
+type ProcessParameterItem = {
+  parameter: string;
+  parameterDesc?: string | null;
+  value: unknown;
+  points?: ArrayPointItem[];
+  status?: boolean | null;
+};
+
+const isCheckPointParam = (code?: string | null): boolean => {
+  if (!code) return false;
+  return /^CHECK_POINT(?:_\d+.*)?$/i.test(code.trim());
+};
+
+const groupProcessParameters = (
+  rawParams: TraceabilityLogV2Parameter[]
+): ProcessParameterItem[] => {
+  const result: ProcessParameterItem[] = [];
+  const checkPointItems: TraceabilityLogV2Parameter[] = [];
+
+  for (const item of rawParams) {
+    if (isCheckPointParam(item.parameter)) {
+      checkPointItems.push(item);
+    } else {
+      result.push({
+        parameter: item.parameter,
+        parameterDesc: item.parameterDesc,
+        value: item.value,
+        status: item.status,
+      });
+    }
+  }
+
+  if (checkPointItems.length > 0) {
+    if (checkPointItems.length === 1 && Array.isArray(checkPointItems[0].value)) {
+      const single = checkPointItems[0];
+      const arr = single.value as unknown[];
+      const points: ArrayPointItem[] = arr.map((val, idx) => ({
+        label: `Check Point ${idx + 1}`,
+        value: (val as string | number | boolean) ?? "-",
+      }));
+      result.push({
+        parameter: "CHECK_POINT_ALL",
+        parameterDesc: "CHECK POINT",
+        value: arr,
+        points,
+        status: single.status,
+      });
+    } else {
+      const sorted = [...checkPointItems].sort((a, b) => {
+        const numA = parseInt(a.parameter.replace(/\D/g, ""), 10) || 0;
+        const numB = parseInt(b.parameter.replace(/\D/g, ""), 10) || 0;
+        return numA - numB;
+      });
+
+      const points: ArrayPointItem[] = sorted.map((p, idx) => ({
+        label: p.parameterDesc || `Check Point ${idx + 1}`,
+        value: (p.value as string | number | boolean) ?? "-",
+        status: p.status,
+      }));
+
+      const values = sorted.map((p) => (p.value as string | number | boolean) ?? "-");
+
+      const hasNg = sorted.some((p) => {
+        if (p.status === false) return true;
+        return isPointFailed(p.value, false);
+      });
+
+      const isAllEmpty = sorted.every(
+        (p) => p.value === null || p.value === undefined || p.value === ""
+      );
+
+      result.push({
+        parameter: "CHECK_POINT_ALL",
+        parameterDesc: "CHECK POINT",
+        value: values,
+        points,
+        status: isAllEmpty ? null : !hasNg,
+      });
+    }
+  }
+
+  return result;
 };
 
 
@@ -220,10 +311,10 @@ export default function TraceabilityLogDetailView({
     );
   }
 
-  const clinchingParams = log.detail?.clinching ?? [];
-  const mfanParams = log.detail?.mfan ?? [];
-  const ecmParams = log.detail?.ecm ?? [];
-  const finalParams = log.detail?.final ?? [];
+  const clinchingParams = groupProcessParameters(log.detail?.clinching ?? []);
+  const mfanParams = groupProcessParameters(log.detail?.mfan ?? []);
+  const ecmParams = groupProcessParameters(log.detail?.ecm ?? []);
+  const finalParams = groupProcessParameters(log.detail?.final ?? []);
 
   return (
     <div className="mx-4 my-4 max-w-[1600px] space-y-4 xl:mx-auto">
@@ -345,7 +436,8 @@ export default function TraceabilityLogDetailView({
               setModalData({
                 parameter: item.parameter,
                 parameterDesc: item.parameterDesc,
-                values: Array.isArray(item.value) ? item.value : [],
+                values: Array.isArray(item.value) ? (item.value as Array<string | number | boolean>) : [],
+                points: item.points,
                 status: item.status,
               })
             }
@@ -359,7 +451,8 @@ export default function TraceabilityLogDetailView({
               setModalData({
                 parameter: item.parameter,
                 parameterDesc: item.parameterDesc,
-                values: Array.isArray(item.value) ? item.value : [],
+                values: Array.isArray(item.value) ? (item.value as Array<string | number | boolean>) : [],
+                points: item.points,
                 status: item.status,
               })
             }
@@ -373,7 +466,8 @@ export default function TraceabilityLogDetailView({
               setModalData({
                 parameter: item.parameter,
                 parameterDesc: item.parameterDesc,
-                values: Array.isArray(item.value) ? item.value : [],
+                values: Array.isArray(item.value) ? (item.value as Array<string | number | boolean>) : [],
+                points: item.points,
                 status: item.status,
               })
             }
@@ -387,7 +481,8 @@ export default function TraceabilityLogDetailView({
               setModalData({
                 parameter: item.parameter,
                 parameterDesc: item.parameterDesc,
-                values: Array.isArray(item.value) ? item.value : [],
+                values: Array.isArray(item.value) ? (item.value as Array<string | number | boolean>) : [],
+                points: item.points,
                 status: item.status,
               })
             }
@@ -419,8 +514,8 @@ function ProcessSectionRow({
   onOpenArrayPoints,
 }: {
   title: string;
-  parameters: TraceabilityLogV2Parameter[];
-  onOpenArrayPoints: (param: TraceabilityLogV2Parameter) => void;
+  parameters: ProcessParameterItem[];
+  onOpenArrayPoints: (param: ProcessParameterItem) => void;
 }) {
   const isProcessFailed = parameters.some((p) => {
     const isArray = Array.isArray(p.value);
@@ -565,12 +660,23 @@ function ArrayPointsModal({
   data: ArrayPointModalState;
   onClose: () => void;
 }) {
-  const points = data.values;
+  const points: ArrayPointItem[] =
+    data.points && data.points.length > 0
+      ? data.points
+      : data.values.map((v, i) => ({
+          label: `P-${String(i + 1).padStart(2, "0")}`,
+          value: v,
+          status: undefined,
+        }));
+
   const numericOkNg = isEndPlateWidthParameter(data.parameter, data.parameterDesc);
-  const isOkNgType = isOkNgArray(points, numericOkNg);
+  const isOkNgType = isOkNgArray(
+    points.map((p) => p.value),
+    numericOkNg
+  );
 
   const passedCount = isOkNgType
-    ? points.filter((p) => !isPointFailed(p, numericOkNg)).length
+    ? points.filter((p) => !isPointFailed(p.value, numericOkNg)).length
     : 0;
   const rejectedCount = isOkNgType ? points.length - passedCount : 0;
   const isFailedOverall = isOkNgType && rejectedCount > 0;
@@ -601,15 +707,17 @@ function ArrayPointsModal({
       </div>
 
       <div className="max-h-[65vh] overflow-y-auto bg-gray-50 p-6 dark:bg-gray-950">
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
-          {points.map((value, index) => {
-            const isFailed = isOkNgType && isPointFailed(value, numericOkNg);
-            const displayLabel = formatOkNgValue(value, numericOkNg);
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {points.map((point, index) => {
+            const isFailed =
+              isOkNgType &&
+              (point.status === false || isPointFailed(point.value, numericOkNg));
+            const displayLabel = formatOkNgValue(point.value, numericOkNg);
 
             return (
               <div
                 key={index}
-                className={`rounded-lg p-2.5 text-center transition-all ${
+                className={`flex flex-col justify-between rounded-lg p-3 text-center transition-all ${
                   isOkNgType
                     ? isFailed
                       ? "border-2 border-red-500 bg-red-50/80 shadow-sm shadow-red-500/10 dark:border-red-500 dark:bg-red-950/40"
@@ -617,28 +725,33 @@ function ArrayPointsModal({
                     : "border border-gray-200 bg-white hover:border-brand-300 dark:border-gray-800 dark:bg-gray-900"
                 }`}
               >
-                <span
-                  className={`block font-mono text-[10px] font-semibold ${
-                    isOkNgType
-                      ? isFailed
-                        ? "text-red-500 dark:text-red-400"
-                        : "text-emerald-600 dark:text-emerald-400"
-                      : "text-gray-400 dark:text-gray-500"
-                  }`}
-                >
-                  P-{String(index + 1).padStart(2, "0")}
-                </span>
-                <p
-                  className={`mt-1 font-mono text-xs font-bold ${
-                    isOkNgType
-                      ? isFailed
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-emerald-700 dark:text-emerald-300"
-                      : "text-gray-900 dark:text-white"
-                  }`}
-                >
-                  {displayLabel}
-                </p>
+                <div className="flex min-h-[32px] items-center justify-center">
+                  <span
+                    className={`block max-w-full text-xs font-semibold leading-snug break-words ${
+                      isOkNgType
+                        ? isFailed
+                          ? "text-red-700 dark:text-red-300"
+                          : "text-emerald-800 dark:text-emerald-300"
+                        : "text-gray-700 dark:text-gray-300"
+                    }`}
+                    title={point.label}
+                  >
+                    {point.label}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-center">
+                  <span
+                    className={`inline-flex items-center justify-center rounded-md px-2.5 py-0.5 font-mono text-xs font-bold ${
+                      isOkNgType
+                        ? isFailed
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200"
+                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+                    }`}
+                  >
+                    {displayLabel}
+                  </span>
+                </div>
               </div>
             );
           })}

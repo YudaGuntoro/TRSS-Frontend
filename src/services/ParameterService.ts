@@ -22,6 +22,7 @@ export type Parameter = {
   dataType: string;
   typeValue?: string;
   order: number;
+  showInDisplay?: boolean;
   isActive: boolean;
   createdAt: string;
 };
@@ -31,6 +32,7 @@ export type ParameterQuery = {
   limit?: number;
   search?: string;
   isActive?: boolean | null;
+  showInDisplay?: boolean | null;
 };
 
 const normalizeQuery = (query: ParameterQuery) => ({
@@ -38,6 +40,7 @@ const normalizeQuery = (query: ParameterQuery) => ({
   limit: query.limit,
   search: query.search,
   isActive: query.isActive ?? undefined,
+  showInDisplay: query.showInDisplay ?? undefined,
 });
 
 const ParameterService = {
