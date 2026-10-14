@@ -33,6 +33,7 @@ export type Process = {
   description: string;
   order: number;
   isActive: boolean;
+  isMqttPublisher?: boolean;
   createdAt: string;
   updatedAt?: string;
   parameters: ProcessParameter[];
@@ -93,7 +94,7 @@ const ProcessService = {
       success: boolean;
       message: string;
       data: Process;
-    }>("/api/processes", data, options);
+    }>("/api/processes", { ...data, isMqttPublisher: true }, options);
 
     return response.data;
   },

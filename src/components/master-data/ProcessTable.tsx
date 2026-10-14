@@ -195,6 +195,15 @@ export default function ProcessTable() {
         ),
       },
       {
+        key: "isMqttPublisher",
+        header: "MQTT Publisher",
+        render: (value) => (
+          <Badge color={value ? "success" : "warning"} size="sm">
+            {value ? "Published" : "Not Published"}
+          </Badge>
+        ),
+      },
+      {
         key: "isActive",
         header: "Status",
         render: (value) => (
