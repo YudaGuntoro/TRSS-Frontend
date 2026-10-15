@@ -9,6 +9,22 @@ export type ScanHistoryEntry = {
   createdAt?: string;
 };
 
+export type ScanHistoryFilters = {
+  query: string;
+  status: "all" | "ok" | "ng" | "unknown";
+};
+
+export const matchesScanHistory = (entry: ScanHistoryEntry, filters: ScanHistoryFilters): boolean => {
+  if (filters.status === "ok" && entry.status !== true) return false;
+  if (filters.status === "ng" && entry.status !== false) return false;
+  if (filters.status === "unknown" && typeof entry.status === "boolean") return false;
+  const query = filters.query.trim().toLowerCase();
+  const displayValue = entry.status === true ? "OK" : entry.status === false ? "NG" : String(entry.value ?? "");
+  if (query && ![entry.parameterName, entry.parameterCode, displayValue, String(entry.value ?? "")]
+    .some((value) => value?.toLowerCase().includes(query))) return false;
+  return true;
+};
+
 export type ProcessHistorySource = {
   processCode: string;
   processName: string;

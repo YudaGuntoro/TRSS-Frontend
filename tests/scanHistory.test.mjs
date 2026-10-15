@@ -17,7 +17,7 @@ function loadTypeScript(file) {
   return testModule.exports;
 }
 
-const { groupScanSessions } = loadTypeScript("src/utils/scanHistory.ts");
+const { groupScanSessions, matchesScanHistory } = loadTypeScript("src/utils/scanHistory.ts");
 const { normalizeTraceabilityDetail, mapTraceabilityLogV2Response, mapV2FullValues } = loadTypeScript("src/services/TraceabilityLogService.ts");
 const entry = (id, code, seconds, status = null) => ({
   id, parameterCode: code, parameterName: code, value: 0, status,
@@ -147,4 +147,31 @@ test("nullable root data and status alias are normalized safely", () => {
   assert.equal(log.sections.ecm[0].mqttPublisherStatus, "Disabled");
   assert.equal(log.sections.ecm[0].isMqttPublisher, null);
   assert.equal(log.sections.ecm[0].parameters.length, 0);
+});
+
+const emptyFilters = { query: "", status: "all" };
+
+test("history search and status filters preserve numeric and unknown values", () => {
+  const row = { ...entry(1, "O_RING_RESULT", 0, false), parameterName: "O-Ring Upper", value: "2" };
+  assert.equal(matchesScanHistory(row, { ...emptyFilters, query: " o-ring ", status: "ng" }), true);
+  assert.equal(matchesScanHistory(row, { ...emptyFilters, query: "NG" }), true);
+  assert.equal(matchesScanHistory(row, { ...emptyFilters, query: "o_ring" }), true);
+  assert.equal(matchesScanHistory(row, { ...emptyFilters, status: "ok" }), false);
+  assert.equal(matchesScanHistory(row, { ...emptyFilters, status: "unknown" }), false);
+  assert.equal(matchesScanHistory(entry(2, "WIDTH", 1), { ...emptyFilters, status: "unknown", query: "0" }), true);
+});
+
+test("filtering grouped entries keeps original session numbers and boundaries", () => {
+  const sessions = groupScanSessions([source([
+    entry(1, "A", 0, true), entry(2, "B", 1, false),
+    entry(3, "A", 2, true), entry(4, "B", 3, false),
+  ])]);
+  const filtered = sessions.map((session) => ({ ...session,
+    entries: session.entries.filter((entry) => matchesScanHistory(entry, { ...emptyFilters, status: "ng" })),
+  }));
+  assert.equal(filtered.length, 2);
+  assert.equal(filtered[0].number, 2);
+  assert.equal(filtered[1].number, 1);
+  assert.equal(filtered[0].entries.length, 1);
+  assert.equal(filtered[1].entries.length, 1);
 });
