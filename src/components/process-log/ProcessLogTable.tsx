@@ -11,10 +11,11 @@ import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useProcessLogs } from "@/hooks/useProcessLogs";
 import { EyeIcon } from "@/icons";
-import {
+import ProcessLogService, {
   ProcessLogListItem,
-  ProcessLogParameter,
+  ProcessLogDetail,
 } from "@/services/ProcessLogService";
+import { getMqttPublisherState, isEmptyProcessValue } from "@/utils/mqttPublisher";
 import { useEffect, useRef, useState } from "react";
 
 type StatusFilter = "" | "ok" | "ng";
@@ -83,7 +84,7 @@ const isOkNgArray = (values: unknown[]): boolean => {
 const getArrayDisplayValue = (
   values: unknown[]
 ): { text: string; isOkNg: boolean; isFailed: boolean } => {
-  if (!values || values.length === 0) {
+  if (!values || isEmptyProcessValue(values)) {
     return { text: "-", isOkNg: false, isFailed: false };
   }
 
@@ -99,6 +100,7 @@ const getArrayDisplayValue = (
   }
 
   const numericValues = values
+    .filter((value) => !isEmptyProcessValue(value))
     .map((v) => {
       if (typeof v === "number") return v;
       if (typeof v === "string") {
@@ -131,7 +133,7 @@ const getArrayDisplayValue = (
 };
 
 const formatSingleValue = (value: unknown): string => {
-  if (value === null || value === undefined || value === "") return "-";
+  if (isEmptyProcessValue(value)) return "-";
   if (typeof value === "boolean") return value ? "true" : "false";
   return String(value);
 };
@@ -476,11 +478,14 @@ export default function ProcessLogTable() {
         </footer>
       </div>
 
-      <ProcessLogDetailModal
-        log={selectedLog}
-        onClose={() => setSelectedLog(null)}
-        onOpenArrayPoints={(state) => setArrayPointModal(state)}
-      />
+      {selectedLog && (
+        <ProcessLogDetailModal
+          key={selectedLog.serialNumberCode}
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+          onOpenArrayPoints={(state) => setArrayPointModal(state)}
+        />
+      )}
 
       {arrayPointModal && (
         <ArrayPointsModal
@@ -583,22 +588,35 @@ function ProcessLogDetailModal({
   onClose: () => void;
   onOpenArrayPoints: (state: ArrayPointModalState) => void;
 }) {
-  const isMFan =
-    log?.type?.toLowerCase().includes("fan") ||
-    log?.serialNumberCode?.toUpperCase().startsWith("MF");
+  const [loaded, setLoaded] = useState<{
+    serialNumber: string;
+    detail?: ProcessLogDetail;
+    error?: string;
+  } | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const serialNumber = log?.serialNumberCode;
 
-  let parameters: ProcessLogParameter[] = [];
-  if (isMFan && Array.isArray(log?.mfan) && log.mfan.length > 0) {
-    parameters = log.mfan;
-  } else if (!isMFan && Array.isArray(log?.clinching) && log.clinching.length > 0) {
-    parameters = log.clinching;
-  } else if (Array.isArray(log?.mfan) && log.mfan.length > 0) {
-    parameters = log.mfan;
-  } else if (Array.isArray(log?.clinching) && log.clinching.length > 0) {
-    parameters = log.clinching;
-  }
+  useEffect(() => {
+    if (!serialNumber) return;
+    const controller = new AbortController();
+    ProcessLogService.getProcessLogDetail(serialNumber, { signal: controller.signal })
+      .then((detail) => {
+        if (!controller.signal.aborted) setLoaded({ serialNumber, detail });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setLoaded({ serialNumber, error: error instanceof Error ? error.message : "Failed to load process log detail." });
+        }
+      });
+    return () => controller.abort();
+  }, [serialNumber, reloadKey]);
 
-  const isLogFailed = log?.status === false;
+  const current = loaded?.serialNumber === serialNumber ? loaded : null;
+  const detail = current?.detail;
+  const processes = detail?.processes ?? [];
+  const parameterCount = processes.reduce((count, process) => count + process.parameters.length, 0);
+  const status = detail?.status ?? log?.status;
+  const isLogFailed = status === false;
 
   return (
     <Modal
@@ -623,7 +641,7 @@ function ProcessLogDetailModal({
               {log ? formatType(log.type) : "-"}
             </span>
             {log && <ProgressPill finished={log.isFinished} />}
-            {log && <StatusPill passed={log.status} />}
+            {typeof status === "boolean" && <StatusPill passed={status} />}
           </div>
           <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
             Serial Number:{" "}
@@ -638,7 +656,7 @@ function ProcessLogDetailModal({
             <span className="mx-2">|</span>
             Parameters:{" "}
             <span className="font-semibold text-brand-600 dark:text-brand-400">
-              {parameters.length}
+              {detail ? parameterCount : "-"}
             </span>
           </p>
         </div>
@@ -646,6 +664,32 @@ function ProcessLogDetailModal({
 
       {/* Body: Dynamic Parameters Grid */}
       <div className="max-h-[70vh] overflow-y-auto bg-gray-50 p-6 dark:bg-gray-950">
+        {!current && <p role="status" className="text-sm text-gray-500">Loading process log detail...</p>}
+        {current?.error && (
+          <div role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p>{current.error}</p>
+            <button type="button" className="mt-2 underline" onClick={() => { setLoaded(null); setReloadKey((key) => key + 1); }}>Retry</button>
+          </div>
+        )}
+        {detail && processes.length === 0 && <p className="text-sm text-gray-500">No processes available for this process log.</p>}
+        <div className="space-y-5">
+        {processes.map((process, processIndex) => {
+          const mqttState = getMqttPublisherState(process);
+          const parameters = process.parameters;
+          const allEmpty = parameters.every((parameter) => isEmptyProcessValue(parameter.value));
+          return (
+          <section key={`${process.processCode ?? "process"}-${processIndex}`} className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+            <div className="mb-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{process.processName || process.processCode || `Process ${processIndex + 1}`}</h3>
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${mqttState === "Disabled" ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200" : mqttState === "Enabled" ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"}`}>
+                  MQTT Publisher: {mqttState === "Unknown" ? "Not available" : mqttState}
+                </span>
+              </div>
+              {process.mqttPublisherStatus && <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {process.mqttPublisherStatus}</p>}
+              {process.reason && <p className="break-words text-xs text-gray-600 dark:text-gray-300">Reason: {process.reason}</p>}
+              {allEmpty && <p className="text-xs text-gray-500 dark:text-gray-400">Parameter values are not available yet.</p>}
+            </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3">
           {parameters.map((param, index) => {
             const isArray = Array.isArray(param.value);
@@ -741,9 +785,13 @@ function ProcessLogDetailModal({
 
           {parameters.length === 0 && (
             <div className="col-span-full rounded-lg border border-dashed border-gray-200 py-12 text-center text-sm text-gray-500 dark:border-white/[0.12] dark:text-gray-400">
-              No parameters recorded for this process log.
+              No parameters available for this process.
             </div>
           )}
+        </div>
+          </section>
+          );
+        })}
         </div>
       </div>
 

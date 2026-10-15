@@ -1,5 +1,7 @@
 import api, { ApiRequestOptions } from "@/utils/api";
 import { ApiListResponse } from "./ParameterService";
+import type { ProcessHistorySource, ScanHistoryEntry } from "@/utils/scanHistory";
+import type { MqttPublisherInfo } from "@/utils/mqttPublisher";
 
 export type ProcessLogParameter = {
   parameterId: number;
@@ -88,6 +90,17 @@ export type TraceabilityLogV2DetailGroup = {
   final: TraceabilityLogV2Parameter[];
 };
 
+export type TraceabilityProcessKey = keyof TraceabilityLogV2DetailGroup;
+export type TraceabilityHistory = Record<TraceabilityProcessKey, ProcessHistorySource[]>;
+export type TraceabilityProcessSection = MqttPublisherInfo & {
+  processCode: string;
+  processName: string;
+  result?: boolean;
+  parameters: TraceabilityLogV2Parameter[];
+  history: ScanHistoryEntry[];
+};
+export type TraceabilitySections = Record<TraceabilityProcessKey, TraceabilityProcessSection[]>;
+
 export type TraceabilityLogItem = {
   id: number;
   code?: string;
@@ -101,6 +114,92 @@ export type TraceabilityLogItem = {
   createdAt: string;
   updatedAt?: string | null;
   detail?: TraceabilityLogV2DetailGroup | null;
+  history?: TraceabilityHistory;
+  sections?: TraceabilitySections;
+};
+
+const historyRecord = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : {};
+
+const historyText = (value: unknown): string | undefined =>
+  typeof value === "string" ? value.trim() || undefined : undefined;
+
+export const normalizeTraceabilityDetail = (value: unknown): TraceabilityLogItem => {
+  const log = historyRecord(value);
+  const rawDetail = historyRecord(log.detail);
+  const detail: TraceabilityLogV2DetailGroup = { clinching: [], heLeak: [], mfan: [], ecm: [], final: [] };
+  const history: TraceabilityHistory = { clinching: [], heLeak: [], mfan: [], ecm: [], final: [] };
+  const sections: TraceabilitySections = { clinching: [], heLeak: [], mfan: [], ecm: [], final: [] };
+  for (const key of Object.keys(history) as TraceabilityProcessKey[]) {
+    const raw = rawDetail[key];
+    for (const item of Array.isArray(raw) ? raw : []) {
+      const section = historyRecord(item);
+      if (item == null) continue;
+      const rawParameters = Array.isArray(section.parameters) ? section.parameters :
+        "parameter" in section ? [section] : [];
+      const parameters: TraceabilityLogV2Parameter[] = [];
+      for (const value of rawParameters) {
+        if (value == null) continue;
+        const param = historyRecord(value);
+        parameters.push({
+          parameter: historyText(param.parameter) ?? historyText(param.parameterCode) ?? "-",
+          parameterDesc: historyText(param.parameterDesc) ?? historyText(param.parameterName),
+          value: param.value,
+          status: typeof param.status === "boolean" ? param.status : null,
+        });
+      }
+      detail[key]!.push(...parameters);
+      const entries: ScanHistoryEntry[] = (Array.isArray(section.history) ? section.history : [])
+        .filter((entry) => entry !== null && typeof entry === "object")
+        .map((value) => {
+          const entry = historyRecord(value);
+          return {
+            id: typeof entry.id === "number" ? entry.id : undefined,
+            parameterCode: historyText(entry.parameterCode) ?? "",
+            parameterName: historyText(entry.parameterName),
+            value: entry.value,
+            status: typeof entry.status === "boolean" ? entry.status : null,
+            createdAt: historyText(entry.createdAt),
+          };
+        });
+      const processCode = historyText(section.processCode) ?? key;
+      const processName = historyText(section.processName) ?? processCode;
+      history[key].push({
+        processCode,
+        processName,
+        entries,
+      });
+      // Preserve each backend process instead of mixing its metadata with siblings.
+      if ("parameters" in section || "processCode" in section || "history" in section) {
+        sections[key].push({
+          processCode,
+          processName,
+          result: typeof section.result === "boolean" ? section.result : undefined,
+          isMqttPublisher: typeof section.isMqttPublisher === "boolean" ? section.isMqttPublisher : null,
+          mqttPublisherStatus: historyText(section.mqttPublisherStatus) ?? historyText(section.status),
+          reason: historyText(section.reason),
+          parameters,
+          history: entries,
+        });
+      }
+    }
+  }
+  return {
+    id: typeof log.id === "number" ? log.id : 0,
+    serialNumberClinching: historyText(log.serialNumberClinching) ?? "",
+    serialNumberMFan: historyText(log.serialNumberMFan) ?? null,
+    serialNumberCode: historyText(log.serialNumberClinching),
+    status: log.status === true,
+    isFinish: log.isFinish === true,
+    issueNumbersClinching: Array.isArray(log.issueNumbersClinching) ? log.issueNumbersClinching.filter((value): value is string => typeof value === "string") : [],
+    issueNumbersMfan: Array.isArray(log.issueNumbersMfan) ? log.issueNumbersMfan.filter((value): value is string => typeof value === "string") : [],
+    createdAt: historyText(log.createdAt) ?? "",
+    updatedAt: historyText(log.updatedAt) ?? null,
+    detail,
+    history,
+    sections,
+  };
 };
 
 export type TraceabilityLogIssueItem = {
@@ -214,15 +313,25 @@ export type BackendTraceabilityLogV2 = {
   isFinish?: boolean;
   issueNumbersClinching?: string[];
   issueNumbersMfan?: string[];
-  detail?: Record<string, BackendTraceabilityLogV2DetailParameter[]>;
+  detail?: Record<string, (BackendTraceabilityLogV2DetailParameter | BackendTraceabilityProcessSection)[] | null>;
   createdAt: string;
   updatedAt?: string;
 };
 
 export type BackendTraceabilityLogV2DetailParameter = {
   parameter?: string;
+  parameterDesc?: string | null;
   value?: unknown;
-  status?: boolean;
+  status?: boolean | null;
+};
+
+export type BackendTraceabilityProcessSection = MqttPublisherInfo & {
+  processCode?: string | null;
+  processName?: string | null;
+  result?: boolean;
+  status?: string | null;
+  parameters?: BackendTraceabilityLogV2DetailParameter[] | null;
+  history?: ScanHistoryEntry[] | null;
 };
 
 type BackendProcessLogMock = {
@@ -265,14 +374,6 @@ type BackendProcessLogMock = {
   OverallStatus?: boolean | string | null;
   overallStatus?: boolean | string | null;
 };
-
-const mapTraceabilityV2Parameter = (
-  parameter: BackendTraceabilityLogV2DetailParameter
-): TraceabilityLogV2Parameter => ({
-  parameter: parameter.parameter ?? "-",
-  value: parameter.value,
-  status: parameter.status,
-});
 
 const normalizeOverallStatus = (value: boolean | string | null | undefined) => {
   if (typeof value === "boolean") {
@@ -444,26 +545,7 @@ const mapTraceabilityLogListItem = (
   log: BackendProcessLog | BackendProcessLogMock | BackendTraceabilityLogV2
 ): TraceabilityLogItem => {
   if (isTraceabilityLogV2(log)) {
-    return {
-      id: log.id,
-      serialNumberClinching: log.serialNumberClinching ?? "",
-      serialNumberMFan: log.serialNumberMFan,
-      serialNumberCode: log.serialNumberClinching ?? undefined,
-      status: log.status ?? false,
-      isFinish: log.isFinish ?? false,
-      issueNumbersClinching: log.issueNumbersClinching ?? [],
-      issueNumbersMfan: log.issueNumbersMfan ?? [],
-      createdAt: log.createdAt,
-      updatedAt: log.updatedAt ?? null,
-      detail: log.detail
-        ? {
-            clinching: (log.detail.clinching ?? []).map(mapTraceabilityV2Parameter),
-            mfan: (log.detail.mfan ?? []).map(mapTraceabilityV2Parameter),
-            ecm: (log.detail.ecm ?? []).map(mapTraceabilityV2Parameter),
-            final: (log.detail.final ?? []).map(mapTraceabilityV2Parameter),
-          }
-        : null,
-    };
+    return normalizeTraceabilityDetail(log);
   }
 
   const processLog = isMockProcessLog(log)
@@ -566,24 +648,30 @@ const mapV2DetailParameter = (
   return {
     parameterId: index,
     parameterCode: parameter.parameter,
-    parameterName: formatParameterName(parameter.parameter),
+    parameterName: parameter.parameterDesc || formatParameterName(parameter.parameter),
     dataType: getValueDataType(firstValue),
-    status: parameter.status,
+    status: parameter.status ?? undefined,
     values,
   };
 };
 
 const mapV2DetailToProcessDetails = (
   detail?: BackendTraceabilityLogV2["detail"]
-): ProcessLogDetail[] =>
-  Object.entries(detail ?? {}).map(([processName, parameters]) =>
-    mockGroup(
-      formatParameterName(processName),
-      parameters.map((parameter, index) =>
-        mapV2DetailParameter(parameter, index)
-      )
-    )
-  );
+): ProcessLogDetail[] => {
+  const normalized = normalizeTraceabilityDetail({ detail });
+  return (Object.keys(normalized.sections!) as TraceabilityProcessKey[]).flatMap((key) => {
+    const sections = normalized.sections![key];
+    if (sections.length > 0) {
+      return sections.map((section) => ({
+        ...mockGroup(section.processName, section.parameters.map(mapV2DetailParameter)),
+        processCode: section.processCode,
+        result: section.result,
+      }));
+    }
+    const parameters = normalized.detail?.[key] ?? [];
+    return parameters.length ? [mockGroup(formatParameterName(key), parameters.map(mapV2DetailParameter))] : [];
+  });
+};
 
 const mapMockProcessLog = (log: BackendProcessLogMock): ProcessLog => {
   const isPassed = normalizeOverallStatus(
@@ -705,23 +793,16 @@ const mapFullValueSection = (
   details: section?.details ?? [],
 });
 
-const mapV2FullValues = (log: BackendTraceabilityLogV2): ProcessLogFullValues => {
-  const detailValues = Object.entries(log.detail ?? {}).flatMap(
-    ([processName, parameters]) =>
-      parameters.map((parameter) => {
-        const normalizedValue = normalizeV2DetailValue(parameter);
-
-        return {
-          processCode: processName,
-          processName: formatParameterName(processName),
-          parameterCode: parameter.parameter,
-          parameterName: formatParameterName(parameter.parameter),
-          value: Array.isArray(normalizedValue) ? null : normalizedValue,
-          values: Array.isArray(normalizedValue)
-            ? normalizedValue
-            : [normalizedValue],
-        };
-      })
+export const mapV2FullValues = (log: BackendTraceabilityLogV2): ProcessLogFullValues => {
+  const detailValues = mapV2DetailToProcessDetails(log.detail).flatMap((process) =>
+    process.parameters.map((parameter) => ({
+      processCode: process.processCode,
+      processName: process.processName,
+      parameterCode: parameter.parameterCode,
+      parameterName: parameter.parameterName,
+      value: parameter.values.length === 1 ? parameter.values[0] : null,
+      values: parameter.values,
+    }))
   );
 
   return {
@@ -855,7 +936,7 @@ const TraceabilityLogService = {
       options
     );
 
-    return response.data;
+    return { ...response.data, data: normalizeTraceabilityDetail(response.data.data) };
   },
 
   getTraceabilityLogIssuesBySerialNumber: async (

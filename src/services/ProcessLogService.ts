@@ -1,5 +1,6 @@
 import api, { ApiRequestOptions } from "@/utils/api";
 import { ApiListResponse } from "./ParameterService";
+import { MqttPublisherInfo } from "@/utils/mqttPublisher";
 
 type MaybeCased<T extends string> = T | Capitalize<T>;
 
@@ -8,6 +9,60 @@ export type ProcessLogParameter = {
   parameterDesc?: string;
   value?: unknown;
   status?: boolean | null;
+};
+
+export type ProcessLogProcess = MqttPublisherInfo & {
+  processCode?: string;
+  processName?: string;
+  parameters: ProcessLogParameter[];
+};
+
+export type ProcessLogDetail = {
+  status?: boolean;
+  processes: ProcessLogProcess[];
+};
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+
+const optionalText = (value: unknown): string | undefined =>
+  typeof value === "string" ? value.trim() || undefined : undefined;
+
+export const normalizeProcessLogDetail = (value: unknown): ProcessLogDetail => {
+  const detail = asRecord(value);
+  const processes = detail.processes ?? detail.Processes;
+  const status = detail.status ?? detail.Status;
+  return {
+    status: typeof status === "boolean" ? status : undefined,
+    processes: (Array.isArray(processes) ? processes : [])
+      .filter((process) => process !== null && typeof process === "object")
+      .map((value) => {
+        const process = asRecord(value);
+        const publisher = process.isMqttPublisher ?? process.IsMqttPublisher;
+        const parameters = process.parameters ?? process.Parameters;
+        return {
+          processCode: optionalText(process.processCode ?? process.ProcessCode),
+          processName: optionalText(process.processName ?? process.ProcessName),
+          isMqttPublisher: typeof publisher === "boolean" ? publisher : null,
+          mqttPublisherStatus: optionalText(process.mqttPublisherStatus ?? process.MqttPublisherStatus),
+          reason: optionalText(process.reason ?? process.Reason),
+          parameters: (Array.isArray(parameters) ? parameters : [])
+            .filter((parameter) => parameter !== null && typeof parameter === "object")
+            .map((value) => {
+              const parameter = asRecord(value);
+              const status = parameter.status ?? parameter.Status;
+              return {
+                parameter: optionalText(parameter.parameterCode ?? parameter.ParameterCode),
+                parameterDesc: optionalText(parameter.parameterName ?? parameter.ParameterName),
+                value: parameter.value ?? parameter.Value,
+                status: typeof status === "boolean" ? status : null,
+              };
+            }),
+        };
+      }),
+  };
 };
 
 type BackendProcessLogListItem = {
@@ -93,6 +148,13 @@ const normalizeProcessLog = (
 };
 
 const ProcessLogService = {
+  getProcessLogDetail: async (serialNumber: string, options?: ApiRequestOptions) => {
+    const response = await api.get<{ data: unknown }>(
+      `${PROCESS_LOG_ENDPOINT}/by-serial-number/${encodeURIComponent(serialNumber)}`,
+      options
+    );
+    return normalizeProcessLogDetail(response.data.data);
+  },
   getProcessLogs: async (
     query: ProcessLogQuery = {},
     options?: ApiRequestOptions

@@ -3,12 +3,17 @@
 import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import PageLoader from "@/components/common/PageLoader";
 import { Modal } from "@/components/ui/modal";
+import ProcessHistoryModal from "@/components/traceability-log/ProcessHistoryModal";
 import { useToast } from "@/context/ToastContext";
 import { ChevronLeftIcon } from "@/icons";
 import TraceabilityLogService, {
   TraceabilityLogItem,
   TraceabilityLogV2Parameter,
+  TraceabilityProcessKey,
+  TraceabilityProcessSection,
 } from "@/services/TraceabilityLogService";
+import { groupScanSessions } from "@/utils/scanHistory";
+import { getMqttPublisherState, isEmptyProcessValue } from "@/utils/mqttPublisher";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -186,7 +191,7 @@ const getArrayDisplayValue = (
   values: unknown[],
   numericOkNg = false
 ): { text: string; isOkNg: boolean; isFailed: boolean } => {
-  if (!values || values.length === 0) {
+  if (!values || isEmptyProcessValue(values)) {
     return { text: "-", isOkNg: false, isFailed: false };
   }
 
@@ -202,6 +207,7 @@ const getArrayDisplayValue = (
   }
 
   const numericValues = values
+    .filter((value) => !isEmptyProcessValue(value))
     .map((v) => {
       if (typeof v === "number") return v;
       if (typeof v === "string") {
@@ -234,7 +240,7 @@ const getArrayDisplayValue = (
 };
 
 const formatSingleValue = (value: unknown): string => {
-  if (value === null || value === undefined || value === "") return "-";
+  if (isEmptyProcessValue(value)) return "-";
   if (typeof value === "boolean") return value ? "true" : "false";
   return String(value);
 };
@@ -248,7 +254,12 @@ export default function TraceabilityLogDetailView({
   const [log, setLog] = useState<TraceabilityLogItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [modalData, setModalData] = useState<ArrayPointModalState | null>(null);
+  const [historyModal, setHistoryModal] = useState<{
+    key: TraceabilityProcessKey;
+    title: string;
+  } | null>(null);
   const [issueModal, setIssueModal] = useState<{
     title: string;
     serialNumber: string;
@@ -269,9 +280,9 @@ export default function TraceabilityLogDetailView({
             { signal: controller.signal }
           );
 
-        setLog(response.data);
+        if (!controller.signal.aborted) setLog(response.data);
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (controller.signal.aborted) return;
 
         const msg =
           err instanceof Error
@@ -289,7 +300,7 @@ export default function TraceabilityLogDetailView({
     fetchDetail();
 
     return () => controller.abort();
-  }, [identifier, toast]);
+  }, [identifier, toast, reloadKey]);
 
   if (isLoading) {
     return <PageLoader />;
@@ -300,6 +311,13 @@ export default function TraceabilityLogDetailView({
       <div className="mx-4 my-6 rounded-2xl border border-error-200 bg-error-50 p-6 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300">
         <h2 className="text-lg font-semibold">Traceability Detail Unavailable</h2>
         <p className="mt-2 text-sm">{error ?? "Traceability log was not found."}</p>
+        <button
+          className="mr-3 mt-5 rounded-lg border border-error-300 px-4 py-2 text-sm font-semibold hover:bg-error-100 dark:border-error-700 dark:hover:bg-error-900"
+          onClick={() => setReloadKey((key) => key + 1)}
+          type="button"
+        >
+          Retry
+        </button>
         <button
           className="mt-5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
           onClick={() => router.push("/traceability-log")}
@@ -432,6 +450,9 @@ export default function TraceabilityLogDetailView({
           {/* BARIS 1: CLINCHING */}
           <ProcessSectionRow
             title="CLINCHING PROCESS"
+            sections={log.sections?.clinching ?? []}
+            historyCount={groupScanSessions(log.history?.clinching ?? []).length}
+            onOpenHistory={() => setHistoryModal({ key: "clinching", title: "Clinching" })}
             parameters={clinchingParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -447,6 +468,9 @@ export default function TraceabilityLogDetailView({
           {/* BARIS 2: HE LEAK */}
           <ProcessSectionRow
             title="HE LEAK PROCESS"
+            sections={log.sections?.heLeak ?? []}
+            historyCount={groupScanSessions(log.history?.heLeak ?? []).length}
+            onOpenHistory={() => setHistoryModal({ key: "heLeak", title: "HE Leak" })}
             parameters={heLeakParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -462,6 +486,9 @@ export default function TraceabilityLogDetailView({
           {/* BARIS 3: M-FAN */}
           <ProcessSectionRow
             title="M-FAN ASSEMBLY & INSPECTION PROCESS"
+            sections={log.sections?.mfan ?? []}
+            historyCount={groupScanSessions(log.history?.mfan ?? []).length}
+            onOpenHistory={() => setHistoryModal({ key: "mfan", title: "M-Fan Assy" })}
             parameters={mfanParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -477,6 +504,9 @@ export default function TraceabilityLogDetailView({
           {/* BARIS 4: ECM */}
           <ProcessSectionRow
             title="ECM ASSEMBLY PROCESS"
+            sections={log.sections?.ecm ?? []}
+            historyCount={groupScanSessions(log.history?.ecm ?? []).length}
+            onOpenHistory={() => setHistoryModal({ key: "ecm", title: "ECM Assy" })}
             parameters={ecmParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -492,6 +522,9 @@ export default function TraceabilityLogDetailView({
           {/* BARIS 5: FINAL INSPECTION */}
           <ProcessSectionRow
             title="FINAL INSPECTION PROCESS"
+            sections={log.sections?.final ?? []}
+            historyCount={groupScanSessions(log.history?.final ?? []).length}
+            onOpenHistory={() => setHistoryModal({ key: "final", title: "Final Inspection" })}
             parameters={finalParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -507,6 +540,17 @@ export default function TraceabilityLogDetailView({
       </div>
 
       {/* Multi-Point Array Dialog Modal */}
+      {historyModal && (
+        <ProcessHistoryModal
+          key={`${identifier}-${historyModal.key}`}
+          identifier={identifier}
+          processKey={historyModal.key}
+          title={historyModal.title}
+          serialNumber={(historyModal.key === "mfan" ? log.serialNumberMFan : log.serialNumberClinching) || "-"}
+          onLoaded={setLog}
+          onClose={() => setHistoryModal(null)}
+        />
+      )}
       {modalData && (
         <ArrayPointsModal
           data={modalData}
@@ -527,13 +571,19 @@ export default function TraceabilityLogDetailView({
 function ProcessSectionRow({
   title,
   parameters,
+  sections,
+  historyCount,
+  onOpenHistory,
   onOpenArrayPoints,
 }: {
   title: string;
   parameters: ProcessParameterItem[];
+  sections: TraceabilityProcessSection[];
+  historyCount: number;
+  onOpenHistory: () => void;
   onOpenArrayPoints: (param: ProcessParameterItem) => void;
 }) {
-  const isProcessFailed = parameters.some((p) => {
+  const isProcessFailed = sections.length > 0 ? sections.some((section) => section.result === false) : parameters.some((p) => {
     const isArray = Array.isArray(p.value);
     const numericOkNg = isEndPlateWidthParameter(p.parameter, p.parameterDesc);
     if (isArray) {
@@ -545,6 +595,11 @@ function ProcessSectionRow({
       isPointFailed(p.value, numericOkNg)
     );
   });
+
+  const displays = sections.length > 0
+    ? sections.map((section) => ({ section, parameters: groupProcessParameters(section.parameters) }))
+    : [{ section: null, parameters }];
+  const parameterCount = displays.reduce((count, display) => count + display.parameters.length, 0);
 
   return (
     <div className="flex flex-col md:flex-row items-stretch border-b border-gray-200 dark:border-gray-800 last:border-b-0">
@@ -566,12 +621,25 @@ function ProcessSectionRow({
               : "text-gray-500 dark:text-gray-400"
           }`}
         >
-          {parameters.length} Parameter{parameters.length === 1 ? "" : "s"}
+          {parameterCount} Parameter{parameterCount === 1 ? "" : "s"}
         </span>
+        <button
+          type="button"
+          onClick={onOpenHistory}
+          disabled={historyCount === 0}
+          aria-label={`History ${title}: ${historyCount} scan sessions`}
+          title={historyCount === 0 ? "No scan history available" : "View scan history"}
+          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+        >
+          History ({historyCount})
+        </button>
       </div>
 
       {/* Right Area: Auto-wrapping parameters grid */}
-      <div className="min-w-0 flex-1 p-3.5">
+      <div className="min-w-0 flex-1 space-y-4 p-3.5">
+        {displays.map(({ section, parameters }, sectionIndex) => (
+        <div key={`${section?.processCode ?? "legacy"}-${sectionIndex}`}>
+        {section && <TraceabilityProcessHeader section={section} />}
         <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
           {parameters.map((param, i) => {
             const isArray = Array.isArray(param.value);
@@ -586,11 +654,11 @@ function ProcessSectionRow({
               ? Boolean(arrayInfo?.isOkNg)
               : isOkNgValue(param.value, numericOkNg);
 
-            const isFailed = isOkNg
+            const isFailed = !isEmptyProcessValue(param.value) && (typeof param.status === "boolean" ? !param.status : isOkNg
               ? isArray
                 ? Boolean(arrayInfo?.isFailed)
                 : isPointFailed(param.value, numericOkNg)
-              : false;
+              : false);
 
             return (
               <div
@@ -663,7 +731,33 @@ function ProcessSectionRow({
             </div>
           )}
         </div>
+        </div>
+        ))}
       </div>
+    </div>
+  );
+}
+
+function TraceabilityProcessHeader({ section }: { section: TraceabilityProcessSection }) {
+  const publisherState = getMqttPublisherState(section);
+  const allEmpty = section.parameters.every((parameter) => isEmptyProcessValue(parameter.value));
+  return (
+    <div className="mb-3 space-y-1.5 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-900/60">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200">{section.processName}</h4>
+          <p className="font-mono text-[10px] text-gray-500 dark:text-gray-400">{section.processCode}</p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[10px] font-semibold">
+          {typeof section.result === "boolean" && (
+            <span className={`rounded-full px-2 py-1 ${section.result ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"}`}>Result: {section.result ? "OK" : "NG"}</span>
+          )}
+          <span className={`rounded-full px-2 py-1 ${publisherState === "Disabled" ? "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : publisherState === "Enabled" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>MQTT Publisher: {publisherState === "Unknown" ? "Not available" : publisherState}</span>
+        </div>
+      </div>
+      {section.mqttPublisherStatus && <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {section.mqttPublisherStatus}</p>}
+      {section.reason && <p className="break-words text-xs text-gray-600 dark:text-gray-300">Reason: {section.reason}</p>}
+      {allEmpty && <p className="text-xs text-gray-500 dark:text-gray-400">Parameter values are not available yet.</p>}
     </div>
   );
 }
