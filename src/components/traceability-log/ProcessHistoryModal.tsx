@@ -5,8 +5,10 @@ import { Modal } from "@/components/ui/modal";
 import TraceabilityLogService, {
   TraceabilityLogItem,
   TraceabilityProcessKey,
+  TraceabilityProcessSection,
 } from "@/services/TraceabilityLogService";
 import { groupScanSessions } from "@/utils/scanHistory";
+import { getMqttPublisherState } from "@/utils/mqttPublisher";
 
 const INITIAL_VISIBLE_PARAMETERS = 15;
 
@@ -105,6 +107,9 @@ export default function ProcessHistoryModal({
                 <span className="rounded-md bg-red-50 px-2 py-1 text-red-700 dark:bg-red-950 dark:text-red-300">{session.ngCount} NG</span>
               </div>
             </div>
+            <HistoryPublisherInfo
+              process={data?.sections?.[processKey].find((process) => process.processCode === session.processCode)}
+            />
             <div className="grid grid-cols-1 items-stretch gap-2 bg-gray-50/50 p-3 dark:bg-gray-950/30 sm:grid-cols-2 lg:grid-cols-5">
               {session.entries.slice(0, visibleCounts[session.number] ?? INITIAL_VISIBLE_PARAMETERS).map((entry, index) => (
                 <article
@@ -116,15 +121,10 @@ export default function ProcessHistoryModal({
                       <h4 className="min-w-0 flex-1 break-words text-center text-[10px] font-semibold leading-3.5 text-gray-600 dark:text-gray-300">
                         {entry.parameterName || entry.parameterCode || "-"}
                       </h4>
-                      {typeof entry.status === "boolean" && (
-                        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${entry.status ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"}`}>
-                          {entry.status ? "OK" : "NG"}
-                        </span>
-                      )}
                     </div>
                     <div className="flex min-h-7 flex-1 items-center justify-center py-0.5">
                       <p className={`min-w-0 whitespace-pre-wrap break-all text-center font-mono text-lg font-bold leading-5 tabular-nums ${entry.status === false ? "text-red-600 dark:text-red-400" : entry.status === true ? "text-emerald-700 dark:text-emerald-300" : "text-gray-900 dark:text-white"}`}>
-                        {historyValue(entry.value)}
+                        {typeof entry.status === "boolean" ? (entry.status ? "OK" : "NG") : historyValue(entry.value)}
                       </p>
                     </div>
                   </div>
@@ -164,5 +164,23 @@ export default function ProcessHistoryModal({
       </div>
       </div>
     </Modal>
+  );
+}
+
+function HistoryPublisherInfo({ process }: { process?: TraceabilityProcessSection }) {
+  if (!process) return null;
+  const state = getMqttPublisherState(process);
+  return (
+    <div className="space-y-1.5 border-b border-gray-100 px-4 py-2.5 dark:border-gray-800">
+      <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${state === "Enabled" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : state === "Disabled" ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200" : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"}`}>
+        Current MQTT Publisher: {state === "Unknown" ? "Not available" : state}
+      </span>
+      {process.mqttPublisherStatus && (
+        <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {process.mqttPublisherStatus}</p>
+      )}
+      {process.reason && (
+        <p className="break-words text-xs text-gray-600 dark:text-gray-300">Reason: {process.reason}</p>
+      )}
+    </div>
   );
 }
