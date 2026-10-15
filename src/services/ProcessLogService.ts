@@ -1,6 +1,7 @@
 import api, { ApiRequestOptions } from "@/utils/api";
 import { ApiListResponse } from "./ParameterService";
 import { MqttPublisherInfo } from "@/utils/mqttPublisher";
+import type { ScanHistoryEntry } from "@/utils/scanHistory";
 
 type MaybeCased<T extends string> = T | Capitalize<T>;
 
@@ -15,6 +16,7 @@ export type ProcessLogProcess = MqttPublisherInfo & {
   processCode?: string;
   processName?: string;
   parameters: ProcessLogParameter[];
+  history: ScanHistoryEntry[];
 };
 
 export type ProcessLogDetail = {
@@ -42,12 +44,28 @@ export const normalizeProcessLogDetail = (value: unknown): ProcessLogDetail => {
         const process = asRecord(value);
         const publisher = process.isMqttPublisher ?? process.IsMqttPublisher;
         const parameters = process.parameters ?? process.Parameters;
+        const history = process.history ?? process.History;
         return {
           processCode: optionalText(process.processCode ?? process.ProcessCode),
           processName: optionalText(process.processName ?? process.ProcessName),
           isMqttPublisher: typeof publisher === "boolean" ? publisher : null,
           mqttPublisherStatus: optionalText(process.mqttPublisherStatus ?? process.MqttPublisherStatus),
           reason: optionalText(process.reason ?? process.Reason),
+          history: (Array.isArray(history) ? history : [])
+            .filter((entry) => entry !== null && typeof entry === "object")
+            .map((value) => {
+              const entry = asRecord(value);
+              const status = entry.status ?? entry.Status;
+              const id = entry.id ?? entry.Id;
+              return {
+                id: typeof id === "number" ? id : undefined,
+                parameterCode: optionalText(entry.parameterCode ?? entry.ParameterCode) ?? "",
+                parameterName: optionalText(entry.parameterName ?? entry.ParameterName),
+                value: entry.value ?? entry.Value,
+                status: typeof status === "boolean" ? status : null,
+                createdAt: optionalText(entry.createdAt ?? entry.CreatedAt),
+              };
+            }),
           parameters: (Array.isArray(parameters) ? parameters : [])
             .filter((parameter) => parameter !== null && typeof parameter === "object")
             .map((value) => {

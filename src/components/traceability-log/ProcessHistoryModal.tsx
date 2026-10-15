@@ -5,10 +5,10 @@ import { Modal } from "@/components/ui/modal";
 import TraceabilityLogService, {
   TraceabilityLogItem,
   TraceabilityProcessKey,
-  TraceabilityProcessSection,
 } from "@/services/TraceabilityLogService";
-import { groupScanSessions, matchesScanHistory, ScanHistoryFilters } from "@/utils/scanHistory";
-import { getMqttPublisherState } from "@/utils/mqttPublisher";
+import ProcessLogService from "@/services/ProcessLogService";
+import { groupScanSessions, matchesScanHistory, ProcessHistorySource, ScanHistoryFilters } from "@/utils/scanHistory";
+import { getMqttPublisherState, MqttPublisherInfo } from "@/utils/mqttPublisher";
 
 const INITIAL_VISIBLE_PARAMETERS = 15;
 const EMPTY_FILTERS: ScanHistoryFilters = { query: "", status: "all" };
@@ -31,17 +31,28 @@ const historyValue = (value: unknown): string => {
   return String(value);
 };
 
-export default function ProcessHistoryModal({
-  identifier, processKey, title, serialNumber, onClose, onLoaded,
-}: {
+type ProcessHistoryModalProps = {
   identifier: string;
-  processKey: TraceabilityProcessKey;
   title: string;
   serialNumber: string;
   onClose: () => void;
+} & ({
+  source?: "traceability-log";
+  processKey: TraceabilityProcessKey;
   onLoaded: (log: TraceabilityLogItem) => void;
-}) {
-  const [data, setData] = useState<TraceabilityLogItem | null>(null);
+} | {
+  source: "process-log";
+  processKey: string;
+  onLoaded?: never;
+});
+
+export default function ProcessHistoryModal({
+  identifier, processKey, title, serialNumber, onClose, onLoaded, source,
+}: ProcessHistoryModalProps) {
+  const [data, setData] = useState<{
+    history: ProcessHistorySource[];
+    processes: (MqttPublisherInfo & { processCode?: string })[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -51,12 +62,28 @@ export default function ProcessHistoryModal({
 
   useEffect(() => {
     const controller = new AbortController();
-    TraceabilityLogService.getTraceabilityLogV2BySerialNumber(identifier, { signal: controller.signal })
-      .then((response) => {
+    const load = async () => {
+      if (source === "process-log") {
+        const detail = await ProcessLogService.getProcessLogDetail(identifier, { signal: controller.signal });
         if (controller.signal.aborted) return;
-        setData(response.data);
-        onLoaded(response.data);
-      })
+        const processes = detail.processes.filter((process) => process.processCode === processKey);
+        setData({
+          processes,
+          history: processes.map((process) => ({
+            processCode: process.processCode ?? "",
+            processName: process.processName || process.processCode || title,
+            entries: process.history,
+          })),
+        });
+      } else {
+        const response = await TraceabilityLogService.getTraceabilityLogV2BySerialNumber(identifier, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        const key = processKey as TraceabilityProcessKey;
+        setData({ history: response.data.history?.[key] ?? [], processes: response.data.sections?.[key] ?? [] });
+        onLoaded?.(response.data);
+      }
+    };
+    load()
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setError(error instanceof Error ? error.message : "Failed to load scan history.");
@@ -65,16 +92,16 @@ export default function ProcessHistoryModal({
         if (!controller.signal.aborted) setIsLoading(false);
       });
     return () => controller.abort();
-  }, [identifier, processKey, reloadKey, onLoaded]);
+  }, [identifier, processKey, reloadKey, onLoaded, source, title]);
 
-  const allSessions = groupScanSessions(data?.history?.[processKey] ?? []);
+  const allSessions = groupScanSessions(data?.history ?? []);
   // Group first so filtering does not merge scans or change their session numbers.
   const sessions = allSessions.map((session) => {
     const entries = session.entries.filter((entry) => matchesScanHistory(entry, filters));
     return { ...session, entries, okCount: entries.filter((entry) => entry.status === true).length,
       ngCount: entries.filter((entry) => entry.status === false).length };
   }).filter((session) => session.entries.length > 0);
-  const historyRows = (data?.history?.[processKey] ?? []).flatMap((source) =>
+  const historyRows = (data?.history ?? []).flatMap((source) =>
     source.entries.map((entry) => ({ ...entry, processCode: source.processCode, processName: source.processName }))
   ).filter((entry) => matchesScanHistory(entry, filters)).sort((a, b) =>
     (Date.parse(b.createdAt ?? "") || 0) - (Date.parse(a.createdAt ?? "") || 0) || (b.id ?? 0) - (a.id ?? 0)
@@ -189,7 +216,7 @@ export default function ProcessHistoryModal({
               </div>
             </div>
             <HistoryPublisherInfo
-              process={data?.sections?.[processKey].find((process) => process.processCode === session.processCode)}
+              process={data?.processes.find((process) => process.processCode === session.processCode)}
             />
             <div className="grid grid-cols-1 items-stretch gap-2 bg-gray-50/50 p-3 dark:bg-gray-950/30 sm:grid-cols-2 lg:grid-cols-5">
               {session.entries.slice(0, visibleCounts[session.number] ?? INITIAL_VISIBLE_PARAMETERS).map((entry, index) => (
@@ -248,7 +275,7 @@ export default function ProcessHistoryModal({
   );
 }
 
-function HistoryPublisherInfo({ process }: { process?: TraceabilityProcessSection }) {
+function HistoryPublisherInfo({ process }: { process?: MqttPublisherInfo }) {
   if (!process) return null;
   const state = getMqttPublisherState(process);
   return (

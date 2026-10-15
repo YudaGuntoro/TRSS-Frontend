@@ -2,6 +2,7 @@
 
 import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
 import DatePicker from "@/components/form/date-picker";
+import ProcessHistoryModal from "@/components/traceability-log/ProcessHistoryModal";
 import {
   RefreshActionIcon,
   ResetActionIcon,
@@ -594,6 +595,7 @@ function ProcessLogDetailModal({
     error?: string;
   } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [historyProcess, setHistoryProcess] = useState<{ code: string; title: string } | null>(null);
   const serialNumber = log?.serialNumberCode;
 
   useEffect(() => {
@@ -617,6 +619,20 @@ function ProcessLogDetailModal({
   const parameterCount = processes.reduce((count, process) => count + process.parameters.length, 0);
   const status = detail?.status ?? log?.status;
   const isLogFailed = status === false;
+
+  if (historyProcess && serialNumber) {
+    return (
+      <ProcessHistoryModal
+        key={`${serialNumber}-${historyProcess.code}`}
+        source="process-log"
+        identifier={serialNumber}
+        processKey={historyProcess.code}
+        title={historyProcess.title}
+        serialNumber={serialNumber}
+        onClose={() => setHistoryProcess(null)}
+      />
+    );
+  }
 
   return (
     <Modal
@@ -681,7 +697,17 @@ function ProcessLogDetailModal({
           <section key={`${process.processCode ?? "process"}-${processIndex}`} className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
             <div className="mb-3 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{process.processName || process.processCode || `Process ${processIndex + 1}`}</h3>
+                <button
+                  type="button"
+                  disabled={!process.processCode}
+                  onClick={() => process.processCode && setHistoryProcess({ code: process.processCode, title: process.processName || process.processCode })}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-brand-400 dark:hover:bg-gray-800"
+                >
+                  History
+                </button>
+                </div>
                 <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${mqttState === "Disabled" ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200" : mqttState === "Enabled" ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200" : "border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"}`}>
                   MQTT Publisher: {mqttState === "Unknown" ? "Not available" : mqttState}
                 </span>
