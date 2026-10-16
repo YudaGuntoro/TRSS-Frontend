@@ -280,10 +280,11 @@ export default function ProcessHistoryModal({
 function HistoryPublisherInfo({ process }: { process?: MqttPublisherInfo }) {
   if (!process) return null;
   const state = getMqttPublisherState(process);
+  if (state !== "Disabled") return null;
   return (
     <div className="space-y-1.5 border-b border-gray-100 px-4 py-2.5 dark:border-gray-800">
-      <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${state === "Enabled" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : state === "Disabled" ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200" : "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"}`}>
-        Current MQTT Publisher: {state === "Unknown" ? "Not available" : state}
+      <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+        Current MQTT Publisher: Disabled
       </span>
       {process.mqttPublisherStatus && (
         <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {process.mqttPublisherStatus}</p>

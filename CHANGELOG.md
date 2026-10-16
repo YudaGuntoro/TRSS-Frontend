@@ -6,7 +6,10 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ## [Belum Dirilis] (Unreleased)
 
-Belum ada perubahan yang dicatat setelah rilis v0.1.0.
+### Perubahan UI/UX
+
+- Menghapus keterangan MQTT status, Reason, dan pesan nilai parameter belum tersedia dari Process Log Detail.
+- Menampilkan badge MQTT Publisher hanya untuk status Disabled pada detail Traceability Log dan modal riwayat Process Log; status Enabled dan status tidak tersedia disembunyikan.
 
 ---
 

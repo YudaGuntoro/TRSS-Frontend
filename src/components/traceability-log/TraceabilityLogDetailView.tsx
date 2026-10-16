@@ -748,7 +748,9 @@ function TraceabilityProcessHeader({ section }: { section: TraceabilityProcessSe
           <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200">{section.processName}</h4>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] font-semibold">
-          <span className={`rounded-full px-2 py-1 ${publisherState === "Disabled" ? "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : publisherState === "Enabled" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>MQTT Publisher: {publisherState === "Unknown" ? "Not available" : publisherState}</span>
+          {publisherState === "Disabled" && (
+            <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-800 dark:bg-amber-950 dark:text-amber-200">MQTT Publisher: Disabled</span>
+          )}
         </div>
       </div>
       {section.mqttPublisherStatus && <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {section.mqttPublisherStatus}</p>}

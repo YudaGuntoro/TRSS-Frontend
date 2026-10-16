@@ -239,7 +239,6 @@ export default function ProcessLogDetailView({ serialNumber }: { serialNumber: s
         {processes.map((process, processIndex) => {
           const mqttState = getMqttPublisherState(process);
           const parameters = process.parameters;
-          const allEmpty = parameters.every((parameter) => isEmptyProcessValue(parameter.value));
           return (
           <section key={`${process.processCode ?? "process"}-${processIndex}`} className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
             <div className="mb-3 space-y-2">
@@ -261,9 +260,6 @@ export default function ProcessLogDetailView({ serialNumber }: { serialNumber: s
                   </span>
                 )}
               </div>
-              {process.mqttPublisherStatus && <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {process.mqttPublisherStatus}</p>}
-              {process.reason && <p className="break-words text-xs text-gray-600 dark:text-gray-300">Reason: {process.reason}</p>}
-              {allEmpty && <p className="text-xs text-gray-500 dark:text-gray-400">Parameter values are not available yet.</p>}
             </div>
         <ProcessParameterGrid>
           {parameters.map((param, index) => {
