@@ -215,9 +215,11 @@ export default function ProcessHistoryModal({
                 <span className="rounded-md bg-red-50 px-2 py-1 text-red-700 dark:bg-red-950 dark:text-red-300">{session.ngCount} NG</span>
               </div>
             </div>
-            <HistoryPublisherInfo
-              process={data?.processes.find((process) => process.processCode === session.processCode)}
-            />
+            {source === "process-log" && (
+              <HistoryPublisherInfo
+                process={data?.processes.find((process) => process.processCode === session.processCode)}
+              />
+            )}
             <div className="grid grid-cols-1 items-stretch gap-2 bg-gray-50/50 p-3 dark:bg-gray-950/30 sm:grid-cols-2 lg:grid-cols-5">
               {session.entries.slice(0, visibleCounts[session.number] ?? INITIAL_VISIBLE_PARAMETERS).map((entry, index) => (
                 <article

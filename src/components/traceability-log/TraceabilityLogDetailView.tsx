@@ -746,12 +746,8 @@ function TraceabilityProcessHeader({ section }: { section: TraceabilityProcessSe
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200">{section.processName}</h4>
-          <p className="font-mono text-[10px] text-gray-500 dark:text-gray-400">{section.processCode}</p>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] font-semibold">
-          {typeof section.result === "boolean" && (
-            <span className={`rounded-full px-2 py-1 ${section.result ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"}`}>Result: {section.result ? "OK" : "NG"}</span>
-          )}
           <span className={`rounded-full px-2 py-1 ${publisherState === "Disabled" ? "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200" : publisherState === "Enabled" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"}`}>MQTT Publisher: {publisherState === "Unknown" ? "Not available" : publisherState}</span>
         </div>
       </div>

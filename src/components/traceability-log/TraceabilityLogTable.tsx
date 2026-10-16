@@ -253,13 +253,13 @@ export default function TraceabilityLogTable() {
           <thead className="bg-[#6D8AF3] text-[11px] font-semibold uppercase text-white">
             <tr>
               <th className="w-12 px-3 py-3 text-center">No</th>
-              <th className="px-4 py-3 whitespace-nowrap">Timestamp</th>
               <th className="px-4 py-3">Serial Clinching</th>
               <th className="px-4 py-3">Serial M-Fan</th>
               <th className="px-4 py-3">Issue Clinching</th>
               <th className="px-4 py-3">Issue M-Fan</th>
               <th className="px-4 py-3 text-center whitespace-nowrap">Progress</th>
               <th className="w-24 px-4 py-3 text-center">Status</th>
+              <th className="px-4 py-3 whitespace-nowrap">Timestamp</th>
               <th className="w-24 px-4 py-3 text-center">Action</th>
             </tr>
           </thead>
@@ -275,10 +275,6 @@ export default function TraceabilityLogTable() {
               >
                 <td className="px-3 py-3 text-center font-mono text-gray-500 dark:text-gray-400">
                   {(currentPage - 1) * currentLimit + index + 1}
-                </td>
-
-                <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">
-                  {formatDate(log.createdAt)}
                 </td>
 
                 <td className="px-4 py-3 font-mono font-semibold text-brand-600 dark:text-brand-400">
@@ -332,6 +328,10 @@ export default function TraceabilityLogTable() {
 
                 <td className="px-4 py-3 text-center">
                   <StatusBadge status={log.status} />
+                </td>
+
+                <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">
+                  {formatDate(log.createdAt)}
                 </td>
 
                 <td className="px-4 py-3 text-center">
