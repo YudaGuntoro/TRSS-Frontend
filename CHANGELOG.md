@@ -6,6 +6,10 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ## [Belum Dirilis] (Unreleased)
 
+---
+
+## [v0.1.1] - 16 Oktober 2026
+
 ### Perubahan UI/UX
 
 - Memindahkan tombol History pada Traceability Log Detail ke sebelah nama setiap proses; jumlah sesi dan isi modal mengikuti proses yang dipilih.
