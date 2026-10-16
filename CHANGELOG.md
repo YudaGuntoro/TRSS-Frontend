@@ -8,7 +8,9 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ### Perubahan UI/UX
 
+- Memindahkan tombol History pada Traceability Log Detail ke sebelah nama setiap proses; jumlah sesi dan isi modal mengikuti proses yang dipilih.
 - Menghapus keterangan MQTT status, Reason, dan pesan nilai parameter belum tersedia dari Process Log Detail.
+- Menerapkan penghapusan keterangan tersebut pada Traceability Log Detail dan menghapus MQTT status serta Reason dari modal riwayat proses, sehingga informasi MQTT cukup berupa badge Disabled.
 - Menampilkan badge MQTT Publisher hanya untuk status Disabled pada detail Traceability Log dan modal riwayat Process Log; status Enabled dan status tidak tersedia disembunyikan.
 
 ---

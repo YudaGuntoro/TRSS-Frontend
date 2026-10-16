@@ -33,6 +33,7 @@ const historyValue = (value: unknown): string => {
 
 type ProcessHistoryModalProps = {
   identifier: string;
+  processCode?: string;
   title: string;
   serialNumber: string;
   onClose: () => void;
@@ -47,7 +48,7 @@ type ProcessHistoryModalProps = {
 });
 
 export default function ProcessHistoryModal({
-  identifier, processKey, title, serialNumber, onClose, onLoaded, source,
+  identifier, processKey, processCode, title, serialNumber, onClose, onLoaded, source,
 }: ProcessHistoryModalProps) {
   const [data, setData] = useState<{
     history: ProcessHistorySource[];
@@ -79,7 +80,10 @@ export default function ProcessHistoryModal({
         const response = await TraceabilityLogService.getTraceabilityLogV2BySerialNumber(identifier, { signal: controller.signal });
         if (controller.signal.aborted) return;
         const key = processKey as TraceabilityProcessKey;
-        setData({ history: response.data.history?.[key] ?? [], processes: response.data.sections?.[key] ?? [] });
+        setData({
+          history: (response.data.history?.[key] ?? []).filter((process) => !processCode || process.processCode === processCode),
+          processes: (response.data.sections?.[key] ?? []).filter((process) => !processCode || process.processCode === processCode),
+        });
         onLoaded?.(response.data);
       }
     };
@@ -92,7 +96,7 @@ export default function ProcessHistoryModal({
         if (!controller.signal.aborted) setIsLoading(false);
       });
     return () => controller.abort();
-  }, [identifier, processKey, reloadKey, onLoaded, source, title]);
+  }, [identifier, processKey, processCode, reloadKey, onLoaded, source, title]);
 
   const allSessions = groupScanSessions(data?.history ?? []);
   // Group first so filtering does not merge scans or change their session numbers.
@@ -286,12 +290,6 @@ function HistoryPublisherInfo({ process }: { process?: MqttPublisherInfo }) {
       <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
         Current MQTT Publisher: Disabled
       </span>
-      {process.mqttPublisherStatus && (
-        <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {process.mqttPublisherStatus}</p>
-      )}
-      {process.reason && (
-        <p className="break-words text-xs text-gray-600 dark:text-gray-300">Reason: {process.reason}</p>
-      )}
     </div>
   );
 }

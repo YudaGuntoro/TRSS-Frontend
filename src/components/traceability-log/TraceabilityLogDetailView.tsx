@@ -12,7 +12,7 @@ import TraceabilityLogService, {
   TraceabilityProcessKey,
   TraceabilityProcessSection,
 } from "@/services/TraceabilityLogService";
-import { groupScanSessions } from "@/utils/scanHistory";
+import { groupScanSessions, ProcessHistorySource } from "@/utils/scanHistory";
 import { getMqttPublisherState, isEmptyProcessValue } from "@/utils/mqttPublisher";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -259,6 +259,7 @@ export default function TraceabilityLogDetailView({
   const [historyModal, setHistoryModal] = useState<{
     key: TraceabilityProcessKey;
     title: string;
+    processCode?: string;
   } | null>(null);
   const [issueModal, setIssueModal] = useState<{
     title: string;
@@ -451,8 +452,8 @@ export default function TraceabilityLogDetailView({
           <ProcessSectionRow
             title="CLINCHING PROCESS"
             sections={log.sections?.clinching ?? []}
-            historyCount={groupScanSessions(log.history?.clinching ?? []).length}
-            onOpenHistory={() => setHistoryModal({ key: "clinching", title: "Clinching" })}
+            history={log.history?.clinching ?? []}
+            onOpenHistory={(section) => setHistoryModal({ key: "clinching", title: section?.processName || "Clinching", processCode: section?.processCode })}
             parameters={clinchingParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -469,8 +470,8 @@ export default function TraceabilityLogDetailView({
           <ProcessSectionRow
             title="HE LEAK PROCESS"
             sections={log.sections?.heLeak ?? []}
-            historyCount={groupScanSessions(log.history?.heLeak ?? []).length}
-            onOpenHistory={() => setHistoryModal({ key: "heLeak", title: "HE Leak" })}
+            history={log.history?.heLeak ?? []}
+            onOpenHistory={(section) => setHistoryModal({ key: "heLeak", title: section?.processName || "HE Leak", processCode: section?.processCode })}
             parameters={heLeakParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -487,8 +488,8 @@ export default function TraceabilityLogDetailView({
           <ProcessSectionRow
             title="M-FAN ASSEMBLY & INSPECTION PROCESS"
             sections={log.sections?.mfan ?? []}
-            historyCount={groupScanSessions(log.history?.mfan ?? []).length}
-            onOpenHistory={() => setHistoryModal({ key: "mfan", title: "M-Fan Assy" })}
+            history={log.history?.mfan ?? []}
+            onOpenHistory={(section) => setHistoryModal({ key: "mfan", title: section?.processName || "M-Fan Assy", processCode: section?.processCode })}
             parameters={mfanParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -505,8 +506,8 @@ export default function TraceabilityLogDetailView({
           <ProcessSectionRow
             title="ECM ASSEMBLY PROCESS"
             sections={log.sections?.ecm ?? []}
-            historyCount={groupScanSessions(log.history?.ecm ?? []).length}
-            onOpenHistory={() => setHistoryModal({ key: "ecm", title: "ECM Assy" })}
+            history={log.history?.ecm ?? []}
+            onOpenHistory={(section) => setHistoryModal({ key: "ecm", title: section?.processName || "ECM Assy", processCode: section?.processCode })}
             parameters={ecmParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -523,8 +524,8 @@ export default function TraceabilityLogDetailView({
           <ProcessSectionRow
             title="FINAL INSPECTION PROCESS"
             sections={log.sections?.final ?? []}
-            historyCount={groupScanSessions(log.history?.final ?? []).length}
-            onOpenHistory={() => setHistoryModal({ key: "final", title: "Final Inspection" })}
+            history={log.history?.final ?? []}
+            onOpenHistory={(section) => setHistoryModal({ key: "final", title: section?.processName || "Final Inspection", processCode: section?.processCode })}
             parameters={finalParams}
             onOpenArrayPoints={(item) =>
               setModalData({
@@ -542,9 +543,10 @@ export default function TraceabilityLogDetailView({
       {/* Multi-Point Array Dialog Modal */}
       {historyModal && (
         <ProcessHistoryModal
-          key={`${identifier}-${historyModal.key}`}
+          key={`${identifier}-${historyModal.key}-${historyModal.processCode ?? "all"}`}
           identifier={identifier}
           processKey={historyModal.key}
+          processCode={historyModal.processCode}
           title={historyModal.title}
           serialNumber={(historyModal.key === "mfan" ? log.serialNumberMFan : log.serialNumberClinching) || "-"}
           onLoaded={setLog}
@@ -572,17 +574,18 @@ function ProcessSectionRow({
   title,
   parameters,
   sections,
-  historyCount,
+  history,
   onOpenHistory,
   onOpenArrayPoints,
 }: {
   title: string;
   parameters: ProcessParameterItem[];
   sections: TraceabilityProcessSection[];
-  historyCount: number;
-  onOpenHistory: () => void;
+  history: ProcessHistorySource[];
+  onOpenHistory: (section?: TraceabilityProcessSection) => void;
   onOpenArrayPoints: (param: ProcessParameterItem) => void;
 }) {
+  const historyCount = groupScanSessions(history).length;
   const isProcessFailed = sections.length > 0 ? sections.some((section) => section.result === false) : parameters.some((p) => {
     const isArray = Array.isArray(p.value);
     const numericOkNg = isEndPlateWidthParameter(p.parameter, p.parameterDesc);
@@ -623,9 +626,10 @@ function ProcessSectionRow({
         >
           {parameterCount} Parameter{parameterCount === 1 ? "" : "s"}
         </span>
+        {sections.length === 0 && (
         <button
           type="button"
-          onClick={onOpenHistory}
+          onClick={() => onOpenHistory()}
           disabled={historyCount === 0}
           aria-label={`History ${title}: ${historyCount} scan sessions`}
           title={historyCount === 0 ? "No scan history available" : "View scan history"}
@@ -633,13 +637,18 @@ function ProcessSectionRow({
         >
           History ({historyCount})
         </button>
+        )}
       </div>
 
       {/* Right Area: Auto-wrapping parameters grid */}
       <div className="min-w-0 flex-1 space-y-4 p-3.5">
         {displays.map(({ section, parameters }, sectionIndex) => (
         <div key={`${section?.processCode ?? "legacy"}-${sectionIndex}`}>
-        {section && <TraceabilityProcessHeader section={section} />}
+        {section && <TraceabilityProcessHeader
+          section={section}
+          historyCount={groupScanSessions(history.filter((source) => source.processCode === section.processCode)).length}
+          onOpenHistory={() => onOpenHistory(section)}
+        />}
         <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-2.5">
           {parameters.map((param, i) => {
             const isArray = Array.isArray(param.value);
@@ -738,14 +747,27 @@ function ProcessSectionRow({
   );
 }
 
-function TraceabilityProcessHeader({ section }: { section: TraceabilityProcessSection }) {
+function TraceabilityProcessHeader({ section, historyCount, onOpenHistory }: {
+  section: TraceabilityProcessSection;
+  historyCount: number;
+  onOpenHistory: () => void;
+}) {
   const publisherState = getMqttPublisherState(section);
-  const allEmpty = section.parameters.every((parameter) => isEmptyProcessValue(parameter.value));
   return (
     <div className="mb-3 space-y-1.5 rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-900/60">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
+        <div className="flex flex-wrap items-center gap-3">
           <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200">{section.processName}</h4>
+          <button
+            type="button"
+            onClick={onOpenHistory}
+            disabled={historyCount === 0}
+            aria-label={`History ${section.processName}: ${historyCount} scan sessions`}
+            title={historyCount === 0 ? "No scan history available" : "View scan history"}
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            History ({historyCount})
+          </button>
         </div>
         <div className="flex flex-wrap gap-2 text-[10px] font-semibold">
           {publisherState === "Disabled" && (
@@ -753,9 +775,6 @@ function TraceabilityProcessHeader({ section }: { section: TraceabilityProcessSe
           )}
         </div>
       </div>
-      {section.mqttPublisherStatus && <p className="break-words text-xs text-gray-600 dark:text-gray-300">MQTT status: {section.mqttPublisherStatus}</p>}
-      {section.reason && <p className="break-words text-xs text-gray-600 dark:text-gray-300">Reason: {section.reason}</p>}
-      {allEmpty && <p className="text-xs text-gray-500 dark:text-gray-400">Parameter values are not available yet.</p>}
     </div>
   );
 }
