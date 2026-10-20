@@ -8,6 +8,15 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.1.2-preview.1] - 20 Oktober 2026
+
+### Peningkatan Lainnya
+
+- Mengaktifkan output mode `standalone` pada `next.config.ts` untuk mendukung pembuatan bundle mandiri (Next.js standalone server) pada proses rilis dan deployment.
+- Memperbarui `.gitignore` untuk mengabaikan direktori artefak rilis (`/dist/`, `/publish/`, `/scripts/`) serta file konfigurasi environment lokal (`.env.frontend*`).
+
+---
+
 ## [v0.1.1] - 16 Oktober 2026
 
 ### Perubahan UI/UX
