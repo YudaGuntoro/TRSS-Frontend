@@ -32,6 +32,8 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
+.env.frontend*
+!.env.frontend*.example
 
 # vercel
 .vercel
@@ -39,3 +41,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Build and Release artifacts
+/dist/
+/publish/
+/scripts/
