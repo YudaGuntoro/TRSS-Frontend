@@ -77,8 +77,25 @@ Tag Git menjadi penanda versi frontend pada commit tertentu agar perkembangan ap
    - **MAJOR**: perubahan besar yang tidak kompatibel; selama development awal, versi tetap `0.x.y` sampai aplikasi dinyatakan siap untuk `v1.0.0`.
    - **MINOR**: penambahan fitur atau perubahan besar selama tahap development `0.x.y`.
    - **PATCH**: perbaikan bug dan peningkatan kecil.
-3. Siapkan description yang merangkum perubahan frontend sejak tag sebelumnya; untuk tag pertama, dokumentasikan fitur frontend yang tersedia pada commit tersebut.
-4. Saat diminta membuat tag, gunakan **annotated tag** agar description tersimpan bersama tag Git dan menunjuk commit frontend yang sesuai.
+3. Tentukan tahapan rilis (*release stage*) jika menggunakan versi pra-rilis (*pre-release*).
+4. Siapkan description yang merangkum perubahan frontend sejak tag sebelumnya; untuk tag pertama, dokumentasikan fitur frontend yang tersedia pada commit tersebut.
+5. Saat diminta membuat tag, gunakan **annotated tag** agar description tersimpan bersama tag Git dan menunjuk commit frontend yang sesuai.
+
+### Tahapan Rilis & Versioning (Release Lifecycle)
+
+Untuk memastikan kejelasan stabilitas kode sebelum masuk ke lini produksi, penamaan versi dan tag mengikuti tahapan berikut:
+
+| Tahapan (*Stage*) | Format Tag | Deskripsi & Tujuan Penggunaan |
+|---|---|---|
+| **alpha** | `vMAJOR.MINOR.PATCH-alpha.X`<br>*(contoh: `v0.2.0-alpha.1`)* | **Development Aktif:** Pengujian internal tim developer. Fitur baru sedang dikembangkan, wajar jika belum stabil. |
+| **preview** | `vMAJOR.MINOR.PATCH-preview.X`<br>*(contoh: `v0.2.0-preview.1`)* | **Demo & Review Customer:** Paket build khusus untuk demonstrasi atau peninjauan (*review*) fitur/tampilan baru oleh customer atau manajemen. |
+| **beta** | `vMAJOR.MINOR.PATCH-beta.X`<br>*(contoh: `v0.2.0-beta.1`)* | **Pengujian Sebelum Release:** Pengujian menyeluruh (*UAT / User Acceptance Testing*) dan verifikasi integrasi perangkat/backend di lingkungan staging/lab pabrik. |
+| **rc** | `vMAJOR.MINOR.PATCH-rc.X`<br>*(contoh: `v0.2.0-rc.1`)* | **Validasi Akhir (*Release Candidate*):** Tahap pembekuan kode (*code-freeze*), hanya perbaikan bug kritis sebelum rilis resmi produksi. |
+| **stable** | `vMAJOR.MINOR.PATCH`<br>*(contoh: `v0.2.0`)* | **Versi Production:** Rilis resmi dan stabil tanpa suffix, siap dipasang dan dioperasikan pada lini produksi aktif. |
+
+#### Alur Penggunaan Praktis:
+- **Rilis Besar / Milestone Fitur Baru:** `alpha` ➔ `preview` ➔ `beta` ➔ `rc` ➔ `stable`
+- **Rilis Cepat / Perbaikan Ringan (*Patch*):** `preview` (verifikasi perubahan) ➔ `stable`
 
 ### Input
 
