@@ -8,6 +8,21 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.1.3-preview.1] - 22 Oktober 2026
+
+### Perbaikan Bug & Penyesuaian Tampilan
+
+- **Riwayat Proses pada Modal Process Log (`ProcessHistoryModal`)**:
+  - Memperbaiki logika penentuan nilai dan styling pada riwayat proses:
+    - Nilai string `"ok"` / `"OK"` ditampilkan sebagai `"OK"` dengan styling hijau (OK).
+    - Nilai string `"ng"` / `"NG"` ditampilkan sebagai `"NG"` dengan styling merah (NG).
+    - Nilai selain `"ok"` atau `"ng"` (seperti nilai `"0"`, angka desimal, atau teks pengukuran) ditampilkan sebagai nilai aslinya apa adanya dengan styling netral (tanpa style OK/NG).
+  - Memperbaiki penghitungan badge `okCount` dan `ngCount` per sesi agar nilai non-OK/NG (seperti `"0"`) tidak salah dihitung sebagai status NG.
+- **Zona Waktu Pemformat Tanggal & Waktu (`formatDateTime`)**:
+  - Menambahkan zona waktu eksplisit `Asia/Jakarta` pada pemformat tanggal pendek (`shortDateTimeFormatter`) agar waktu log (seperti pada tabel MQTT logs) selalu konsisten diformat ke zona waktu Jakarta (WIB / UTC+7).
+
+---
+
 ## [v0.1.2-preview.1] - 20 Oktober 2026
 
 ### Peningkatan Lainnya

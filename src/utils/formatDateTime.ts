@@ -4,6 +4,7 @@ const shortDateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
   month: "2-digit",
   year: "2-digit",
+  timeZone: "Asia/Jakarta",
 });
 
 export const formatShortDateTime = (value?: string | null) => {

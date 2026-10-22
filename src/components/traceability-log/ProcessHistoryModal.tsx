@@ -25,10 +25,20 @@ const scanTime = (value?: string) => {
   return date && Number.isFinite(date.getTime()) ? scanTimeFormatter.format(date) : "Time unavailable";
 };
 
-const historyValue = (value: unknown): string => {
-  if (value == null || (typeof value === "string" && !value.trim())) return "-";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+const getHistoryValueAndStatus = (value: unknown): { display: string; isOk: boolean; isNg: boolean } => {
+  if (typeof value === "string") {
+    const s = value.trim().toLowerCase();
+    if (s === "ok") return { display: "OK", isOk: true, isNg: false };
+    if (s === "ng") return { display: "NG", isOk: false, isNg: true };
+  }
+  // Jika value bukan "ok" atau "ng", kembalikan nilai aslinya (misal "0", angka, string)
+  if (value == null || (typeof value === "string" && !value.trim())) {
+    return { display: "-", isOk: false, isNg: false };
+  }
+  if (typeof value === "object") {
+    return { display: JSON.stringify(value), isOk: false, isNg: false };
+  }
+  return { display: String(value), isOk: false, isNg: false };
 };
 
 type ProcessHistoryModalProps = {
@@ -102,8 +112,12 @@ export default function ProcessHistoryModal({
   // Group first so filtering does not merge scans or change their session numbers.
   const sessions = allSessions.map((session) => {
     const entries = session.entries.filter((entry) => matchesScanHistory(entry, filters));
-    return { ...session, entries, okCount: entries.filter((entry) => entry.status === true).length,
-      ngCount: entries.filter((entry) => entry.status === false).length };
+    return {
+      ...session,
+      entries,
+      okCount: entries.filter((entry) => getHistoryValueAndStatus(entry.value).isOk).length,
+      ngCount: entries.filter((entry) => getHistoryValueAndStatus(entry.value).isNg).length,
+    };
   }).filter((session) => session.entries.length > 0);
   const historyRows = (data?.history ?? []).flatMap((source) =>
     source.entries.map((entry) => ({ ...entry, processCode: source.processCode, processName: source.processName }))
@@ -192,16 +206,37 @@ export default function ProcessHistoryModal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {historyRows.map((entry, index) => (
-                  <tr key={`${entry.processCode}-${entry.id ?? index}`} className={entry.status === false ? "bg-red-50/50 dark:bg-red-950/20" : entry.status === true ? "bg-emerald-50/40 dark:bg-emerald-950/20" : ""}>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{entry.processName}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{entry.parameterName || entry.parameterCode || "-"}</td>
-                    <td className={`max-w-xs whitespace-pre-wrap break-words px-4 py-3 font-mono font-bold ${entry.status === true ? "text-emerald-700 dark:text-emerald-300" : entry.status === false ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-white"}`}>
-                      {typeof entry.status === "boolean" ? (entry.status ? "OK" : "NG") : historyValue(entry.value)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">{scanTime(entry.createdAt)}</td>
-                  </tr>
-                ))}
+                {historyRows.map((entry, index) => {
+                  const { display, isOk, isNg } = getHistoryValueAndStatus(entry.value);
+
+                  return (
+                    <tr
+                      key={`${entry.processCode}-${entry.id ?? index}`}
+                      className={
+                        isNg
+                          ? "bg-red-50/50 dark:bg-red-950/20"
+                          : isOk
+                            ? "bg-emerald-50/40 dark:bg-emerald-950/20"
+                            : ""
+                      }
+                    >
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{entry.processName}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{entry.parameterName || entry.parameterCode || "-"}</td>
+                      <td
+                        className={`max-w-xs whitespace-pre-wrap break-words px-4 py-3 font-mono font-bold ${
+                          isOk
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : isNg
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-gray-900 dark:text-white"
+                        }`}
+                      >
+                        {display}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">{scanTime(entry.createdAt)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -225,25 +260,43 @@ export default function ProcessHistoryModal({
               />
             )}
             <div className="grid grid-cols-1 items-stretch gap-2 bg-gray-50/50 p-3 dark:bg-gray-950/30 sm:grid-cols-2 lg:grid-cols-5">
-              {session.entries.slice(0, visibleCounts[session.number] ?? INITIAL_VISIBLE_PARAMETERS).map((entry, index) => (
-                <article
-                  key={`${entry.id ?? index}-${entry.parameterCode}`}
-                  className={`flex min-w-0 flex-col overflow-hidden rounded-lg border ${entry.status === false ? "border-red-200 bg-red-50/60 dark:border-red-800 dark:bg-red-950/20" : entry.status === true ? "border-emerald-200 bg-emerald-50/70 dark:border-emerald-800 dark:bg-emerald-950/30" : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"}`}
-                >
-                  <div className="flex flex-1 flex-col px-2.5 pb-1.5 pt-2">
-                    <div className="flex min-h-7 items-start justify-center gap-1">
-                      <h4 className="min-w-0 flex-1 break-words text-center text-[10px] font-semibold leading-3.5 text-gray-600 dark:text-gray-300">
-                        {entry.parameterName || entry.parameterCode || "-"}
-                      </h4>
+              {session.entries.slice(0, visibleCounts[session.number] ?? INITIAL_VISIBLE_PARAMETERS).map((entry, index) => {
+                const { display, isOk, isNg } = getHistoryValueAndStatus(entry.value);
+
+                return (
+                  <article
+                    key={`${entry.id ?? index}-${entry.parameterCode}`}
+                    className={`flex min-w-0 flex-col overflow-hidden rounded-lg border ${
+                      isNg
+                        ? "border-red-200 bg-red-50/60 dark:border-red-800 dark:bg-red-950/20"
+                        : isOk
+                          ? "border-emerald-200 bg-emerald-50/70 dark:border-emerald-800 dark:bg-emerald-950/30"
+                          : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+                    }`}
+                  >
+                    <div className="flex flex-1 flex-col px-2.5 pb-1.5 pt-2">
+                      <div className="flex min-h-7 items-start justify-center gap-1">
+                        <h4 className="min-w-0 flex-1 break-words text-center text-[10px] font-semibold leading-3.5 text-gray-600 dark:text-gray-300">
+                          {entry.parameterName || entry.parameterCode || "-"}
+                        </h4>
+                      </div>
+                      <div className="flex min-h-7 flex-1 items-center justify-center py-0.5">
+                        <p
+                          className={`min-w-0 whitespace-pre-wrap break-all text-center font-mono text-lg font-bold leading-5 tabular-nums ${
+                            isNg
+                              ? "text-red-600 dark:text-red-400"
+                              : isOk
+                                ? "text-emerald-700 dark:text-emerald-300"
+                                : "text-gray-900 dark:text-white"
+                          }`}
+                        >
+                          {display}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex min-h-7 flex-1 items-center justify-center py-0.5">
-                      <p className={`min-w-0 whitespace-pre-wrap break-all text-center font-mono text-lg font-bold leading-5 tabular-nums ${entry.status === false ? "text-red-600 dark:text-red-400" : entry.status === true ? "text-emerald-700 dark:text-emerald-300" : "text-gray-900 dark:text-white"}`}>
-                        {typeof entry.status === "boolean" ? (entry.status ? "OK" : "NG") : historyValue(entry.value)}
-                      </p>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
             {session.entries.length > INITIAL_VISIBLE_PARAMETERS && (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 dark:border-gray-800">
