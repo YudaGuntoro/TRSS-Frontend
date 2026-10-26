@@ -397,6 +397,14 @@ export const notifyAuthChanged = () => {
 };
 
 export const getRequiredPermission = (pathname: string): Permission => {
+  if (pathname === "/reports/traceability" || pathname.startsWith("/reports/traceability/")) {
+    return PERMISSIONS.TRACEABILITY_LOG_VIEW;
+  }
+
+  if (pathname === "/reports/stock-in" || pathname.startsWith("/reports/stock-in/")) {
+    return PERMISSIONS.STOCK_IN_VIEW;
+  }
+
   if (pathname === "/logs/system" || pathname.startsWith("/logs/system/")) {
     return PERMISSIONS.SYSTEM_LOGS_VIEW;
   }

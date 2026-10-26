@@ -97,6 +97,23 @@ export const navItems: NavItem[] = [
   {
     icon: <ListIcon />,
     iconClassName: "text-indigo-500 dark:text-indigo-400",
+    name: "Report",
+    subItems: [
+      {
+        name: "Stock In",
+        path: "/reports/stock-in",
+        permission: PERMISSIONS.STOCK_IN_VIEW,
+      },
+      {
+        name: "Traceability",
+        path: "/reports/traceability",
+        permission: PERMISSIONS.TRACEABILITY_LOG_VIEW,
+      },
+    ],
+  },
+  {
+    icon: <ListIcon />,
+    iconClassName: "text-indigo-500 dark:text-indigo-400",
     name: "Logs",
     subItems: [
       {

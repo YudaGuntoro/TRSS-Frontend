@@ -19,6 +19,7 @@ export type ApiRequestOptions = Omit<RequestInit, "body" | "signal"> & {
   params?: QueryParams;
   signal?: AbortSignal;
   timeout?: number;
+  responseType?: "json" | "blob";
 };
 
 export type ApiClientResponse<T> = {
@@ -137,7 +138,7 @@ const request = async <T>(
   endpoint: string,
   options: ApiRequestOptions = {}
 ): Promise<ApiClientResponse<T>> => {
-  const { body, params, signal, timeout = DEFAULT_TIMEOUT, ...fetchOptions } =
+  const { body, params, signal, timeout = DEFAULT_TIMEOUT, responseType = "json", ...fetchOptions } =
     options;
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeout);
@@ -163,7 +164,9 @@ const request = async <T>(
       headers: createHeaders(body, fetchOptions.headers),
       signal: controller.signal,
     });
-    const data = await parseResponse<T>(response);
+    const data = response.ok && responseType === "blob"
+      ? await response.blob() as T
+      : await parseResponse<T>(response);
 
     if (!response.ok) {
       const message =
