@@ -8,6 +8,26 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.2.0-alpha.1] - 26 Oktober 2026
+
+### Fitur Frontend
+
+- Menambahkan menu Report dengan submenu Stock In dan Traceability sesuai hak akses pengguna.
+- Menambahkan laporan Stock In dengan filter periode dan Part, tabel berpaginasi, serta ekspor PDF berdasarkan filter aktif.
+- Menambahkan laporan Traceability dengan filter periode, pengurutan dan pagination, relasi serial Clinching/M-Fan, nomor issue, serta ekspor PDF detail per item.
+
+### Perubahan UI/UX
+
+- Menggunakan DatePicker TailAdmin pada filter report dan menata kontrol filter dalam satu baris yang proporsional pada layar lebar.
+- Menampilkan tombol PDF berwarna merah; action PDF per item diratakan ke tengah kolom.
+
+### Peningkatan Lainnya
+
+- Menambahkan dukungan respons file biner pada API client, status loading dan error ekspor, serta dokumentasi kontrak endpoint report.
+- Menunda tampilan ekspor Excel sampai endpoint backend mendukungnya.
+
+---
+
 ## [v0.1.3-preview.1] - 22 Oktober 2026
 
 ### Perbaikan Bug & Penyesuaian Tampilan
