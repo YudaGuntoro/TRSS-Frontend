@@ -6,6 +6,19 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ## [Belum Dirilis] (Unreleased)
 
+## [v0.2.1-alpha.1] - 27 Oktober 2026
+
+### Perubahan UI/UX
+
+- Mengganti opsi ekspor PDF pada menu Report menjadi Export Excel untuk laporan Stock In dan detail Traceability, mengikuti format yang didukung backend.
+- Memindahkan tombol Export Excel Stock In ke dalam card Incoming Stock dan mengganti label kecil XLSX dengan ikon workbook Excel.
+
+### Peningkatan Lainnya
+
+- Mengirim parameter `format=excel`, memvalidasi tipe konten XLSX, dan menggunakan ekstensi `.xlsx` pada nama file unduhan.
+
+---
+
 ---
 
 ## [v0.2.0-alpha.1] - 26 Oktober 2026

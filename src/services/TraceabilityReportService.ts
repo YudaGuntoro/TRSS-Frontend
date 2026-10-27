@@ -20,12 +20,12 @@ export type TraceabilityReportRow = {
 };
 
 const REPORT_PATH = "/api/reports/traceability";
-const DETAIL_PDF_PATH = (
-  process.env.NEXT_PUBLIC_TRACEABILITY_DETAIL_PDF_PATH || "/api/reports/traceability-log"
+const DETAIL_EXPORT_PATH = (
+  process.env.NEXT_PUBLIC_TRACEABILITY_DETAIL_EXPORT_PATH || "/api/reports/traceability-log"
 ).replace(/\/$/, "");
 
 export const getTraceabilityDetailFilename = (serialNumber: string) =>
-  `Traceability_${serialNumber.trim().replace(/[^A-Za-z0-9_-]/g, "_")}.pdf`;
+  `Traceability_${serialNumber.trim().replace(/[^A-Za-z0-9_-]/g, "_")}.xlsx`;
 
 const isCalendarDate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -70,17 +70,17 @@ const TraceabilityReportService = {
     return response.data;
   },
 
-  exportDetailPdf: async (clinchingSerialNumber: string, options?: ApiRequestOptions) => {
+  exportDetailExcel: async (clinchingSerialNumber: string, options?: ApiRequestOptions) => {
     const serial = clinchingSerialNumber.trim();
     if (!serial || serial === "-") throw new Error("Clinching serial number is missing.");
-    const response = await api.get<Blob>(`${DETAIL_PDF_PATH}/${encodeURIComponent(serial)}/export`, {
+    const response = await api.get<Blob>(`${DETAIL_EXPORT_PATH}/${encodeURIComponent(serial)}/export`, {
       ...options,
-      params: { format: "pdf" },
-      headers: { Accept: "application/pdf" },
+      params: { format: "excel" },
+      headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
       responseType: "blob",
     });
-    if (!response.data.size || response.data.type.split(";")[0].toLowerCase() !== "application/pdf") {
-      throw new Error("The detail PDF could not be downloaded. Please try again later.");
+    if (!response.data.size || response.data.type.split(";")[0].toLowerCase() !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+      throw new Error("The detail Excel file could not be downloaded. Please try again later.");
     }
     return response.data;
   },

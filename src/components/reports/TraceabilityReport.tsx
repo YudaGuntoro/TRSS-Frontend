@@ -13,7 +13,7 @@ import TraceabilityReportService, {
 import { formatShortDateTime } from "@/utils/formatDateTime";
 import DatePicker from "@/components/form/date-picker";
 import { ResetActionIcon } from "@/components/ui/icons/ActionIcons";
-import { PdfFileIcon } from "./ExportFileIcons";
+import { ExcelFileIcon } from "./ExportFileIcons";
 
 const inputClassName = "h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 const outlineButtonClassName = "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5";
@@ -56,14 +56,14 @@ export default function TraceabilityReport() {
     report.reset();
   };
 
-  const exportPdf = async (row: TraceabilityReportRow) => {
+  const exportExcel = async (row: TraceabilityReportRow) => {
     if (!row.serialNumberClinching || row.serialNumberClinching === "-" || exportControllers.current.has(row.id)) return;
     const controller = new AbortController();
     exportControllers.current.set(row.id, controller);
     setExportingIds((current) => new Set(current).add(row.id));
     setRowErrors((current) => ({ ...current, [row.id]: "" }));
     try {
-      const file = await TraceabilityReportService.exportDetailPdf(row.serialNumberClinching, { signal: controller.signal });
+      const file = await TraceabilityReportService.exportDetailExcel(row.serialNumberClinching, { signal: controller.signal });
       if (controller.signal.aborted) return;
       const url = URL.createObjectURL(file);
       const link = document.createElement("a");
@@ -77,8 +77,8 @@ export default function TraceabilityReport() {
       if (!controller.signal.aborted) setRowErrors((current) => ({
         ...current,
         [row.id]: error instanceof Error && "status" in error && error.status === 404
-          ? "PDF for this serial is not available yet."
-          : error instanceof Error ? error.message : "Failed to export detail PDF.",
+          ? "Excel export for this serial is not available yet."
+          : error instanceof Error ? error.message : "Failed to export detail Excel.",
       }));
     } finally {
       exportControllers.current.delete(row.id);
@@ -102,11 +102,11 @@ export default function TraceabilityReport() {
       : "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400"}`}>{row.status}</span> },
     { key: "createdAt", header: "Scan Time", render: (_, row) => formatShortDateTime(row.createdAt) },
     { key: "action", header: "Action", align: "center", render: (_, row) => <div className="flex min-w-36 flex-col items-center">
-      <button type="button" onClick={() => exportPdf(row)}
-        aria-label={`Export PDF for ${row.serialNumberClinching || "missing Clinching serial"}`}
+      <button type="button" onClick={() => exportExcel(row)}
+        aria-label={`Export Excel for ${row.serialNumberClinching || "missing Clinching serial"}`}
         disabled={!row.serialNumberClinching || row.serialNumberClinching === "-" || exportingIds.has(row.id)}
-        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#C62828]/35 bg-[#C62828]/5 px-3 text-xs font-semibold text-[#B42318] hover:border-[#C62828]/60 hover:bg-[#C62828]/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/35 dark:bg-red-400/10 dark:text-red-300 dark:hover:bg-red-400/15">
-        <PdfFileIcon />{exportingIds.has(row.id) ? "Exporting..." : "Export PDF"}
+        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#217346]/35 bg-[#217346]/5 px-3 text-xs font-semibold text-[#185C37] hover:border-[#217346]/60 hover:bg-[#217346]/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-green-400/35 dark:bg-green-400/10 dark:text-green-300 dark:hover:bg-green-400/15">
+        <ExcelFileIcon />{exportingIds.has(row.id) ? "Exporting..." : "Export Excel"}
       </button>
       {rowErrors[row.id] && <p role="alert" className="mt-1 max-w-52 text-center text-xs text-error-500">{rowErrors[row.id]}</p>}
     </div> },

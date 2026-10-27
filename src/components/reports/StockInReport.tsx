@@ -13,7 +13,7 @@ import { formatShortDateTime } from "@/utils/formatDateTime";
 import DatePicker from "@/components/form/date-picker";
 import { ResetActionIcon } from "@/components/ui/icons/ActionIcons";
 import ReportPartSelect, { type ReportPart } from "./ReportPartSelect";
-import { PdfFileIcon } from "./ExportFileIcons";
+import { ExcelFileIcon } from "./ExportFileIcons";
 
 const outlineButtonClassName = "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5";
 const unavailableMessage = "Stock in reports are not available yet. Please try again later.";
@@ -80,7 +80,7 @@ export default function StockInReport() {
       const url = URL.createObjectURL(file);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "stock-in-report.pdf";
+      link.download = "stock-in-report.xlsx";
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -127,12 +127,6 @@ export default function StockInReport() {
 
       <div className="mx-4 mb-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-500 dark:text-gray-400"><span className="font-medium">Applied filters:</span> {period} · {appliedPart ? `${appliedPart.number} - ${appliedPart.name}` : "All parts"}</p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={exportsDisabled} onClick={() => exportReport("pdf")}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#C62828] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#A91F1F] disabled:cursor-not-allowed disabled:opacity-50">
-            <PdfFileIcon />{exporting === "pdf" ? "Exporting..." : "Export PDF"}
-          </button>
-        </div>
       </div>
       {exportError && <p role="alert" className="mx-4 mb-3 text-sm text-error-500">{exportError}</p>}
       {(report.unavailable || report.error) && (
@@ -144,6 +138,10 @@ export default function StockInReport() {
       <div aria-busy={report.isLoading}>
         <DataTable columns={columns} data={report.data} rowKey="id" title="Incoming Stock"
           isLoading={report.isLoading} error={report.error}
+          actions={<div className="lg:ml-auto"><button type="button" disabled={exportsDisabled} onClick={() => exportReport("excel")}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#217346] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#185C37] disabled:cursor-not-allowed disabled:opacity-50">
+            <ExcelFileIcon />{exporting === "excel" ? "Exporting..." : "Export Excel"}
+          </button></div>}
           emptyMessage={report.unavailable ? unavailableMessage : "No stock in records match the applied filters."}
           pagination={report.pagination} onPageChange={report.setPage} onLimitChange={report.setLimit}
           minWidth="1100px" />

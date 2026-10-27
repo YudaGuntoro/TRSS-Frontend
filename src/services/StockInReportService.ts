@@ -26,7 +26,7 @@ export type StockInReportRow = {
   balance: number | null;
 };
 
-export type StockInReportFormat = "pdf";
+export type StockInReportFormat = "excel";
 
 const REPORT_PATH = (
   process.env.NEXT_PUBLIC_STOCK_IN_REPORT_API_PATH || "/api/reports/stock-in"
@@ -79,10 +79,10 @@ const StockInReportService = {
       ...options,
       params: { ...normalizeStockInReportFilters(filters), format },
       responseType: "blob",
-      headers: { Accept: "application/pdf" },
+      headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
     });
     const contentType = response.data.type.split(";")[0].toLowerCase();
-    if (!response.data.size || contentType !== "application/pdf") {
+    if (!response.data.size || contentType !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
       throw new Error("The report file could not be downloaded. Please try again later.");
     }
     return response.data;
