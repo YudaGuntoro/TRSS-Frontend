@@ -2,12 +2,10 @@ import api, { ApiError, type ApiRequestOptions } from "@/utils/api";
 import type { ApiListResponse } from "./PartService";
 
 export type TraceabilityReportFilters = { startDate?: string; endDate?: string };
-export type TraceabilityReportSort = "newest" | "oldest";
 export type TraceabilityReportQuery = {
   filters: TraceabilityReportFilters;
   page: number;
   limit: number;
-  sort: TraceabilityReportSort;
 };
 export type TraceabilityReportRow = {
   id: number;
@@ -20,12 +18,6 @@ export type TraceabilityReportRow = {
 };
 
 const REPORT_PATH = "/api/reports/traceability";
-const DETAIL_EXPORT_PATH = (
-  process.env.NEXT_PUBLIC_TRACEABILITY_DETAIL_EXPORT_PATH || "/api/reports/traceability-log"
-).replace(/\/$/, "");
-
-export const getTraceabilityDetailFilename = (serialNumber: string) =>
-  `Traceability_${serialNumber.trim().replace(/[^A-Za-z0-9_-]/g, "_")}.xlsx`;
 
 const isCalendarDate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -49,6 +41,13 @@ export const normalizeTraceabilityReportFilters = (filters: TraceabilityReportFi
 export const isTraceabilityReportUnavailable = (error: unknown) =>
   error instanceof ApiError && [404, 405, 501].includes(error.status);
 
+export const getTraceabilityDetailExcelFilename = (serialNumber: string) => {
+  const now = new Date();
+  const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const serial = serialNumber.trim().replace(/[^A-Za-z0-9_-]/g, "_");
+  return `traceability_${serial}_${date}.xlsx`;
+};
+
 const TraceabilityReportService = {
   getReport: async (query: TraceabilityReportQuery, options?: ApiRequestOptions): Promise<ApiListResponse<TraceabilityReportRow>> => {
     if (!Number.isInteger(query.page) || query.page < 1 || !Number.isInteger(query.limit) || query.limit < 1) {
@@ -61,7 +60,7 @@ const TraceabilityReportService = {
         page: query.page,
         limit: query.limit,
         sortBy: "createdAt",
-        sortOrder: query.sort === "oldest" ? "asc" : "desc",
+        sortOrder: "desc",
       },
     });
     if (!response.data.success || !Array.isArray(response.data.data) || !response.data.pagination) {
@@ -73,7 +72,7 @@ const TraceabilityReportService = {
   exportDetailExcel: async (clinchingSerialNumber: string, options?: ApiRequestOptions) => {
     const serial = clinchingSerialNumber.trim();
     if (!serial || serial === "-") throw new Error("Clinching serial number is missing.");
-    const response = await api.get<Blob>(`${DETAIL_EXPORT_PATH}/${encodeURIComponent(serial)}/export`, {
+    const response = await api.get<Blob>(`/api/reports/traceability-log/${encodeURIComponent(serial)}/export`, {
       ...options,
       params: { format: "excel" },
       headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },

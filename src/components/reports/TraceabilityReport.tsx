@@ -5,17 +5,15 @@ import Link from "next/link";
 import DataTable, { type DataTableColumn } from "@/components/common/DataTable";
 import { useTraceabilityReport } from "@/hooks/useTraceabilityReport";
 import TraceabilityReportService, {
-  getTraceabilityDetailFilename,
+  getTraceabilityDetailExcelFilename,
   normalizeTraceabilityReportFilters,
   type TraceabilityReportRow,
-  type TraceabilityReportSort,
 } from "@/services/TraceabilityReportService";
 import { formatShortDateTime } from "@/utils/formatDateTime";
 import DatePicker from "@/components/form/date-picker";
 import { ResetActionIcon } from "@/components/ui/icons/ActionIcons";
 import { ExcelFileIcon } from "./ExportFileIcons";
 
-const inputClassName = "h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90";
 const outlineButtonClassName = "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5";
 const unavailableMessage = "Traceability report data is not available yet. Please try again later.";
 
@@ -25,8 +23,8 @@ export default function TraceabilityReport() {
   const [endDate, setEndDate] = useState("");
   const [datePickerKey, setDatePickerKey] = useState(0);
   const [validationError, setValidationError] = useState("");
-  const [rowErrors, setRowErrors] = useState<Record<number, string>>({});
   const [exportingIds, setExportingIds] = useState<Set<number>>(() => new Set());
+  const [rowErrors, setRowErrors] = useState<Record<number, string>>({});
   const exportControllers = useRef<Map<number, AbortController>>(new Map());
   useEffect(() => () => {
     exportControllers.current.forEach((controller) => controller.abort());
@@ -68,7 +66,7 @@ export default function TraceabilityReport() {
       const url = URL.createObjectURL(file);
       const link = document.createElement("a");
       link.href = url;
-      link.download = getTraceabilityDetailFilename(row.serialNumberClinching);
+      link.download = getTraceabilityDetailExcelFilename(row.serialNumberClinching);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -76,9 +74,7 @@ export default function TraceabilityReport() {
     } catch (error) {
       if (!controller.signal.aborted) setRowErrors((current) => ({
         ...current,
-        [row.id]: error instanceof Error && "status" in error && error.status === 404
-          ? "Excel export for this serial is not available yet."
-          : error instanceof Error ? error.message : "Failed to export detail Excel.",
+        [row.id]: error instanceof Error ? error.message : "Failed to export detail Excel.",
       }));
     } finally {
       exportControllers.current.delete(row.id);
@@ -91,6 +87,7 @@ export default function TraceabilityReport() {
   };
 
   const columns: DataTableColumn<TraceabilityReportRow>[] = [
+    { key: "createdAt", header: "Date", render: (_, row) => formatShortDateTime(row.createdAt) },
     { key: "serialNumberClinching", header: "Serial Clinching", render: (_, row) => row.serialNumberClinching && row.serialNumberClinching !== "-"
       ? <Link href={`/traceability-log/${encodeURIComponent(row.serialNumberClinching)}`} className="font-mono font-medium text-brand-600 hover:underline dark:text-brand-400">{row.serialNumberClinching}</Link>
       : "-" },
@@ -100,8 +97,7 @@ export default function TraceabilityReport() {
     { key: "status", header: "Status", render: (_, row) => <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${row.status === "OK"
       ? "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400"
       : "bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400"}`}>{row.status}</span> },
-    { key: "createdAt", header: "Scan Time", render: (_, row) => formatShortDateTime(row.createdAt) },
-    { key: "action", header: "Action", align: "center", render: (_, row) => <div className="flex min-w-36 flex-col items-center">
+    { key: "action", header: "Action", align: "center", render: (_, row) => <div className="flex min-w-32 flex-col items-center">
       <button type="button" onClick={() => exportExcel(row)}
         aria-label={`Export Excel for ${row.serialNumberClinching || "missing Clinching serial"}`}
         disabled={!row.serialNumberClinching || row.serialNumberClinching === "-" || exportingIds.has(row.id)}
@@ -131,7 +127,7 @@ export default function TraceabilityReport() {
               label="End Date" placeholder="Select end date" className="h-10 px-3 py-2 pr-10"
               defaultDate={endDate || undefined} onChange={onEndDateChange} />
             <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-1">
-              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Search</button>
+              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Filter</button>
               <button type="button" onClick={reset} className={outlineButtonClassName}><ResetActionIcon className="size-[18px] shrink-0" />Reset Filter</button>
             </div>
           </fieldset>
@@ -154,13 +150,6 @@ export default function TraceabilityReport() {
           isLoading={report.isLoading} error={report.error}
           emptyMessage={report.unavailable ? unavailableMessage : "No finished goods match the applied dates."}
           pagination={report.pagination} onPageChange={report.setPage} onLimitChange={report.setLimit}
-          actions={<label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">Sort by scan time
-            <select value={report.query.sort} disabled={report.isLoading}
-              onChange={(event) => report.setSort(event.target.value as TraceabilityReportSort)} className={inputClassName}>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-          </label>}
           minWidth="1150px" />
       </div>
     </div>

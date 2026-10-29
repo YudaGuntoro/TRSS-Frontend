@@ -1,9 +1,8 @@
 "use client";
 
 import { formatShortDateTime as formatDate } from "@/utils/formatDateTime";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import CreateButton from "@/components/common/CreateButton";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useStockIns } from "@/hooks/useStockIns";
 import StockInService, { StockIn } from "@/services/StockInService";
 import { useToast } from "@/context/ToastContext";
@@ -13,7 +12,6 @@ import StockInModal from "./StockInModal";
 import DatePicker from "@/components/form/date-picker";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/utils/auth";
-
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
@@ -52,8 +50,8 @@ export default function StockInTable() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [issueNumberSearch, setIssueNumberSearch] = useState("");
   const [partNumberSearch, setPartNumberSearch] = useState("");
-  const debouncedIssueNumberSearch = useDebouncedValue(issueNumberSearch, 500);
-  const debouncedPartNumberSearch = useDebouncedValue(partNumberSearch, 500);
+  const [filterDate, setFilterDate] = useState("");
+  const [datePickerKey, setDatePickerKey] = useState(0);
 
   const {
     data,
@@ -87,25 +85,22 @@ export default function StockInTable() {
     });
   }, [error, toast]);
 
-  useEffect(() => {
-    if (
-      (query.issueNumber ?? "") === debouncedIssueNumberSearch &&
-      (query.partNumber ?? "") === debouncedPartNumberSearch
-    ) {
-      return;
-    }
-
+  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setQuery({
-      issueNumber: debouncedIssueNumberSearch || undefined,
-      partNumber: debouncedPartNumberSearch || undefined,
+      issueNumber: issueNumberSearch.trim() || undefined,
+      partNumber: partNumberSearch.trim() || undefined,
+      date: filterDate || undefined,
     });
-  }, [
-    debouncedIssueNumberSearch,
-    debouncedPartNumberSearch,
-    query.issueNumber,
-    query.partNumber,
-    setQuery,
-  ]);
+  };
+
+  const resetFilters = () => {
+    setIssueNumberSearch("");
+    setPartNumberSearch("");
+    setFilterDate("");
+    setDatePickerKey((current) => current + 1);
+    setQuery({ issueNumber: undefined, partNumber: undefined, date: undefined });
+  };
 
   const handleCreate = () => {
     setSelectedStockIn(null);
@@ -146,68 +141,56 @@ export default function StockInTable() {
 
   return (
     <>
+      <section className="mx-3 mb-4 mt-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-white/[0.05] dark:bg-white/[0.03] sm:mx-4">
+        <h3 className="text-base font-semibold text-gray-800 dark:text-white/90">Filter Stock In</h3>
+        <form onSubmit={applyFilters} className="mt-5" aria-label="Stock in filters">
+          <div className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[300px_300px_320px_auto]">
+            <label className="block min-w-0 text-sm font-medium text-gray-700 dark:text-gray-300">
+              Part Number
+              <input type="text" placeholder="Part Number" className={`${filterInputClassName} mt-1`} value={partNumberSearch}
+                onChange={(event) => setPartNumberSearch(event.target.value)} />
+            </label>
+            <label className="block min-w-0 text-sm font-medium text-gray-700 dark:text-gray-300">
+              Issue Number
+              <input type="text" placeholder="Issue Number" className={`${filterInputClassName} mt-1`} value={issueNumberSearch}
+                onChange={(event) => setIssueNumberSearch(event.target.value)} />
+            </label>
+            <DatePicker id={`stock-in-date-filter-${datePickerKey}`} key={datePickerKey} label="Date"
+              className={filterInputClassName} defaultDate={filterDate || undefined}
+              onChange={([date]) => setFilterDate(date ? date.toISOString().split("T")[0] : "")}
+              placeholder="Select date" />
+            <div className="flex flex-wrap gap-3 sm:col-span-2 xl:col-span-1">
+              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Filter</button>
+              <button type="button" onClick={resetFilters} className="h-10 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Reset Filter</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
       <div className="mx-3 my-4 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03] sm:mx-4">
         <div className="border-b border-gray-100 px-4 py-4 dark:border-white/[0.05] sm:px-5">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <label className="flex min-w-0 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <span className="shrink-0">Show</span>
-                <select
-                  className="h-10 min-w-0 flex-1 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:flex-none"
-                  onChange={(event) => setLimit(Number(event.target.value))}
-                  value={currentLimit}
-                >
-                  {[10, 25, 50, 100].map((limit) => (
-                    <option key={limit} value={limit}>
-                      {limit}
-                    </option>
-                  ))}
-                </select>
-                <span className="shrink-0">entries</span>
-              </label>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="flex min-w-0 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <span className="shrink-0">Show</span>
+              <select
+                className="h-10 min-w-0 flex-1 rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:flex-none"
+                onChange={(event) => setLimit(Number(event.target.value))}
+                value={currentLimit}
+              >
+                {[10, 25, 50, 100].map((limit) => (
+                  <option key={limit} value={limit}>
+                    {limit}
+                  </option>
+                ))}
+              </select>
+              <span className="shrink-0">entries</span>
+            </label>
 
-              {canCreate && (
-                <div className="w-full shrink-0 sm:w-auto">
-                  <CreateButton className="w-full sm:w-auto" onClick={handleCreate} />
-                </div>
-              )}
-            </div>
-
-            <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[300px_300px_320px]">
-              <input
-                type="text"
-                placeholder="Part Number"
-                className={filterInputClassName}
-                value={partNumberSearch}
-                onChange={(e) => setPartNumberSearch(e.target.value)}
-              />
-
-              <input
-                type="text"
-                placeholder="Issue Number"
-                className={filterInputClassName}
-                value={issueNumberSearch}
-                onChange={(e) => setIssueNumberSearch(e.target.value)}
-              />
-
-              <label className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                <span className="shrink-0">Date</span>
-                <DatePicker
-                  id="stock-in-date-filter"
-                  className={`${filterInputClassName} pr-10`}
-                  defaultDate={query.date}
-                  onChange={([date]) => {
-                    if (date) {
-                      const formattedDate = date.toISOString().split("T")[0];
-                      setQuery({ date: formattedDate });
-                    } else {
-                      setQuery({ date: undefined });
-                    }
-                  }}
-                  placeholder="Select date"
-                />
-              </label>
-            </div>
+            {canCreate && (
+              <div className="w-full shrink-0 sm:w-auto">
+                <CreateButton className="w-full sm:w-auto" onClick={handleCreate} />
+              </div>
+            )}
           </div>
         </div>
 

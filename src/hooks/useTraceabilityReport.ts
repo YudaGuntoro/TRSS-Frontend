@@ -6,14 +6,12 @@ import TraceabilityReportService, {
   isTraceabilityReportUnavailable,
   type TraceabilityReportFilters,
   type TraceabilityReportRow,
-  type TraceabilityReportSort,
 } from "@/services/TraceabilityReportService";
 
 export function useTraceabilityReport() {
   const [query, setQuery] = useState({
     filters: {} as TraceabilityReportFilters,
     page: 1, limit: 10,
-    sort: "newest" as TraceabilityReportSort,
     revision: 0,
   });
   const [state, setState] = useState({
@@ -53,10 +51,9 @@ export function useTraceabilityReport() {
     data: state.response?.data ?? [],
     pagination: state.response?.pagination ?? { page: query.page, limit: query.limit, total: 0, totalPage: 1 },
     search: (filters: TraceabilityReportFilters) => update({ filters, page: 1 }),
-    reset: () => update({ filters: {}, page: 1, limit: 10, sort: "newest" }),
+    reset: () => update({ filters: {}, page: 1, limit: 10 }),
     setPage: (page: number) => update({ page }),
     setLimit: (limit: number) => update({ limit, page: 1 }),
-    setSort: (sort: TraceabilityReportSort) => update({ sort, page: 1 }),
     retry: () => update({}),
   };
 }

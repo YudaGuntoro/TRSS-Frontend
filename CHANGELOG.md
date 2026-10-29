@@ -6,6 +6,26 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ## [Belum Dirilis] (Unreleased)
 
+---
+
+## [v0.2.2-alpha.1] - 29 Oktober 2026
+
+### Perubahan UI/UX
+
+- Memindahkan filter Stock In, Traceability Log, dan Process Log ke card tersendiri; pencarian tetap berada di card tabel.
+- Menata ulang card filter pada Report Stock In dan Traceability Report, serta menghapus ringkasan Applied filters dari Report Stock In.
+- Memindahkan kolom Date ke posisi pertama pada tabel Traceability Report dan menghapus kontrol Sort by; urutan terbaru tetap menjadi default.
+
+### Hak Akses
+
+- Membatasi penghapusan user untuk Super Admin; Admin tidak lagi melihat action hapus.
+
+### Peningkatan Lainnya
+
+- Menggunakan nama file unduhan dengan tanggal `YYYYMMDD`, termasuk `stock_in_YYYYMMDD.xlsx` dan `traceability_<serial>_YYYYMMDD.xlsx`.
+
+---
+
 ## [v0.2.1-alpha.1] - 27 Oktober 2026
 
 ### Perubahan UI/UX
@@ -16,52 +36,6 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 ### Peningkatan Lainnya
 
 - Mengirim parameter `format=excel`, memvalidasi tipe konten XLSX, dan menggunakan ekstensi `.xlsx` pada nama file unduhan.
-
----
-
----
-
-## [v0.2.0-alpha.1] - 26 Oktober 2026
-
-### Fitur Frontend
-
-- Menambahkan menu Report dengan submenu Stock In dan Traceability sesuai hak akses pengguna.
-- Menambahkan laporan Stock In dengan filter periode dan Part, tabel berpaginasi, serta ekspor PDF berdasarkan filter aktif.
-- Menambahkan laporan Traceability dengan filter periode, pengurutan dan pagination, relasi serial Clinching/M-Fan, nomor issue, serta ekspor PDF detail per item.
-
-### Perubahan UI/UX
-
-- Menggunakan DatePicker TailAdmin pada filter report dan menata kontrol filter dalam satu baris yang proporsional pada layar lebar.
-- Menampilkan tombol PDF berwarna merah; action PDF per item diratakan ke tengah kolom.
-
-### Peningkatan Lainnya
-
-- Menambahkan dukungan respons file biner pada API client, status loading dan error ekspor, serta dokumentasi kontrak endpoint report.
-- Menunda tampilan ekspor Excel sampai endpoint backend mendukungnya.
-
----
-
-## [v0.1.3-preview.1] - 22 Oktober 2026
-
-### Perbaikan Bug & Penyesuaian Tampilan
-
-- **Riwayat Proses pada Modal Process Log (`ProcessHistoryModal`)**:
-  - Memperbaiki logika penentuan nilai dan styling pada riwayat proses:
-    - Nilai string `"ok"` / `"OK"` ditampilkan sebagai `"OK"` dengan styling hijau (OK).
-    - Nilai string `"ng"` / `"NG"` ditampilkan sebagai `"NG"` dengan styling merah (NG).
-    - Nilai selain `"ok"` atau `"ng"` (seperti nilai `"0"`, angka desimal, atau teks pengukuran) ditampilkan sebagai nilai aslinya apa adanya dengan styling netral (tanpa style OK/NG).
-  - Memperbaiki penghitungan badge `okCount` dan `ngCount` per sesi agar nilai non-OK/NG (seperti `"0"`) tidak salah dihitung sebagai status NG.
-- **Zona Waktu Pemformat Tanggal & Waktu (`formatDateTime`)**:
-  - Menambahkan zona waktu eksplisit `Asia/Jakarta` pada pemformat tanggal pendek (`shortDateTimeFormatter`) agar waktu log (seperti pada tabel MQTT logs) selalu konsisten diformat ke zona waktu Jakarta (WIB / UTC+7).
-
----
-
-## [v0.1.2-preview.1] - 20 Oktober 2026
-
-### Peningkatan Lainnya
-
-- Mengaktifkan output mode `standalone` pada `next.config.ts` untuk mendukung pembuatan bundle mandiri (Next.js standalone server) pada proses rilis dan deployment.
-- Memperbarui `.gitignore` untuk mengabaikan direktori artefak rilis (`/dist/`, `/publish/`, `/scripts/`) serta file konfigurasi environment lokal (`.env.frontend*`).
 
 ---
 

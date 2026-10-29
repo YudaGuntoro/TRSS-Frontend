@@ -12,7 +12,7 @@ import { useToast } from "@/context/ToastContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useTraceabilityLogs } from "@/hooks/useTraceabilityLogs";
 import { TraceabilityLogItem } from "@/services/TraceabilityLogService";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 type StatusFilter = "" | "ok" | "ng";
@@ -75,22 +75,6 @@ export default function TraceabilityLogTable() {
   }, [debouncedSearch, query.search, setQuery]);
 
   useEffect(() => {
-    const statusVal = statusFilter === "" ? null : statusFilter === "ok";
-
-    if (
-      statusVal !== (query.status ?? null) ||
-      startDate !== (query.startDate ?? "") ||
-      endDate !== (query.endDate ?? "")
-    ) {
-      setQuery({
-        status: statusVal,
-        startDate,
-        endDate,
-      });
-    }
-  }, [endDate, query.endDate, query.startDate, query.status, setQuery, startDate, statusFilter]);
-
-  useEffect(() => {
     if (!error || lastErrorRef.current === error) {
       return;
     }
@@ -103,14 +87,21 @@ export default function TraceabilityLogTable() {
   const lastItem = data.length > 0 ? firstItem + data.length - 1 : 0;
   const pageNumbers = getPageNumbers(currentPage, totalPage);
 
+  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setQuery({
+      status: statusFilter === "" ? null : statusFilter === "ok",
+      startDate,
+      endDate,
+    });
+  };
+
   const resetFilters = () => {
-    setSearch("");
     setStatusFilter("");
     setStartDate("");
     setEndDate("");
     setDatePickerKey((current) => current + 1);
     setQuery({
-      search: "",
       status: null,
       startDate: "",
       endDate: "",
@@ -130,11 +121,73 @@ export default function TraceabilityLogTable() {
   };
 
   return (
-    <div className="mx-3 my-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs dark:border-white/[0.05] dark:bg-white/[0.03] sm:mx-4">
-      {/* Filter / Controls Header */}
+    <>
+      <section className="mx-3 mb-4 mt-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-white/[0.05] dark:bg-white/[0.03] sm:mx-4">
+        <h3 className="text-base font-semibold text-gray-800 dark:text-white/90">Filter Traceability Log</h3>
+        <form onSubmit={applyFilters} className="mt-5" aria-label="Traceability log filters">
+          <div className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-[220px_280px_auto]">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Status
+              <select
+                className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm font-medium text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                value={statusFilter}
+              >
+                <option value="">All Status</option>
+                <option value="ok">Status OK</option>
+                <option value="ng">Status NG</option>
+              </select>
+            </label>
+
+            <DatePicker
+              className="h-10 px-3 py-2"
+              defaultDate={startDate && endDate ? [startDate, endDate] : startDate}
+              id="traceability-log-date-filter"
+              key={`traceability-log-date-filter-${datePickerKey}`}
+              label="Date / Range"
+              mode="range"
+              onChange={(dates) => {
+                if (dates.length > 1) {
+                  setStartDate(toDateFilterValue(dates[0]));
+                  setEndDate(toDateFilterValue(dates[1]));
+                }
+              }}
+              onClose={(dates) => {
+                if (dates.length === 0) {
+                  setStartDate("");
+                  setEndDate("");
+                  return;
+                }
+
+                setStartDate(toDateFilterValue(dates[0]));
+                setEndDate(dates.length > 1 ? toDateFilterValue(dates[1]) : "");
+              }}
+              placeholder="Select date or range"
+            />
+
+            <div className="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-1">
+              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Filter</button>
+              <button type="button" onClick={resetFilters} className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">
+                <ResetActionIcon className="size-[18px] shrink-0" />Reset Filter
+              </button>
+              <button
+                aria-label="Refresh traceability logs"
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                onClick={refetch}
+                title="Refresh"
+                type="button"
+              >
+                <span className="inline-flex size-[18px] items-center justify-center leading-none"><RefreshActionIcon /></span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <div className="mx-3 my-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs dark:border-white/[0.05] dark:bg-white/[0.03] sm:mx-4">
       <div className="border-b border-gray-100 px-4 py-4 dark:border-white/[0.05] sm:px-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
+          <div className="flex flex-wrap items-center gap-3">
             <label className="flex min-w-0 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
               <span className="shrink-0">Show</span>
               <select
@@ -150,71 +203,6 @@ export default function TraceabilityLogTable() {
               </select>
               <span className="shrink-0">entries</span>
             </label>
-
-            <select
-              className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm font-medium text-gray-800 outline-none focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-auto"
-              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-              value={statusFilter}
-            >
-              <option value="">All Status</option>
-              <option value="ok">Status OK</option>
-              <option value="ng">Status NG</option>
-            </select>
-
-            <div className="min-w-0 sm:col-span-2 lg:w-[230px]">
-              <DatePicker
-                className="h-10 px-3 py-2"
-                defaultDate={startDate && endDate ? [startDate, endDate] : startDate}
-                id="traceability-log-date-filter"
-                key={`traceability-log-date-filter-${datePickerKey}`}
-                mode="range"
-                onChange={(dates) => {
-                  if (dates.length > 1) {
-                    setStartDate(toDateFilterValue(dates[0]));
-                    setEndDate(toDateFilterValue(dates[1]));
-                  }
-                }}
-                onClose={(dates) => {
-                  if (dates.length === 0) {
-                    setStartDate("");
-                    setEndDate("");
-                    return;
-                  }
-
-                  setStartDate(toDateFilterValue(dates[0]));
-                  setEndDate(
-                    dates.length > 1 ? toDateFilterValue(dates[1]) : ""
-                  );
-                }}
-                placeholder="Select date or range"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                aria-label="Refresh traceability logs"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                onClick={refetch}
-                title="Refresh"
-                type="button"
-              >
-                <span className="inline-flex size-[18px] items-center justify-center leading-none">
-                  <RefreshActionIcon />
-                </span>
-              </button>
-
-              <button
-                aria-label="Reset traceability log filters"
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-600 leading-none transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                onClick={resetFilters}
-                title="Reset filters"
-                type="button"
-              >
-                <span className="inline-flex size-[18px] items-center justify-center leading-none">
-                  <ResetActionIcon />
-                </span>
-              </button>
-            </div>
           </div>
 
           <label className="flex min-w-0 flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300 sm:flex-row sm:items-center sm:gap-2">
@@ -417,7 +405,8 @@ export default function TraceabilityLogTable() {
           onClose={() => setIssueModal(null)}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

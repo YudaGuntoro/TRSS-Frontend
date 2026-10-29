@@ -17,6 +17,11 @@ import { ExcelFileIcon } from "./ExportFileIcons";
 
 const outlineButtonClassName = "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5";
 const unavailableMessage = "Stock in reports are not available yet. Please try again later.";
+const getStockInReportFilename = () => {
+  const now = new Date();
+  const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  return `stock_in_${date}.xlsx`;
+};
 
 const columns: DataTableColumn<StockInReportRow>[] = [
   { key: "issueNumber", header: "Issue Number", render: (_, row) => row.issueNumber || "-" },
@@ -35,7 +40,6 @@ export default function StockInReport() {
   const [endDate, setEndDate] = useState("");
   const [datePickerKey, setDatePickerKey] = useState(0);
   const [part, setPart] = useState<ReportPart | null>(null);
-  const [appliedPart, setAppliedPart] = useState<ReportPart | null>(null);
   const [validationError, setValidationError] = useState("");
   const [exportError, setExportError] = useState("");
   const [exporting, setExporting] = useState<StockInReportFormat | null>(null);
@@ -50,7 +54,6 @@ export default function StockInReport() {
       const filters = normalizeStockInReportFilters({ startDate, endDate, partId: part?.id });
       setValidationError("");
       setExportError("");
-      setAppliedPart(part);
       report.search(filters);
     } catch (error) {
       setValidationError(error instanceof Error ? error.message : "Please check the filters.");
@@ -62,7 +65,6 @@ export default function StockInReport() {
     setEndDate("");
     setDatePickerKey((current) => current + 1);
     setPart(null);
-    setAppliedPart(null);
     setValidationError("");
     setExportError("");
     report.reset();
@@ -80,7 +82,7 @@ export default function StockInReport() {
       const url = URL.createObjectURL(file);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "stock-in-report.xlsx";
+      link.download = getStockInReportFilename();
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -95,10 +97,6 @@ export default function StockInReport() {
     }
   };
 
-  const filters = report.query.filters;
-  const period = filters.startDate
-    ? filters.startDate === filters.endDate ? filters.startDate : `${filters.startDate} to ${filters.endDate}`
-    : filters.endDate ? `Through ${filters.endDate}` : "All dates";
   const exportsDisabled = report.isLoading || Boolean(report.error) || report.unavailable || report.pagination.total === 0 || exporting !== null;
 
   return (
@@ -116,7 +114,11 @@ export default function StockInReport() {
               defaultDate={endDate || undefined} onChange={onEndDateChange} />
             <ReportPartSelect value={part} onChange={setPart} />
             <div className="flex flex-wrap gap-3 sm:col-span-2 xl:col-span-1">
-              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">Search</button>
+              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">Filter</button>
+              <button type="button" disabled={exportsDisabled} onClick={() => exportReport("excel")}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#217346] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#185C37] disabled:cursor-not-allowed disabled:opacity-50">
+                <ExcelFileIcon />{exporting === "excel" ? "Exporting..." : "Export Excel"}
+              </button>
               <button type="button" onClick={reset} className={outlineButtonClassName}><ResetActionIcon className="size-[18px] shrink-0" />Reset Filter</button>
             </div>
           </fieldset>
@@ -125,9 +127,6 @@ export default function StockInReport() {
         </form>
       </section>
 
-      <div className="mx-4 mb-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-500 dark:text-gray-400"><span className="font-medium">Applied filters:</span> {period} · {appliedPart ? `${appliedPart.number} - ${appliedPart.name}` : "All parts"}</p>
-      </div>
       {exportError && <p role="alert" className="mx-4 mb-3 text-sm text-error-500">{exportError}</p>}
       {(report.unavailable || report.error) && (
         <div role={report.error ? "alert" : "status"} className="mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">
@@ -138,10 +137,6 @@ export default function StockInReport() {
       <div aria-busy={report.isLoading}>
         <DataTable columns={columns} data={report.data} rowKey="id" title="Incoming Stock"
           isLoading={report.isLoading} error={report.error}
-          actions={<div className="lg:ml-auto"><button type="button" disabled={exportsDisabled} onClick={() => exportReport("excel")}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#217346] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#185C37] disabled:cursor-not-allowed disabled:opacity-50">
-            <ExcelFileIcon />{exporting === "excel" ? "Exporting..." : "Export Excel"}
-          </button></div>}
           emptyMessage={report.unavailable ? unavailableMessage : "No stock in records match the applied filters."}
           pagination={report.pagination} onPageChange={report.setPage} onLimitChange={report.setLimit}
           minWidth="1100px" />
