@@ -8,6 +8,24 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.3.0-alpha.1] - 6 November 2026
+
+### Fitur Frontend
+
+- Menambahkan export list Excel pada Report Traceability untuk seluruh hasil sesuai filter tanggal yang diterapkan, termasuk data di halaman lain.
+
+### Perubahan UI/UX
+
+- Menambahkan tombol Export Excel pada card filter Traceability dengan tampilan seperti Report Stock In dan indikator Exporting selama unduhan diproses.
+- Menonaktifkan export saat data kosong, sedang dimuat, atau laporan gagal dimuat, serta menampilkan pesan jika export gagal.
+
+### Peningkatan Lainnya
+
+- Menggunakan endpoint export list Traceability dengan format Excel, validasi tipe konten XLSX, dan nama file `traceability_list_YYYYMMDD.xlsx`.
+- Membatalkan permintaan export list saat halaman ditutup dan mencegah permintaan export list ganda.
+
+---
+
 ## [v0.2.2-alpha.1] - 29 Oktober 2026
 
 ### Perubahan UI/UX

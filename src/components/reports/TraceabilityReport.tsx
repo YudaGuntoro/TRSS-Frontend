@@ -6,6 +6,8 @@ import DataTable, { type DataTableColumn } from "@/components/common/DataTable";
 import { useTraceabilityReport } from "@/hooks/useTraceabilityReport";
 import TraceabilityReportService, {
   getTraceabilityDetailExcelFilename,
+  getTraceabilityReportExcelFilename,
+  isTraceabilityReportUnavailable,
   normalizeTraceabilityReportFilters,
   type TraceabilityReportRow,
 } from "@/services/TraceabilityReportService";
@@ -23,6 +25,10 @@ export default function TraceabilityReport() {
   const [endDate, setEndDate] = useState("");
   const [datePickerKey, setDatePickerKey] = useState(0);
   const [validationError, setValidationError] = useState("");
+  const [exportError, setExportError] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const exportController = useRef<AbortController | null>(null);
+  useEffect(() => () => exportController.current?.abort(), []);
   const [exportingIds, setExportingIds] = useState<Set<number>>(() => new Set());
   const [rowErrors, setRowErrors] = useState<Record<number, string>>({});
   const exportControllers = useRef<Map<number, AbortController>>(new Map());
@@ -38,6 +44,7 @@ export default function TraceabilityReport() {
     try {
       const filters = normalizeTraceabilityReportFilters({ startDate, endDate });
       setValidationError("");
+      setExportError("");
       setRowErrors({});
       report.search(filters);
     } catch (error) {
@@ -50,9 +57,39 @@ export default function TraceabilityReport() {
     setEndDate("");
     setDatePickerKey((current) => current + 1);
     setValidationError("");
+    setExportError("");
     setRowErrors({});
     report.reset();
   };
+
+  const exportReport = async () => {
+    if (exportController.current || report.isLoading || report.error || report.unavailable || report.pagination.total === 0) return;
+    const controller = new AbortController();
+    exportController.current = controller;
+    setExporting(true);
+    setExportError("");
+    try {
+      const file = await TraceabilityReportService.exportReport(report.query.filters, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = getTraceabilityReportExcelFilename();
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      if (!controller.signal.aborted) setExportError(isTraceabilityReportUnavailable(error)
+        ? "Report export is not available yet. Please try again later."
+        : error instanceof Error ? error.message : "Failed to export report.");
+    } finally {
+      exportController.current = null;
+      if (!controller.signal.aborted) setExporting(false);
+    }
+  };
+
+  const exportsDisabled = report.isLoading || Boolean(report.error) || report.unavailable || report.pagination.total === 0 || exporting;
 
   const exportExcel = async (row: TraceabilityReportRow) => {
     if (!row.serialNumberClinching || row.serialNumberClinching === "-" || exportControllers.current.has(row.id)) return;
@@ -119,7 +156,7 @@ export default function TraceabilityReport() {
         <h3 className="text-base font-semibold text-gray-800 dark:text-white/90">Traceability Report</h3>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Finished goods with linked Clinching and M-Fan serial numbers.</p>
         <form onSubmit={search} className="mt-5" aria-label="Traceability report filters">
-          <fieldset className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-[repeat(2,minmax(0,260px))] lg:grid-cols-[repeat(2,minmax(0,260px))_auto]">
+          <fieldset disabled={exporting} className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-[repeat(2,minmax(0,260px))] lg:grid-cols-[repeat(2,minmax(0,260px))_auto]">
             <DatePicker id="traceability-report-start-date" key={`traceability-report-start-date-${datePickerKey}`}
               label="Start Date" placeholder="Select start date" className="h-10 px-3 py-2 pr-10"
               defaultDate={startDate || undefined} onChange={onStartDateChange} />
@@ -127,7 +164,11 @@ export default function TraceabilityReport() {
               label="End Date" placeholder="Select end date" className="h-10 px-3 py-2 pr-10"
               defaultDate={endDate || undefined} onChange={onEndDateChange} />
             <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-1">
-              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Filter</button>
+              <button type="submit" className="h-10 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50">Filter</button>
+              <button type="button" disabled={exportsDisabled} onClick={exportReport}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#217346] px-4 text-sm font-semibold text-white shadow-theme-xs transition-colors hover:bg-[#185C37] disabled:cursor-not-allowed disabled:opacity-50">
+                <ExcelFileIcon />{exporting ? "Exporting..." : "Export Excel"}
+              </button>
               <button type="button" onClick={reset} className={outlineButtonClassName}><ResetActionIcon className="size-[18px] shrink-0" />Reset Filter</button>
             </div>
           </fieldset>
@@ -136,13 +177,14 @@ export default function TraceabilityReport() {
         </form>
       </section>
 
+      {exportError && <p role="alert" className="mx-4 mb-3 text-sm text-error-500">{exportError}</p>}
       <div className="mx-4 mb-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-500 dark:text-gray-400"><span className="font-medium">Applied period:</span> {period}</p>
       </div>
       {(report.unavailable || report.error) && (
         <div role={report.error ? "alert" : "status"} className="mx-4 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-300">
           <span>{report.unavailable ? unavailableMessage : report.error}</span>
-          <button type="button" onClick={report.retry} className={outlineButtonClassName}>Retry</button>
+          <button type="button" disabled={exporting} onClick={report.retry} className={outlineButtonClassName}>Retry</button>
         </div>
       )}
       <div aria-busy={report.isLoading}>

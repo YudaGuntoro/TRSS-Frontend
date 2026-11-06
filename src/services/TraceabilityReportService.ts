@@ -41,6 +41,12 @@ export const normalizeTraceabilityReportFilters = (filters: TraceabilityReportFi
 export const isTraceabilityReportUnavailable = (error: unknown) =>
   error instanceof ApiError && [404, 405, 501].includes(error.status);
 
+export const getTraceabilityReportExcelFilename = () => {
+  const now = new Date();
+  const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  return `traceability_list_${date}.xlsx`;
+};
+
 export const getTraceabilityDetailExcelFilename = (serialNumber: string) => {
   const now = new Date();
   const date = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
@@ -65,6 +71,19 @@ const TraceabilityReportService = {
     });
     if (!response.data.success || !Array.isArray(response.data.data) || !response.data.pagination) {
       throw new Error(response.data.message || "The traceability report could not be loaded.");
+    }
+    return response.data;
+  },
+
+  exportReport: async (filters: TraceabilityReportFilters, options?: ApiRequestOptions) => {
+    const response = await api.get<Blob>(`${REPORT_PATH}/export`, {
+      ...options,
+      params: { ...normalizeTraceabilityReportFilters(filters), format: "excel" },
+      headers: { Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+      responseType: "blob",
+    });
+    if (!response.data.size || response.data.type.split(";")[0].toLowerCase() !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+      throw new Error("The report Excel file could not be downloaded. Please try again later.");
     }
     return response.data;
   },
