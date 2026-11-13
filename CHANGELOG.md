@@ -21,7 +21,7 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 - Memfokuskan input QR secara otomatis saat halaman dibuka dan setelah submit selesai.
 - Memuat issue number otomatis setelah scanner mengirim Enter atau Tab, maupun setelah input selesai tanpa akhiran; tombol Tampilkan Issue dihapus.
 - Menambahkan banner Silahkan scan, petunjuk format QR berwarna merah, ringkasan jumlah issue dan OK/NG, serta tampilan responsif untuk ponsel dan dark mode.
-- Mengubah akses Kelola Disposition pada History menjadi tombol sesuai tema website.
+- Menghapus tombol Kelola Disposition dari halaman History agar navigasi mengikuti alur Rework Tambah dan History.
 
 ### Perbaikan Bug
 
