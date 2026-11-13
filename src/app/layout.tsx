@@ -13,9 +13,9 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   icons: {
-    apple: "/images/logo/favicon.png",
-    icon: "/images/logo/favicon.png",
-    shortcut: "/images/logo/favicon.png",
+    apple: "/images/logo/trss-logo.png",
+    icon: "/images/logo/trss-logo.png",
+    shortcut: "/images/logo/trss-logo.png",
   },
 };
 

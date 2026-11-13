@@ -32,7 +32,7 @@ export default function AuthLayout({
                   <Image
                     width={180}
                     height={165}
-                    src="/images/logo/favicon.png"
+                    src="/images/logo/trss-logo.png"
                     alt="TRSS Logo"
                     className="h-auto w-[180px] object-contain"
                     priority

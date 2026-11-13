@@ -140,7 +140,7 @@ export default function SignInForm() {
           <Image
             width={52}
             height={52}
-            src="/images/logo/favicon.png"
+            src="/images/logo/trss-logo.png"
             alt="TRSS Logo"
             className="size-[52px] object-contain"
             priority

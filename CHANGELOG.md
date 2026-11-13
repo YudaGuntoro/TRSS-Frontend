@@ -8,6 +8,16 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.4.1-alpha.1] - 13 November 2026
+
+### Perubahan UI/UX
+
+- Mengganti logo TRSS pada halaman login, sidebar, dan header seluler dengan gambar PNG transparan terbaru.
+- Menggunakan logo terbaru untuk ikon browser, shortcut, dan Apple touch icon.
+- Menyamakan aset logo pada tampilan terang dan gelap.
+
+---
+
 ## [v0.4.0-alpha.1] - 13 November 2026
 
 ### Fitur Frontend
