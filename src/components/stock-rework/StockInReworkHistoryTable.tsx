@@ -38,7 +38,7 @@ const isFinalDisposition = (
 ): value is StockInReworkFinalDisposition =>
   value === "STOCK_IN" || value === "SCRAP";
 
-export default function StockInReworkHistoryTable() {
+export default function StockInReworkHistoryTable({ includePending = false }: { includePending?: boolean }) {
   const toast = useToast();
   const lastErrorRef = useRef<string | null>(null);
   const [serialNumberSearch, setSerialNumberSearch] = useState("");
@@ -57,7 +57,8 @@ export default function StockInReworkHistoryTable() {
     setPage,
     setQuery,
   } = useStockInReworks({
-    includeAllDispositions: true,
+    disposition: includePending ? "ALL" : "",
+    includeAllDispositions: !includePending,
     limit: 10,
     page: 1,
   });
@@ -102,7 +103,7 @@ export default function StockInReworkHistoryTable() {
       },
       {
         key: "count",
-        header: "Count",
+        header: "Jumlah Rework",
         accessor: (row) => row.count ?? row.qty,
         align: "right",
         width: "8%",
@@ -171,18 +172,20 @@ export default function StockInReworkHistoryTable() {
   );
 
   const historyData = useMemo(
-    () => data.filter((item) => isFinalDisposition(item.disposition)),
-    [data]
+    () => includePending ? data : data.filter((item) => isFinalDisposition(item.disposition)),
+    [data, includePending]
   );
 
   return (
     <DataTable
+      title={includePending ? `Hasil Rework — ${pagination?.total ?? 0} Issue Number` : undefined}
       actions={
         <div className="flex flex-wrap items-center gap-3">
           <input
             className={filterInputClassName}
             onChange={(event) => setSerialNumberSearch(event.target.value)}
-            placeholder="Search Serial Number"
+            aria-label="Cari serial number lengkap"
+            placeholder="Cari serial number lengkap"
             type="text"
             value={serialNumberSearch}
           />
@@ -192,12 +195,13 @@ export default function StockInReworkHistoryTable() {
             onChange={(event) =>
               setQuery({
                 disposition: event.target
-                  .value as StockInReworkFinalDisposition | "",
+                  .value as StockInReworkFinalDisposition | "ALL" | "",
               })
             }
             value={query.disposition}
           >
-            <option value="">All Dispositions</option>
+            <option value={includePending ? "ALL" : ""}>All Dispositions</option>
+            {includePending && <option value="">Pending</option>}
             <option value="STOCK_IN">Stock In</option>
             <option value="SCRAP">Scrap</option>
           </select>

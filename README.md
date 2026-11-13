@@ -43,6 +43,14 @@ Frontend untuk aplikasi TRSS Traceability System.
    http://localhost:3000
    ```
 
+## Menu Rework
+
+- **Tambah** (`/rework/tambah`): scan QR empat parameter, ambil serial number dari **parameter ke-3**, pilih OK atau NG untuk setiap issue, lalu submit seluruh daftar sekaligus.
+- Input QR otomatis aktif saat halaman dibuka dan setelah submit. Daftar issue dimuat otomatis setelah scan selesai, dengan atau tanpa akhiran Enter/Tab, tanpa tombol Tampilkan Issue.
+- Contoh QR: `PART-A;PART-B;SN-001;13112026`. Gunakan pemisah titik koma, koma, pipe, atau spasi secara konsisten. Strip dalam serial number tetap dipertahankan.
+- **History** (`/rework/history`): menampilkan data per issue number melalui API yang sudah ada, termasuk PENDING, STOCK_IN, dan SCRAP. Pencarian memakai serial number lengkap.
+- FE memakai endpoint BE yang sudah tersedia tanpa perubahan BE atau database. API saat ini mensyaratkan minimal satu issue berstatus NG. Riwayat per sesi submit dan QR mentah belum tersedia pada kontrak API tersebut. Hak akses mengikuti permission rework yang sudah tersedia.
+
 ## Menjalankan Production Build
 
 ```bash

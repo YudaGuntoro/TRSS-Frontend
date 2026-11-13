@@ -8,6 +8,34 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.4.0-alpha.1] - 13 November 2026
+
+### Fitur Frontend
+
+- Mengganti navigasi Stock In Rework menjadi dropdown Rework dengan halaman Tambah dan History sesuai hak akses pengguna.
+- Menampilkan daftar issue number dari hasil scan QR empat parameter dengan serial number pada parameter ke-3, lalu mengirim pilihan OK/NG seluruh issue melalui API yang sudah tersedia.
+- Menampilkan History per issue number, termasuk data PENDING, STOCK_IN, dan SCRAP, dengan pencarian serial number lengkap dan paginasi.
+
+### Perubahan UI/UX
+
+- Memfokuskan input QR secara otomatis saat halaman dibuka dan setelah submit selesai.
+- Memuat issue number otomatis setelah scanner mengirim Enter atau Tab, maupun setelah input selesai tanpa akhiran; tombol Tampilkan Issue dihapus.
+- Menambahkan banner Silahkan scan, petunjuk format QR berwarna merah, ringkasan jumlah issue dan OK/NG, serta tampilan responsif untuk ponsel dan dark mode.
+- Mengubah akses Kelola Disposition pada History menjadi tombol sesuai tema website.
+
+### Perbaikan Bug
+
+- Menggunakan ID serial number pada filter API agar pencarian Rework sesuai kontrak backend yang tersedia.
+- Mewajibkan pilihan status setiap issue, mencegah submit ganda, dan membatalkan pengambilan issue lama ketika QR diganti.
+- Menjelaskan pembatasan hasil seluruhnya OK sesuai validasi API yang sudah ada.
+
+### Peningkatan Lainnya
+
+- Mendukung pemisah QR titik koma, koma, pipe, dan spasi dengan validasi tepat empat parameter tanpa memecah strip pada serial number.
+- Menambahkan tujuh pengujian parser QR dan integrasi service Rework serta dokumentasi penggunaan menu Rework.
+
+---
+
 ## [v0.3.0-alpha.1] - 6 November 2026
 
 ### Fitur Frontend

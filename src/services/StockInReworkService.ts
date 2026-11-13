@@ -1,5 +1,6 @@
 import api, { ApiRequestOptions } from "@/utils/api";
 import { ApiListResponse } from "./ParameterService";
+import SerialNumberService from "./SerialNumberService";
 
 export type StockInReworkDisposition = "PENDING" | "STOCK_IN" | "SCRAP";
 export type StockInReworkFinalDisposition = Exclude<
@@ -69,11 +70,18 @@ const StockInReworkService = {
     query: StockInReworkQuery = {},
     options?: ApiRequestOptions
   ) => {
+    const serialNumberCode = query.serialNumberCode?.trim();
+    const serialNumberId = serialNumberCode
+      ? (await SerialNumberService.getSerialNumberByCode(serialNumberCode, options)).data?.id
+      : query.serialNumberId;
+    if (serialNumberCode && !serialNumberId) {
+      throw new Error("Serial number tidak ditemukan.");
+    }
     const response = await api.get<ApiListResponse<StockInRework>>(
       STOCK_IN_REWORK_ENDPOINT,
       {
         ...options,
-        params: normalizeQuery(query),
+        params: normalizeQuery({ ...query, serialNumberCode: undefined, serialNumberId }),
       }
     );
 

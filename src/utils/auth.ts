@@ -429,6 +429,14 @@ export const getRequiredPermission = (pathname: string): Permission => {
     return PERMISSIONS.PART_VIEW;
   }
 
+  if (pathname === "/rework/tambah" || pathname.startsWith("/rework/tambah/")) {
+    return PERMISSIONS.STOCK_IN_REWORK_CREATE;
+  }
+
+  if (pathname === "/rework" || pathname.startsWith("/rework/")) {
+    return PERMISSIONS.STOCK_IN_REWORK_VIEW;
+  }
+
   if (pathname.startsWith("/stock-in")) {
     return pathname.startsWith("/stock-in-rework")
       ? PERMISSIONS.STOCK_IN_REWORK_VIEW

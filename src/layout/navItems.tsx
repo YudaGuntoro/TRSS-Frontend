@@ -69,9 +69,19 @@ export const navItems: NavItem[] = [
   {
     icon: <RefreshIcon />,
     iconClassName: "text-amber-500 dark:text-amber-400",
-    name: "Stock In Rework",
-    path: "/stock-in-rework",
-    permission: PERMISSIONS.STOCK_IN_REWORK_VIEW,
+    name: "Rework",
+    subItems: [
+      {
+        name: "Tambah",
+        path: "/rework/tambah",
+        permission: PERMISSIONS.STOCK_IN_REWORK_CREATE,
+      },
+      {
+        name: "History",
+        path: "/rework/history",
+        permission: PERMISSIONS.STOCK_IN_REWORK_VIEW,
+      },
+    ],
   },
   {
     icon: <TimeIcon />,
