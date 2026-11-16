@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { PERMISSIONS } from "@/utils/auth";
 import { parseReworkQr } from "@/utils/reworkQr";
-import TraceabilityLogService from "@/services/TraceabilityLogService";
+import ProcessLogService from "@/services/ProcessLogService";
 import StockInReworkService from "@/services/StockInReworkService";
 
 type IssueRow = {
@@ -56,16 +56,17 @@ export default function ReworkCreateForm() {
     setSavedSerial("");
     setLoading(false);
     try {
-      const code = parseReworkQr(value);
+      const code = serialNumber && value.trim() === serialNumber ? serialNumber : parseReworkQr(value);
       setLoading(true);
-      const result = await TraceabilityLogService.getTraceabilityLogIssuesBySerialNumber(
-        code, false, { signal: controller.signal },
+      const result = await ProcessLogService.getIssuesBySerialNumber(
+        code, { signal: controller.signal },
       );
       if (controller.signal.aborted) return;
       if (!result.data?.issues.length) {
         throw new Error("Issue number tidak ditemukan. Pastikan serial number sudah selesai proses dan berstatus NG.");
       }
       setSerialNumber(result.data.serialNumber);
+      setQr(code);
       setIssues(result.data.issues.map((issue) => ({ ...issue, status: null })));
     } catch (scanError) {
       if (!controller.signal.aborted) {
@@ -135,7 +136,7 @@ export default function ReworkCreateForm() {
         </div>
         <div className="space-y-3 p-5 sm:p-6">
           <label htmlFor="rework-qr" className="block text-sm font-medium text-gray-700 dark:text-gray-300">QR label produksi</label>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex items-center gap-2">
             <input ref={inputRef} id="rework-qr" autoFocus autoComplete="off" spellCheck={false}
               value={qr} onChange={(event) => handleScanChange(event.target.value)}
               onKeyDown={(event) => {
@@ -144,11 +145,14 @@ export default function ReworkCreateForm() {
                   void loadIssues(event.currentTarget.value);
                 }
               }}
-              disabled={submitting || !canCreate} aria-describedby="rework-qr-help" aria-invalid={!!error}
+              disabled={submitting || !canCreate} aria-invalid={!!error}
               placeholder="Siap scan QR — daftar issue akan tampil otomatis"
-              className="h-12 min-w-0 flex-none rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-3 focus:ring-brand-500/10 disabled:opacity-50 dark:border-gray-700 dark:text-white/90 sm:flex-1" />
+              className="h-12 min-w-0 flex-1 rounded-xl border border-gray-300 bg-transparent px-4 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-3 focus:ring-brand-500/10 disabled:opacity-50 dark:border-gray-700 dark:text-white/90" />
+            <button type="button" onClick={resetScan} disabled={submitting || !canCreate}
+              className="h-12 shrink-0 rounded-xl border border-gray-300 px-3 text-sm font-medium text-gray-600 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-brand-500 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+              Clear
+            </button>
           </div>
-          <p id="rework-qr-help" className="text-xs font-medium text-error-600 dark:text-error-400">Contoh: PARAMETER1;PARAMETER2;SERIAL-NUMBER;PARAMETER4. Serial number diambil dari parameter ke-3. Pemisah yang didukung: titik koma (;), koma (,), pipe (|), atau spasi.</p>
           {!canCreate && <p role="alert" className="text-sm text-error-600">Anda tidak memiliki akses untuk menambah rework.</p>}
         </div>
       </section>

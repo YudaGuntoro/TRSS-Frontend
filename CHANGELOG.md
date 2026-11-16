@@ -8,6 +8,25 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.4.2-alpha.1] - 16 November 2026
+
+### Perubahan UI/UX
+
+- Menghapus petunjuk format QR di bawah input scan Rework.
+- Menampilkan hanya serial number dari parameter ke-4 pada input setelah scan berhasil.
+- Menambahkan tombol Clear berukuran kecil di samping input untuk mengosongkan scan, membatalkan permintaan issue yang berjalan, dan memfokuskan cursor kembali.
+
+### Perbaikan Bug
+
+- Mengambil serial number dari parameter ke-4 menggantikan parameter ke-3 pada QR empat parameter.
+- Menggunakan endpoint `GET /api/process-logs/get-issue-by-serial-number/{serialNumber}` untuk mengambil issue Rework sesuai kontrak backend terbaru.
+
+### Peningkatan Lainnya
+
+- Memperbarui pengujian parser QR dan dokumentasi menu Rework sesuai format scan terbaru.
+
+---
+
 ## [v0.4.1-alpha.1] - 13 November 2026
 
 ### Perubahan UI/UX

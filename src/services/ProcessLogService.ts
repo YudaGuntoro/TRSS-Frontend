@@ -2,6 +2,7 @@ import api, { ApiRequestOptions } from "@/utils/api";
 import { ApiListResponse } from "./ParameterService";
 import { MqttPublisherInfo } from "@/utils/mqttPublisher";
 import type { ScanHistoryEntry } from "@/utils/scanHistory";
+import type { TraceabilityLogIssues } from "./TraceabilityLogService";
 
 type MaybeCased<T extends string> = T | Capitalize<T>;
 
@@ -166,6 +167,17 @@ const normalizeProcessLog = (
 };
 
 const ProcessLogService = {
+  getIssuesBySerialNumber: async (serialNumber: string, options?: ApiRequestOptions) => {
+    const response = await api.get<{
+      success: boolean;
+      message: string;
+      data: TraceabilityLogIssues;
+    }>(
+      `${PROCESS_LOG_ENDPOINT}/get-issue-by-serial-number/${encodeURIComponent(serialNumber)}`,
+      options,
+    );
+    return response.data;
+  },
   getProcessLogDetail: async (serialNumber: string, options?: ApiRequestOptions) => {
     const response = await api.get<{ data: unknown }>(
       `${PROCESS_LOG_ENDPOINT}/by-serial-number/${encodeURIComponent(serialNumber)}`,
