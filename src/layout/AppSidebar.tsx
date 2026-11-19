@@ -13,14 +13,20 @@ import { useAuth } from "@/context/AuthContext";
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const pathname = usePathname();
   const isActive = (path: string) => path === pathname;
   const canShowSubmenu = isExpanded || isHovered || isMobileOpen;
+  const hasAllowedRole = (roles?: NavItem["roles"]) =>
+    !roles || (user?.role ? roles.includes(user.role) : false);
+
   const visibleNavItems = navItems
+    .filter((nav) => hasAllowedRole(nav.roles))
     .map((nav) => ({
       ...nav,
-      subItems: nav.subItems?.filter((subItem) => can(subItem.permission)),
+      subItems: nav.subItems?.filter(
+        (subItem) => can(subItem.permission) && hasAllowedRole(subItem.roles)
+      ),
     }))
     .filter((nav) =>
       nav.subItems

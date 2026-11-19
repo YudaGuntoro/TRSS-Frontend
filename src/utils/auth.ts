@@ -360,11 +360,23 @@ export const getAuthUserFromToken = (token: string | null): AuthUser | null => {
 export const getAuthUser = (): AuthUser | null =>
   getAuthUserFromToken(getAuthToken());
 
+const SUPERADMIN_ONLY_PERMISSIONS = new Set<Permission>([
+  PERMISSIONS.APP_CONFIGURATION_VIEW,
+  PERMISSIONS.APP_CONFIGURATION_CREATE,
+  PERMISSIONS.APP_CONFIGURATION_EDIT,
+  PERMISSIONS.APP_CONFIGURATION_DELETE,
+]);
+
 export const hasPermission = (
   role: UserRole | null | undefined,
   permission: Permission
 ) => {
   const effectiveRole = getEffectiveRole(role);
+
+  if (SUPERADMIN_ONLY_PERMISSIONS.has(permission)) {
+    return effectiveRole === ROLES.SUPERADMIN;
+  }
+
   const permissions = ROLE_PERMISSIONS[effectiveRole];
 
   return Boolean(
@@ -447,7 +459,12 @@ export const getRequiredPermission = (pathname: string): Permission => {
     return PERMISSIONS.USERS_VIEW;
   }
 
-  if (pathname.startsWith("/app-configuration")) {
+  if (
+    pathname.startsWith("/app-configuration") ||
+    pathname.startsWith("/validation-scan-config") ||
+    pathname.startsWith("/printer-config") ||
+    pathname.startsWith("/serial-number-config")
+  ) {
     return PERMISSIONS.APP_CONFIGURATION_VIEW;
   }
 

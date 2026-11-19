@@ -10,12 +10,13 @@ import {
   TimeIcon,
   UserIcon,
 } from "../icons/index";
-import { Permission, PERMISSIONS } from "@/utils/auth";
+import { Permission, PERMISSIONS, ROLES, UserRole } from "@/utils/auth";
 
 export type NavSubItem = {
   name: string;
   path: string;
   permission: Permission;
+  roles?: UserRole[];
   pro?: boolean;
   new?: boolean;
 };
@@ -26,6 +27,7 @@ export type NavItem = {
   iconClassName?: string;
   path?: string;
   permission?: Permission;
+  roles?: UserRole[];
   subItems?: NavSubItem[];
 };
 
@@ -148,8 +150,28 @@ export const navItems: NavItem[] = [
   {
     icon: <PlugInIcon />,
     iconClassName: "text-purple-500 dark:text-purple-400",
-    name: "App Configuration",
-    path: "/app-configuration",
+    name: "Configurations",
     permission: PERMISSIONS.APP_CONFIGURATION_VIEW,
+    roles: [ROLES.SUPERADMIN],
+    subItems: [
+      {
+        name: "Validation Scan",
+        path: "/validation-scan-config",
+        permission: PERMISSIONS.APP_CONFIGURATION_VIEW,
+        roles: [ROLES.SUPERADMIN],
+      },
+      {
+        name: "Printer & Label",
+        path: "/printer-config",
+        permission: PERMISSIONS.APP_CONFIGURATION_VIEW,
+        roles: [ROLES.SUPERADMIN],
+      },
+      {
+        name: "Serial Number",
+        path: "/serial-number-config",
+        permission: PERMISSIONS.APP_CONFIGURATION_VIEW,
+        roles: [ROLES.SUPERADMIN],
+      },
+    ],
   },
 ];
