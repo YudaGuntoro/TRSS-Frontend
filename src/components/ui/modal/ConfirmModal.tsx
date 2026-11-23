@@ -28,7 +28,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isLoading = false,
 }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[400px] p-6" showCloseButton={false}>
+    <Modal isOpen={isOpen} onClose={onClose} className="max-w-[440px] p-6" showCloseButton={false}>
       <div className="flex flex-col items-center justify-center text-center gap-4">
         <div
           className={`flex h-12 w-12 items-center justify-center rounded-full ${
@@ -52,12 +52,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </p>
           ) : null}
         </div>
-        <div className="mt-4 flex w-full justify-center gap-3">
+        <div className="mt-4 flex w-full flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            className="flex-1 whitespace-nowrap rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
           >
             {cancelText}
           </button>
@@ -65,7 +65,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${
+            className={`flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${
               isDestructive
                 ? "bg-error-500 hover:bg-error-600 focus:ring-error-500/50"
                 : "bg-brand-500 hover:bg-brand-600 focus:ring-brand-500/50"

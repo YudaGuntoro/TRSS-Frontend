@@ -210,6 +210,9 @@ export type TraceabilityLogIssueItem = {
 
 export type TraceabilityLogIssues = {
   serialNumber: string;
+  status?: boolean | null;
+  isFinished?: boolean | null;
+  source?: string | null;
   issues: TraceabilityLogIssueItem[];
 };
 

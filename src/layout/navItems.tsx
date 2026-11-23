@@ -74,7 +74,7 @@ export const navItems: NavItem[] = [
     name: "Rework",
     subItems: [
       {
-        name: "Tambah",
+        name: "Scan",
         path: "/rework/tambah",
         permission: PERMISSIONS.STOCK_IN_REWORK_CREATE,
       },

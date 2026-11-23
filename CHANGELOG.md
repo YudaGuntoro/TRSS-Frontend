@@ -8,6 +8,26 @@ Dokumen ini mencatat ringkasan fitur, perubahan UI/UX, perbaikan bug, dan pening
 
 ---
 
+## [v0.4.4-alpha.1] - 23 November 2026
+
+### Fitur Frontend
+
+- Menambahkan kolom `Action` dengan tombol `Set Disposition` (`Completed` jika sudah final) pada halaman Rework History beserta modal pemilihan tujuan (`Stock In` atau `Scrap (Rusak)`), penjelasan proses per pilihan, dan modal konfirmasi (`ConfirmModal`).
+- Menambahkan input `Catatan / Note` (opsional) per issue number pada halaman Scan Rework (`ReworkCreateForm`).
+
+### Perubahan UI/UX
+
+- Mengubah nama sub-menu Rework dari `Tambah` menjadi `Scan` serta menyesuaikan judul halaman menjadi `Scan Rework`.
+- Mengatur filter default pada halaman Rework History menjadi `Pending` dan menyembunyikan nomor issue `-R` untuk item yang berstatus `Scrap`.
+- Menampilkan kartu peringatan informasi di atas card scan dengan bahasa non-teknis ketika produk yang di-scan sudah berstatus selesai dan `OK` (tanpa kerusakan).
+- Mengganti inline alert sukses dan error pada halaman Scan Rework menjadi notifikasi `toast`, serta memastikan tombol `ConfirmModal` tampil satu baris (`whitespace-nowrap`).
+
+### Perbaikan Bug & Validasi
+
+- Mencegah scan ulang pada halaman Scan Rework apabila pasangan `Serial Number` dan `Issue Number` sudah terdaftar di data rework.
+
+---
+
 ## [v0.4.2-alpha.1] - 16 November 2026
 
 ### Perubahan UI/UX
